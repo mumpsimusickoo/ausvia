@@ -1,0 +1,18 @@
+{% macro render_field(field, extra_classes="") %}
+<div class="mb-4">
+  <label for="{{ field.id }}" class="block text-sm font-medium text-slate-700 mb-1">{{ field.label.text }}</label>
+  {{ field(class_="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 " ~ extra_classes) }}
+  {% if field.errors %}
+    {% for error in field.errors %}
+    <p class="mt-1 text-xs text-red-600">{{ error }}</p>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_checkbox(field) %}
+<div class="mb-4 flex items-center gap-2">
+  {{ field(class_="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500") }}
+  <label for="{{ field.id }}" class="text-sm text-slate-700">{{ field.label.text }}</label>
+</div>
+{% endmacro %}

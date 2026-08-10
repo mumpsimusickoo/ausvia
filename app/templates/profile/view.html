@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field, render_checkbox %}
+{% block title %}Candidate Profile — Ausbildung Career Agent{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Candidate Profile</h1>
+<p class="mt-1 text-sm text-slate-600 mb-6">This is the single source of truth the AI will use when generating anything on your behalf. Nothing is invented beyond what's here.</p>
+
+<div class="space-y-6">
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Personal information</h2>
+    <form method="post" action="{{ url_for('profile.update_personal') }}">
+      {{ personal_form.hidden_tag() }}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {{ render_field(personal_form.first_name) }}
+        {{ render_field(personal_form.last_name) }}
+        {{ render_field(personal_form.date_of_birth) }}
+        {{ render_field(personal_form.nationality) }}
+        {{ render_field(personal_form.address) }}
+        {{ render_field(personal_form.city) }}
+        {{ render_field(personal_form.postal_code) }}
+        {{ render_field(personal_form.country) }}
+        {{ render_field(personal_form.phone) }}
+        {{ render_field(personal_form.contact_email) }}
+      </div>
+      <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save</button>
+    </form>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Education</h2>
+    {% for edu in profile.education_entries %}
+    <div class="flex items-start justify-between border-b border-slate-100 py-3 last:border-0">
+      <div>
+        <p class="font-medium text-slate-900">{{ edu.degree or "—" }} {% if edu.field %}· {{ edu.field }}{% endif %}</p>
+        <p class="text-sm text-slate-600">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</p>
+        <p class="text-xs text-slate-400">{{ edu.start_date or "?" }} – {{ edu.end_date or "present" }}</p>
+      </div>
+      <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}">
+        {{ education_form.csrf_token }}
+        <button type="submit" class="text-xs font-medium text-red-600 hover:underline">Remove</button>
+      </form>
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-500 mb-3">No education entries yet.</p>
+    {% endfor %}
+    <details class="mt-4">
+      <summary class="cursor-pointer text-sm font-medium text-brand-700">Add education entry</summary>
+      <form method="post" action="{{ url_for('profile.add_education') }}" class="mt-4">
+        {{ education_form.hidden_tag() }}
+        <div class="grid gap-4 sm:grid-cols-2">
+          {{ render_field(education_form.institution) }}
+          {{ render_field(education_form.degree) }}
+          {{ render_field(education_form.field) }}
+          {{ render_field(education_form.country) }}
+          {{ render_field(education_form.start_date) }}
+          {{ render_field(education_form.end_date) }}
+        </div>
+        {{ render_field(education_form.description) }}
+        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Experience</h2>
+    {% for exp in profile.experience_entries %}
+    <div class="flex items-start justify-between border-b border-slate-100 py-3 last:border-0">
+      <div>
+        <p class="font-medium text-slate-900">{{ exp.role or "—" }}</p>
+        <p class="text-sm text-slate-600">{{ exp.company }}</p>
+        <p class="text-xs text-slate-400">{{ exp.start_date or "?" }} – {{ exp.end_date or "present" }}</p>
+      </div>
+      <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}">
+        {{ experience_form.csrf_token }}
+        <button type="submit" class="text-xs font-medium text-red-600 hover:underline">Remove</button>
+      </form>
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-500 mb-3">No experience entries yet.</p>
+    {% endfor %}
+    <details class="mt-4">
+      <summary class="cursor-pointer text-sm font-medium text-brand-700">Add experience entry</summary>
+      <form method="post" action="{{ url_for('profile.add_experience') }}" class="mt-4">
+        {{ experience_form.hidden_tag() }}
+        <div class="grid gap-4 sm:grid-cols-2">
+          {{ render_field(experience_form.company) }}
+          {{ render_field(experience_form.role) }}
+          {{ render_field(experience_form.start_date) }}
+          {{ render_field(experience_form.end_date) }}
+        </div>
+        {{ render_field(experience_form.responsibilities) }}
+        {{ render_field(experience_form.achievements) }}
+        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Skills</h2>
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% for skill in profile.skills %}
+      <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm">
+        {{ skill.name }}{% if skill.proficiency %} <span class="text-slate-400">· {{ skill.proficiency }}</span>{% endif %}
+        <form method="post" action="{{ url_for('profile.delete_skill', entry_id=skill.id) }}" class="inline">
+          {{ skill_form.csrf_token }}
+          <button type="submit" class="text-slate-400 hover:text-red-600" aria-label="Remove skill">&times;</button>
+        </form>
+      </span>
+      {% else %}
+      <p class="text-sm text-slate-500">No skills added yet.</p>
+      {% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('profile.add_skill') }}" class="flex flex-wrap items-end gap-3">
+      {{ skill_form.hidden_tag() }}
+      <div>{{ render_field(skill_form.name) }}</div>
+      <div>{{ render_field(skill_form.proficiency) }}</div>
+      <button type="submit" class="mb-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+    </form>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Languages</h2>
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% for lang in profile.languages %}
+      <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm">
+        {{ lang.name }}{% if lang.level %} <span class="text-slate-400">· {{ lang.level }}</span>{% endif %}
+        <form method="post" action="{{ url_for('profile.delete_language', entry_id=lang.id) }}" class="inline">
+          {{ language_form.csrf_token }}
+          <button type="submit" class="text-slate-400 hover:text-red-600" aria-label="Remove language">&times;</button>
+        </form>
+      </span>
+      {% else %}
+      <p class="text-sm text-slate-500">No languages added yet.</p>
+      {% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('profile.add_language') }}" class="flex flex-wrap items-end gap-3">
+      {{ language_form.hidden_tag() }}
+      <div>{{ render_field(language_form.name) }}</div>
+      <div>{{ render_field(language_form.level) }}</div>
+      <button type="submit" class="mb-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+    </form>
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-6">
+    <h2 class="font-semibold text-slate-900 mb-4">Ausbildung preferences</h2>
+    <form method="post" action="{{ url_for('profile.update_preferences') }}">
+      {{ preference_form.hidden_tag() }}
+      <div class="grid gap-4 sm:grid-cols-2">
+        {{ render_field(preference_form.fields) }}
+        {{ render_field(preference_form.locations) }}
+        {{ render_field(preference_form.desired_start_date) }}
+        {{ render_field(preference_form.min_german_level) }}
+        {{ render_field(preference_form.max_distance_km) }}
+      </div>
+      {{ render_checkbox(preference_form.open_to_relocation) }}
+      {{ render_field(preference_form.other_notes) }}
+      <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save preferences</button>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

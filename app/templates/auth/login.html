@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field, render_checkbox %}
+{% block title %}Log in — Ausbildung Career Agent{% endblock %}
+{% block public_content %}
+<section class="mx-auto max-w-sm px-4 py-16 md:px-0">
+  <h1 class="text-2xl font-bold text-slate-900 mb-1">Log in</h1>
+  <p class="text-sm text-slate-600 mb-6">Welcome back.</p>
+  <form method="post" class="rounded-xl border border-slate-200 bg-white p-6">
+    {{ form.hidden_tag() }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.password) }}
+    {{ render_checkbox(form.remember_me) }}
+    <button type="submit" class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+      Log in
+    </button>
+  </form>
+  <div class="mt-4 flex justify-between text-sm">
+    <a href="{{ url_for('auth.register') }}" class="text-brand-700 hover:underline">Activate access code</a>
+    <a href="{{ url_for('auth.request_reset') }}" class="text-slate-500 hover:underline">Forgot password?</a>
+  </div>
+</section>
+{% endblock %}

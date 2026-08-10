@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Users — Admin{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Users</h1>
+<section class="mt-6 rounded-xl border border-slate-200 bg-white">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
+        <th class="px-5 py-3">Email</th>
+        <th class="px-5 py-3">Role</th>
+        <th class="px-5 py-3">Plan</th>
+        <th class="px-5 py-3">Status</th>
+        <th class="px-5 py-3">Joined</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-5 py-3 font-medium text-slate-900">{{ user.email }}</td>
+        <td class="px-5 py-3 text-slate-600">{{ user.role }}</td>
+        <td class="px-5 py-3 text-slate-600">{{ user.plan }}</td>
+        <td class="px-5 py-3">
+          {% if user.is_active %}<span class="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Active</span>
+          {% else %}<span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">Inactive</span>{% endif %}
+        </td>
+        <td class="px-5 py-3 text-slate-600">{{ user.created_at.strftime('%d %b %Y') }}</td>
+        <td class="px-5 py-3 text-right">
+          {% if user.id != current_user.id %}
+          <form method="post" action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="text-xs font-medium text-brand-700 hover:underline">
+              {{ "Deactivate" if user.is_active else "Activate" }}
+            </button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

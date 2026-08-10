@@ -1,66 +1,94 @@
-# Ausbildung Finder
+# Ausbildung Career Agent
 
-A local web app that:
-1. Searches Ausbildung (apprenticeship) postings from the Bundesagentur für Arbeit's public API
-2. Generates a customized cover letter per posting
-3. Merges it with your CV + diploma + translated papers into one PDF
-4. Creates a **Gmail draft** with that PDF attached — it never sends automatically
+An AI-assisted platform to help international applicants find, prepare for, and
+track Ausbildung (apprenticeship) applications in Germany. This is being built
+in phases; see `PROJECT_STATUS.md` (created after each phase) for what's live.
+
+## Architecture
+
+- **Backend:** Flask (application factory + blueprints), SQLAlchemy ORM, Flask-Migrate (Alembic)
+- **Auth:** Flask-Login sessions, Werkzeug password hashing, access-code-gated registration, CSRF via Flask-WTF, rate limiting via Flask-Limiter
+- **Database:** SQLite by default (`instance/app.db`), swappable to PostgreSQL via `DATABASE_URL` with zero code changes
+- **Storage:** local filesystem behind a `StorageProvider` abstraction (`app/documents/storage.py`) — swappable for cloud object storage later
+- **AI:** provider-agnostic abstraction (built out from Phase 3 onward) with a mock implementation so the app works with no API key configured
+- **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
+
+The legacy prototype scripts (`jobsearch.py`, `coverletter.py`, `pdfmerge.py`,
+`gmail_client.py`) still work standalone and contain real, working integrations
+(Bundesagentur für Arbeit Jobsuche API, Gmail draft creation, PDF merging).
+They'll be wrapped into the new job-source-adapter and AI-generation
+architecture in later phases rather than rewritten from scratch.
 
 ## 1. Install
 
-```bash
+```powershell
 cd ausbildung-finder
-python3 -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
+python -m venv venv        # already present in this repo
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## 2. Set up Gmail access (one-time, ~5 minutes)
+## 2. Configure environment
 
-Google requires this to come from your own account — I can't do it for you.
+```powershell
+copy .env.example .env
+```
 
-1. Go to https://console.cloud.google.com/ and create a new project (any name).
-2. Go to **APIs & Services → Library**, search "Gmail API", click **Enable**.
-3. Go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in
-   the required fields (app name, your email). Add yourself as a **test user**.
-4. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
-   Choose application type **Desktop app**. Create it, then click **Download JSON**.
-5. Rename the downloaded file to `credentials.json` and put it in this project
-   folder (same folder as `app.py`).
+Edit `.env` if needed — every value has a safe local-dev default. `SECRET_KEY`
+must be set explicitly in production (there's no insecure fallback for that
+config).
 
-The first time you create a draft, a browser tab will open asking you to log in
-and approve access — this creates `token.json` so you won't need to repeat it.
-The app only requests the `gmail.compose` permission, which lets it create
-drafts but **cannot send email or read your inbox**.
+## 3. Set up the database
 
-## 3. Run it
+```powershell
+$env:FLASK_APP = "app.py"
+flask db upgrade      # creates instance/app.db and applies all migrations
+flask seed            # creates a first admin account + invitation codes for local testing
+```
 
-```bash
+`flask seed` prints the generated admin email/password and two invitation
+codes (one `admin`, one `trial`) to the console — nowhere else. Change the
+admin password after your first login.
+
+## 4. Run it
+
+```powershell
 python app.py
 ```
 
-Open http://127.0.0.1:5050 in your browser.
+Open http://127.0.0.1:5050. Use the printed access code to register, or log
+in directly as the seeded admin.
 
-## 4. Use it
+## 5. Run tests
 
-1. **Profile & Setup** tab: fill in your details, upload your CV, diploma, and
-   translated papers (all PDF), set your search keywords and location.
-2. **Search & Draft** tab: see matched postings, click into one, review/edit
-   the generated cover letter, enter the company's application email, and
-   click "Build PDF & create Gmail draft".
-3. Open Gmail → Drafts, review the attached PDF and text, and hit Send yourself.
+```powershell
+pytest
+```
 
-## Notes / things worth knowing
+Covers auth/access-code flows, profile CRUD and cross-user ownership checks,
+document upload validation (content-sniffing, not just extension) and
+cross-user access, and admin authorization boundaries.
 
-- The job search API field names (`titel`, `arbeitgeber`, etc.) are based on
-  the current public Jobsuche API. If results ever come back empty/broken,
-  it likely means the API changed slightly — open `jobsearch.py`, add a
-  `print(data)` in `search_ausbildung()` to see the raw response, and adjust
-  the field names.
-- Company application emails aren't always in the API response — you'll often
-  need to check the posting on arbeitsagentur.de or the company site and paste
-  the email in manually. A future improvement could scrape it automatically.
-- The cover letter template in `coverletter.py` is a solid generic starting
-  point — edit `DEFAULT_TEMPLATE` to sound more like you.
-- Everything (profile, uploaded files, generated PDFs) stays local on your
-  machine in the `uploads/` and `generated/` folders.
+## 6. (Optional) Gmail draft creation
+
+Used by the existing `gmail_client.py` module (wired into the UI in a later
+phase). Google requires this to come from your own account.
+
+1. Go to https://console.cloud.google.com/ and create a new project.
+2. **APIs & Services → Library** → enable "Gmail API".
+3. **APIs & Services → OAuth consent screen** → External, add yourself as a test user.
+4. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → **Desktop app** → download the JSON.
+5. Rename it to `credentials.json` and put it in the project root.
+
+The app only ever requests the `gmail.compose` scope — it can create drafts
+but can never send email or read your inbox.
+
+## Notes
+
+- Everything (database, uploaded documents, generated files) stays local on
+  your machine under `instance/`, `uploads/`, and `generated/`.
+- `uploads/` and `generated/` are per-user-scoped on disk (`uploads/<user_id>/...`)
+  and every document route checks ownership server-side — a user can't reach
+  another user's document by guessing an ID.
+- Uploaded files are validated by both extension and content signature (magic
+  bytes), not just filename, and capped at 15 MB.

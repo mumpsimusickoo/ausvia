@@ -1,0 +1,69 @@
+import random
+import string
+
+from app.extensions import db
+from app.models.user import utcnow
+
+CODE_TYPES = ("trial", "standard", "premium", "admin")
+
+# Generation limits by plan, applied at redemption time (Phase 3+ AI usage tracking
+# enforces these; stored here so the limit travels with the code/plan).
+PLAN_AI_LIMITS = {
+    "trial": 10,
+    "standard": 100,
+    "premium": 1000,
+    "admin": None,  # unlimited
+}
+
+
+def generate_code():
+    """Generates a code like A7K9-XP42-QM8L. Excludes ambiguous chars (0/O, 1/I)."""
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    groups = ["".join(random.choices(alphabet, k=4)) for _ in range(3)]
+    return "-".join(groups)
+
+
+class InvitationCode(db.Model):
+    __tablename__ = "invitation_codes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(32), unique=True, nullable=False, index=True)
+
+    code_type = db.Column(db.String(20), nullable=False, default="trial")
+    max_uses = db.Column(db.Integer, nullable=False, default=1)
+    use_count = db.Column(db.Integer, nullable=False, default=0)
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    redemptions = db.relationship(
+        "CodeRedemption", back_populates="code", cascade="all, delete-orphan"
+    )
+
+    def is_valid(self):
+        if not self.is_active:
+            return False, "This access code has been deactivated."
+        if self.expires_at and self.expires_at < utcnow():
+            return False, "This access code has expired."
+        if self.use_count >= self.max_uses:
+            return False, "This access code has already been used the maximum number of times."
+        return True, None
+
+    def __repr__(self):
+        return f"<InvitationCode {self.code}>"
+
+
+class CodeRedemption(db.Model):
+    __tablename__ = "code_redemptions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    code_id = db.Column(db.Integer, db.ForeignKey("invitation_codes.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    redeemed_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    code = db.relationship("InvitationCode", back_populates="redemptions")
+    user = db.relationship("User")

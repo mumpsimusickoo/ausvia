@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Ausbildung Career Agent{% endblock %}
+{% block public_content %}
+<section class="mx-auto max-w-5xl px-4 py-20 md:px-8 text-center">
+  <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+    For international Ausbildung applicants
+  </span>
+  <h1 class="mt-6 text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
+    Find, prepare, and track your<br class="hidden md:block"> Ausbildung applications in Germany
+  </h1>
+  <p class="mt-5 text-lg text-slate-600 max-w-2xl mx-auto">
+    One profile, AI-assisted matching, personalized German application documents,
+    and a complete application tracker — built for candidates who are still
+    learning the system and the language.
+  </p>
+  <div class="mt-8 flex items-center justify-center gap-3">
+    <a href="{{ url_for('auth.register') }}" class="rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+      Activate access code
+    </a>
+    <a href="{{ url_for('auth.login') }}" class="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+      Log in
+    </a>
+  </div>
+</section>
+<section class="mx-auto max-w-5xl px-4 pb-20 md:px-8">
+  <div class="grid gap-4 md:grid-cols-3">
+    {% for title, body in [
+      ("Build one profile", "Education, experience, skills, languages and preferences — the single source of truth every generated document is based on."),
+      ("Understand every opportunity", "Transparent, explainable match scores instead of a black-box AI guess."),
+      ("Keep control", "Nothing is ever sent automatically. You review and approve every application before it goes out."),
+    ] %}
+    <div class="rounded-xl border border-slate-200 bg-white p-6">
+      <h3 class="font-semibold text-slate-900">{{ title }}</h3>
+      <p class="mt-2 text-sm text-slate-600">{{ body }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

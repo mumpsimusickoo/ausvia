@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}Reset password — Ausbildung Career Agent{% endblock %}
+{% block public_content %}
+<section class="mx-auto max-w-sm px-4 py-16 md:px-0">
+  <h1 class="text-2xl font-bold text-slate-900 mb-1">Reset your password</h1>
+  <p class="text-sm text-slate-600 mb-6">We'll generate a one-time reset link.</p>
+  <form method="post" class="rounded-xl border border-slate-200 bg-white p-6">
+    {{ form.hidden_tag() }}
+    {{ render_field(form.email) }}
+    <button type="submit" class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+      Generate reset link
+    </button>
+  </form>
+  {% if reset_link %}
+  <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+    <p class="font-semibold mb-1">Development mode — no email provider is configured</p>
+    <p class="mb-2">Normally this link would be emailed to you. For now, here it is directly:</p>
+    <a href="{{ reset_link }}" class="break-all text-brand-700 underline">{{ reset_link }}</a>
+    <p class="mt-2 text-xs">Valid for 1 hour.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
