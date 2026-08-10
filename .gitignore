@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
+*.sqlite3
+instance/
+uploads/
+generated/
+credentials.json
+token.json
+profile.json
+node_modules/
+.DS_Store

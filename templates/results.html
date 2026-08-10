@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Found {{ results|length }} Ausbildung postings</h1>
+{% if not results %}
+  <p class="muted">No results. Try broader keywords or check your profile settings.</p>
+{% endif %}
+{% for r in results %}
+  <div class="card">
+    <strong>{{ r.title }}</strong><br>
+    <span class="muted">{{ r.company }} — {{ r.location }}</span><br>
+    <a href="/draft/{{ r.refnr }}">Generate cover letter & create Gmail draft →</a>
+  </div>
+{% endfor %}
+{% endblock %}

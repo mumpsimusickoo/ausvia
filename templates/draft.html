@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ posting.title }} — {{ posting.company }}</h1>
+<p class="muted">Edit the letter below if needed, add the recipient email, then create the Gmail draft. Nothing gets sent automatically — you review and hit Send yourself in Gmail.</p>
+<form method="post">
+  <label>Recipient email</label>
+  <input type="email" name="to_email" placeholder="bewerbung@company.de" required>
+
+  <label>Cover letter (editable)</label>
+  <textarea name="letter_text">{{ letter_text }}</textarea>
+
+  <button type="submit">Build PDF & create Gmail draft</button>
+</form>
+{% endblock %}

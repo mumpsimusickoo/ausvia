@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Your profile</h1>
+<form method="post" enctype="multipart/form-data">
+  <label>Full name</label>
+  <input type="text" name="your_name" value="{{ profile.get('your_name','') }}">
+
+  <label>Address</label>
+  <input type="text" name="your_address" value="{{ profile.get('your_address','') }}">
+
+  <label>Email</label>
+  <input type="email" name="your_email" value="{{ profile.get('your_email','') }}">
+
+  <label>Phone</label>
+  <input type="text" name="your_phone" value="{{ profile.get('your_phone','') }}">
+
+  <label>City (for letter header)</label>
+  <input type="text" name="city" value="{{ profile.get('city','') }}">
+
+  <label>Field of study (used in letter text)</label>
+  <input type="text" name="study_field" value="{{ profile.get('study_field','') }}" placeholder="Mechatronik / Automatisierungstechnik">
+
+  <label>Keywords describing your interests (used in letter text)</label>
+  <input type="text" name="field_keywords" value="{{ profile.get('field_keywords','') }}" placeholder="Automatisierung, Robotik, Elektronik">
+
+  <h1>Search settings</h1>
+  <label>Search keywords (used to query job postings)</label>
+  <input type="text" name="search_keywords" value="{{ profile.get('search_keywords','') }}" placeholder="Elektroniker für Automatisierungstechnik">
+
+  <label>Location (leave empty for all of Germany)</label>
+  <input type="text" name="search_location" value="{{ profile.get('search_location','') }}" placeholder="e.g. Berlin">
+
+  <h1>Documents</h1>
+  <label>CV (PDF) {% if profile.get('cv_path') %}<span class="muted">- already uploaded</span>{% endif %}</label>
+  <input type="file" name="cv" accept="application/pdf">
+
+  <label>Diploma (PDF) {% if profile.get('diploma_path') %}<span class="muted">- already uploaded</span>{% endif %}</label>
+  <input type="file" name="diploma" accept="application/pdf">
+
+  <label>Translated papers (PDF, you can select multiple) {% if profile.get('translations_paths') %}<span class="muted">- already uploaded</span>{% endif %}</label>
+  <input type="file" name="translations" accept="application/pdf" multiple>
+
+  <button type="submit">Save profile</button>
+</form>
+{% endblock %}
