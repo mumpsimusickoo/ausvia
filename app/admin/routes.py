@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, InvitationCode, SystemLog, Document, Job, JobSourceSetting
+from app.models import User, InvitationCode, SystemLog, Document, Job, JobSourceSetting, AIUsage
 from app.models.access_code import generate_code
 from app.utils.logging import log_event
 from app.admin.forms import CreateCodeForm
@@ -117,3 +117,14 @@ def toggle_job_source(setting_id):
     )
     flash(f"{setting.display_name} {'enabled' if setting.is_enabled else 'disabled'}.", "success")
     return redirect(url_for("admin.job_sources"))
+
+
+@bp.route("/ai-usage")
+def ai_usage():
+    entries = AIUsage.query.order_by(AIUsage.created_at.desc()).limit(100).all()
+    totals = {
+        "calls": AIUsage.query.count(),
+        "input_tokens": db.session.query(db.func.coalesce(db.func.sum(AIUsage.input_tokens), 0)).scalar(),
+        "output_tokens": db.session.query(db.func.coalesce(db.func.sum(AIUsage.output_tokens), 0)).scalar(),
+    }
+    return render_template("admin/ai_usage.html", entries=entries, totals=totals)

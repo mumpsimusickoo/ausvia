@@ -39,12 +39,20 @@
           {% endfor %}
         </div>
       </div>
-      <form method="post" action="{{ url_for('jobs.save', job_id=job.id) if job.id not in saved_job_ids else url_for('jobs.unsave', job_id=job.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="text-sm font-medium {% if job.id in saved_job_ids %}text-slate-500{% else %}text-brand-700{% endif %} hover:underline">
-          {{ "Saved ✓" if job.id in saved_job_ids else "Save" }}
-        </button>
-      </form>
+      <div class="flex flex-col items-end gap-2">
+        {% set m = match_by_job_id.get(job.id) %}
+        {% if m and m.score is not none %}
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold {% if m.score >= 80 %}bg-green-100 text-green-700{% elif m.score >= 60 %}bg-brand-50 text-brand-700{% elif m.score >= 40 %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+          {{ m.score }}/100 match
+        </span>
+        {% endif %}
+        <form method="post" action="{{ url_for('jobs.save', job_id=job.id) if job.id not in saved_job_ids else url_for('jobs.unsave', job_id=job.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="text-sm font-medium {% if job.id in saved_job_ids %}text-slate-500{% else %}text-brand-700{% endif %} hover:underline">
+            {{ "Saved ✓" if job.id in saved_job_ids else "Save" }}
+          </button>
+        </form>
+      </div>
     </div>
     {% endfor %}
   </div>

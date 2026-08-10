@@ -11,6 +11,7 @@ from app.models.profile import (
 from app.models.document import Document
 from app.models.system_log import SystemLog
 from app.models.job import Company, Job, JobListing, SavedJob, JobSourceSetting
+from app.models.ai import JobMatch, AIUsage
 
 __all__ = [
     "User",
@@ -29,4 +30,6 @@ __all__ = [
     "JobListing",
     "SavedJob",
     "JobSourceSetting",
+    "JobMatch",
+    "AIUsage",
 ]

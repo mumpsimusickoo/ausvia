@@ -10,7 +10,7 @@ in phases; see `PROJECT_STATUS.md` (created after each phase) for what's live.
 - **Auth:** Flask-Login sessions, Werkzeug password hashing, access-code-gated registration, CSRF via Flask-WTF, rate limiting via Flask-Limiter
 - **Database:** SQLite by default (`instance/app.db`), swappable to PostgreSQL via `DATABASE_URL` with zero code changes
 - **Storage:** local filesystem behind a `StorageProvider` abstraction (`app/documents/storage.py`) — swappable for cloud object storage later
-- **AI:** provider-agnostic abstraction (built out from Phase 3 onward) with a mock implementation so the app works with no API key configured
+- **AI:** provider-agnostic abstraction (`app/ai/provider.py`) with a mock implementation (default) and a real Anthropic implementation — set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to enable it, otherwise the app runs fully rule-based with no credentials
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
 
 The legacy prototype scripts (`coverletter.py`, `pdfmerge.py`, `gmail_client.py`)
@@ -41,6 +41,28 @@ wrapped by `app/jobs/adapters/arbeitsagentur.py` as the first `JobSourceAdapter`
   normal network, check the raw response shape and adjust
   `app/jobs/adapters/arbeitsagentur.py`. Manual import doesn't depend on this
   and was verified working end-to-end.
+
+## AI matching (Phase 3)
+
+- **The match score is never an AI guess.** `app/ai/matching.py` computes it
+  deterministically in plain Python from the candidate profile vs. the job's
+  actual listed skills/language requirements/education/location/start date —
+  the same score, strengths, and gaps display identically whether or not any
+  AI provider is configured. This is intentional per the product's core rule:
+  AI explains and suggests, it never invents or decides the facts.
+- **AI provider abstraction** (`app/ai/provider.py` + `app/ai/providers/`):
+  `MockAIProvider` (default, zero cost/credentials, returns an honest "AI
+  narrative not available" message rather than faking one) and
+  `AnthropicProvider` (real, only active when `AI_PROVIDER=anthropic` and
+  `ANTHROPIC_API_KEY` are set). Optional AI-written narrative explanations and
+  "how to improve your fit" tips are generated only from the already-computed
+  structured match data (`app/ai/prompts/narrative.py`) — never from raw
+  scraped job text — which also keeps prompt-injection surface minimal.
+- **Caching + cost tracking:** match results are cached per (user, job) and
+  only recomputed when the candidate profile changes since (`JobMatch` model);
+  AI narrative/tips are generated once and cached alongside it. Every real
+  (non-mock) AI call's token usage is logged to `AIUsage` and visible at
+  `/admin/ai-usage` — mock calls are never logged, since they cost nothing.
 
 ## 1. Install
 
@@ -91,8 +113,10 @@ pytest
 Covers auth/access-code flows, profile CRUD and cross-user ownership checks,
 document upload validation (content-sniffing, not just extension) and
 cross-user access, admin authorization boundaries, duplicate-detection
-heuristics, and job search/import/save flows (adapter calls are mocked in
-tests — no test hits the real Jobsuche API).
+heuristics, job search/import/save flows, deterministic match scoring across
+multiple profile/job scenarios, and AI provider selection/fallback/error
+handling (a fake provider is injected in tests — no test calls the real
+Anthropic API or the real Jobsuche API).
 
 ## 6. (Optional) Gmail draft creation
 

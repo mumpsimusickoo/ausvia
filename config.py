@@ -26,6 +26,7 @@ class Config:
     # and is used whenever a real key isn't configured, so the app is always usable.
     AI_PROVIDER = os.environ.get("AI_PROVIDER", "mock")
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    AI_MODEL = os.environ.get("AI_MODEL", "claude-opus-5")
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")

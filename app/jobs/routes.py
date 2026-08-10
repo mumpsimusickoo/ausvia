@@ -8,6 +8,8 @@ from app.jobs.ingest import ingest_search
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
 from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
+from app.jobs.matching import get_or_compute_match, generate_narrative, generate_improvement_tips
+from app.ai.provider import AIProviderError
 from app.utils.logging import log_event
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
@@ -33,6 +35,8 @@ def search():
             flash("Please enter valid search terms.", "error")
 
     saved_job_ids = {sj.job_id for sj in SavedJob.query.filter_by(user_id=current_user.id).all()}
+    # deterministic, no AI call - cheap enough to compute per result
+    match_by_job_id = {job.id: get_or_compute_match(current_user, job) for job in results}
 
     return render_template(
         "jobs/search.html",
@@ -40,6 +44,7 @@ def search():
         results=results,
         ingest_errors=ingest_errors,
         saved_job_ids=saved_job_ids,
+        match_by_job_id=match_by_job_id,
         searched=bool(form.keywords.data),
     )
 
@@ -58,7 +63,34 @@ def saved():
 def detail(job_id):
     job = db.get_or_404(Job, job_id)
     is_saved = SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first() is not None
-    return render_template("jobs/detail.html", job=job, is_saved=is_saved)
+    match = get_or_compute_match(current_user, job)
+    return render_template("jobs/detail.html", job=job, is_saved=is_saved, match=match)
+
+
+@bp.route("/<int:job_id>/narrative", methods=["POST"])
+@login_required
+def narrative(job_id):
+    job = db.get_or_404(Job, job_id)
+    match = get_or_compute_match(current_user, job)
+    try:
+        generate_narrative(current_user, job, match)
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Narrative generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("jobs.detail", job_id=job.id))
+
+
+@bp.route("/<int:job_id>/improve-tips", methods=["POST"])
+@login_required
+def improve_tips(job_id):
+    job = db.get_or_404(Job, job_id)
+    match = get_or_compute_match(current_user, job)
+    try:
+        generate_improvement_tips(current_user, job, match)
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Improvement tips generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("jobs.detail", job_id=job.id))
 
 
 @bp.route("/<int:job_id>/save", methods=["POST"])
