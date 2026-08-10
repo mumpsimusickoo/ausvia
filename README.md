@@ -13,11 +13,34 @@ in phases; see `PROJECT_STATUS.md` (created after each phase) for what's live.
 - **AI:** provider-agnostic abstraction (built out from Phase 3 onward) with a mock implementation so the app works with no API key configured
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
 
-The legacy prototype scripts (`jobsearch.py`, `coverletter.py`, `pdfmerge.py`,
-`gmail_client.py`) still work standalone and contain real, working integrations
-(Bundesagentur für Arbeit Jobsuche API, Gmail draft creation, PDF merging).
-They'll be wrapped into the new job-source-adapter and AI-generation
-architecture in later phases rather than rewritten from scratch.
+The legacy prototype scripts (`coverletter.py`, `pdfmerge.py`, `gmail_client.py`)
+still work standalone and contain real, working integrations (Gmail draft
+creation, PDF merging). They'll be wrapped into the AI-generation architecture
+in a later phase rather than rewritten from scratch. `jobsearch.py` is now
+wrapped by `app/jobs/adapters/arbeitsagentur.py` as the first `JobSourceAdapter`.
+
+## Job discovery (Phase 2)
+
+- **`JobSourceAdapter`** interface (`app/jobs/adapters/base.py`): `search()`,
+  `get_job()`, `normalize()`, `check_availability()`. The Bundesagentur für
+  Arbeit Jobsuche API is the first implementation; sources can be enabled or
+  disabled independently by an admin at `/admin/job-sources` with no code
+  changes, and one source failing never blocks the others (see `app/jobs/ingest.py`).
+- **Manual import** (`/jobs/import`): paste a URL, get a best-effort readable-text
+  extraction to review and correct — or paste job text directly if a site blocks
+  automated access. Nothing here bypasses logins, paywalls, CAPTCHAs, or bot
+  protection; a blocked/unreachable site just falls back to manual entry.
+- **Duplicate detection** (`app/jobs/dedupe.py`): the same posting from multiple
+  sources is grouped under one canonical `Job` (normalized company/title/
+  location/start-date match) rather than shown as duplicates or silently dropped.
+- **Known limitation:** the public Jobsuche API returned `403` from this
+  project's dev sandbox network (likely bot-protection on datacenter IPs, not
+  a broken key) — the adapter's field-name mapping is based on the shape used
+  by the previously-working prototype but is unverified against a live
+  response from this environment. If search results come back empty on a
+  normal network, check the raw response shape and adjust
+  `app/jobs/adapters/arbeitsagentur.py`. Manual import doesn't depend on this
+  and was verified working end-to-end.
 
 ## 1. Install
 
@@ -67,7 +90,9 @@ pytest
 
 Covers auth/access-code flows, profile CRUD and cross-user ownership checks,
 document upload validation (content-sniffing, not just extension) and
-cross-user access, and admin authorization boundaries.
+cross-user access, admin authorization boundaries, duplicate-detection
+heuristics, and job search/import/save flows (adapter calls are mocked in
+tests — no test hits the real Jobsuche API).
 
 ## 6. (Optional) Gmail draft creation
 

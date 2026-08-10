@@ -31,12 +31,14 @@ def create_app(config_name=None):
     from app.main.routes import bp as main_bp
     from app.profile.routes import bp as profile_bp
     from app.documents.routes import bp as documents_bp
+    from app.jobs.routes import bp as jobs_bp
     from app.admin.routes import bp as admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(profile_bp)
     app.register_blueprint(documents_bp)
+    app.register_blueprint(jobs_bp)
     app.register_blueprint(admin_bp)
 
     register_error_handlers(app)

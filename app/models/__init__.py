@@ -10,6 +10,7 @@ from app.models.profile import (
 )
 from app.models.document import Document
 from app.models.system_log import SystemLog
+from app.models.job import Company, Job, JobListing, SavedJob, JobSourceSetting
 
 __all__ = [
     "User",
@@ -23,4 +24,9 @@ __all__ = [
     "Preference",
     "Document",
     "SystemLog",
+    "Company",
+    "Job",
+    "JobListing",
+    "SavedJob",
+    "JobSourceSetting",
 ]

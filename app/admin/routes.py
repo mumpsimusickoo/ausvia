@@ -4,10 +4,11 @@ from flask import Blueprint, render_template, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import User, InvitationCode, SystemLog, Document
+from app.models import User, InvitationCode, SystemLog, Document, Job, JobSourceSetting
 from app.models.access_code import generate_code
 from app.utils.logging import log_event
 from app.admin.forms import CreateCodeForm
+from app.jobs.adapters.manager import ensure_source_settings_seeded
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -28,6 +29,7 @@ def overview():
         "active_users": User.query.filter_by(is_active=True).count(),
         "active_codes": InvitationCode.query.filter_by(is_active=True).count(),
         "documents_stored": Document.query.count(),
+        "jobs_indexed": Job.query.count(),
     }
     recent_logs = SystemLog.query.order_by(SystemLog.created_at.desc()).limit(20).all()
     return render_template("admin/overview.html", stats=stats, recent_logs=recent_logs)
@@ -94,3 +96,24 @@ def revoke_code(code_id):
     log_event("admin", "Invitation code revoked.", user_id=current_user.id)
     flash("Code revoked.", "info")
     return redirect(url_for("admin.codes"))
+
+
+@bp.route("/job-sources")
+def job_sources():
+    ensure_source_settings_seeded()
+    settings = JobSourceSetting.query.order_by(JobSourceSetting.source_name).all()
+    return render_template("admin/job_sources.html", settings=settings)
+
+
+@bp.route("/job-sources/<int:setting_id>/toggle", methods=["POST"])
+def toggle_job_source(setting_id):
+    setting = db.get_or_404(JobSourceSetting, setting_id)
+    setting.is_enabled = not setting.is_enabled
+    db.session.commit()
+    log_event(
+        "admin",
+        f"Job source '{setting.source_name}' {'enabled' if setting.is_enabled else 'disabled'}.",
+        user_id=current_user.id,
+    )
+    flash(f"{setting.display_name} {'enabled' if setting.is_enabled else 'disabled'}.", "success")
+    return redirect(url_for("admin.job_sources"))
