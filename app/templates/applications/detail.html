@@ -100,6 +100,51 @@
   </div>
 </section>
 
+{#
+  Application status - visual direction 1c (Wayfinding), not 1a. A single
+  vertical route of fixed stations (Preparing/Ready/Sent/Follow-up/
+  Interview/Offer, matching Application.APPLICATION_STATUSES) replaces the
+  old status <select> + separate timeline list. Every marker state and
+  description is computed server-side in app/applications/status_route.py
+  from data that already existed (status, ApplicationEvent log, contact/
+  interview/follow-up fields) - this is a display change, not a new data
+  source. See LOGO.md / DECISIONS.md for why this direction (not 1a) was
+  used here specifically.
+#}
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-semibold text-slate-900">Application status</h2>
+    {% if status_route.terminal_label %}
+    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{{ status_route.terminal_label }}</span>
+    {% endif %}
+  </div>
+  <ol class="mt-5">
+    {% for s in status_route.stations %}
+    <li class="relative flex gap-4 {% if not loop.last %}pb-6{% endif %}">
+      {% if not loop.last %}
+      <span class="absolute left-[7px] top-5 bottom-0 w-px {% if status_route.stations[loop.index0 + 1].reached %}bg-brand-300{% else %}bg-slate-200{% endif %}"></span>
+      {% endif %}
+      <span class="relative z-10 mt-1 shrink-0">
+        {% if s.current %}
+        <span class="block h-3.5 w-3.5 rounded-full bg-brand-600 ring-4 ring-brand-100"></span>
+        {% elif s.reached %}
+        <span class="block h-3.5 w-3.5 rounded-full bg-brand-600"></span>
+        {% else %}
+        <span class="block h-3.5 w-3.5 rounded-full border-2 border-slate-300 bg-white"></span>
+        {% endif %}
+      </span>
+      <div class="flex-1 min-w-0 flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold {% if s.reached %}text-slate-900{% else %}text-slate-400{% endif %}">{{ s.label }}</p>
+          <p class="text-sm {% if s.reached %}text-slate-600{% else %}text-slate-400{% endif %}">{{ s.description }}</p>
+        </div>
+        <span class="shrink-0 text-xs text-slate-400 whitespace-nowrap">{{ s.date_label }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+
 {# --- Secondary zone: status/history/replies are reference material, not
      the primary generation/approval flow above - visually demoted (no
      shadow, muted heading, tinted background) so the page reads as one
@@ -109,17 +154,28 @@
 <p class="mt-10 mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Status &amp; history</p>
 
 <section class="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-5">
-  <h2 class="text-sm font-semibold text-slate-700 mb-3">Status &amp; tracking</h2>
+  <h2 class="text-sm font-semibold text-slate-700 mb-3">Contact &amp; tracking details</h2>
   <form method="post" action="{{ url_for('applications.update_status', application_id=application.id) }}">
     {{ status_form.hidden_tag() }}
+    {# The status field itself is intentionally not shown inline here - the
+       route above is now the primary way status is read. A collapsed
+       disclosure below still allows a manual correction (e.g. marking
+       withdrawn/rejected, or fixing a mistake) without it visually
+       competing with the route component. Not a clean 1:1 swap of the old
+       form - flagged in this pass's report. #}
     <div class="grid gap-4 sm:grid-cols-2">
-      {{ render_field(status_form.status) }}
       {{ render_field(status_form.contact_person) }}
       {{ render_field(status_form.contact_email) }}
       {{ render_field(status_form.interview_date) }}
       {{ render_field(status_form.follow_up_date) }}
     </div>
     {{ render_field(status_form.notes) }}
+    <details class="mb-4">
+      <summary class="cursor-pointer text-sm font-medium text-brand-700">Manually correct status</summary>
+      <div class="mt-3 max-w-xs">
+        {{ render_field(status_form.status) }}
+      </div>
+    </details>
     <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Update</button>
   </form>
 </section>
@@ -191,17 +247,5 @@
     {% endfor %}
   </div>
   {% endif %}
-</section>
-
-<section class="mt-3 rounded-xl border border-slate-200 bg-slate-50/60 p-5">
-  <h2 class="text-sm font-semibold text-slate-700 mb-3">Timeline</h2>
-  <ul class="space-y-2 text-sm">
-    {% for event in application.events|reverse %}
-    <li class="flex gap-3">
-      <span class="text-slate-400 shrink-0">{{ event.created_at.strftime('%d %b %H:%M') }}</span>
-      <span class="text-slate-600">{{ event.description }}</span>
-    </li>
-    {% endfor %}
-  </ul>
 </section>
 {% endblock %}

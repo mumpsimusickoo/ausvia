@@ -6,6 +6,77 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-11 — Visual direction: Counterform (1a) everywhere, Wayfinding (1c) for application status only
+
+**Decision:** Of three explored directions (Counterform, Record,
+Wayfinding — "Design exploration directions.pdf"), Counterform (1a) is the
+product's direction: the ascending-staircase process-flow graphic on the
+landing hero, and the 63.4° shear (the logo mark's own leg angle) applied
+as a reusable token to every progress-bar fill. The application-status
+component is the one deliberate exception, using Wayfinding's (1c)
+station/marker route instead of Counterform's bar-shear treatment. Record
+(1b) is not used anywhere.
+
+**Reason:** explicit product direction. The two directions solve different
+problems on purpose: Counterform's signature is about the product's own
+construction language (the mark's counterform cut, echoed at other
+scales); Wayfinding's signature is about legibility for someone anxious
+and unfamiliar with the process, which is specifically what the
+application-status view needs to do. Applying Wayfinding narrowly (one
+component) rather than blending both directions' hero/landing treatments
+keeps each direction doing the one job it's actually good at, rather than
+producing a diluted hybrid.
+
+**Alternatives considered:** Using 1a's shear treatment on the status
+timeline too, for full visual consistency — rejected per the explicit
+brief; a shear-cut progress bar doesn't communicate "which of six named
+stations am I on" as directly as discrete markers do. Using Record (1b)'s
+ledger aesthetic anywhere - not selected, reference only.
+
+**Consequences:** Two distinct visual signatures now coexist in the
+product, each scoped to what it's good at. This is intentional and
+documented here specifically so it isn't "fixed" into one direction later
+by someone who doesn't know it was deliberate. See `DESIGN_SYSTEM.md`'s
+"Visual direction" section for the implementation detail of each.
+
+---
+
+## 2026-08-11 — Application status: extracting the terminal states (accepted/rejected/withdrawn/expired) from the Wayfinding route
+
+**Decision:** The Wayfinding route (`app/applications/status_route.py`)
+shows exactly six stations, matching the sequential part of
+`Application.APPLICATION_STATUSES`. The four non-sequential terminal
+statuses (`accepted`, `rejected`, `withdrawn`, `expired`) are not
+stations — `accepted` is treated as having completed the full route (all
+six reached, none "current"); the other three infer how far the route
+actually got from real evidence (events, `interview_date`) since the
+status string alone doesn't say where the process stopped, and are shown
+as a small badge next to the section heading rather than a seventh/eighth
+marker.
+
+**Reason:** the design brief specified six stations "matching the existing
+status lifecycle" but didn't address the other four values, which aren't
+sequential steps forward — they're exits (a rejection can happen at any
+point; withdrawing is a choice, not a stage). Inventing station markers
+for them would misrepresent the route as having more sequential stages
+than the product actually models.
+
+**Alternatives considered:** Showing all ten statuses as stations in
+lifecycle-declaration order — rejected, would render nonsensically (e.g.
+"Rejected" appearing as a station between "Offer" and nothing, implying
+it's always the last forward step, when rejection can happen right after
+"Sent"). Hiding terminal-status applications' progress entirely - rejected,
+loses real information the user has about how far they got.
+
+**Consequences:** For a `rejected`/`withdrawn`/`expired` application, which
+stations show as "reached" depends on inference (event log presence, not
+just the status string) — documented in `status_route.py`'s docstrings so
+this isn't mistaken for a bug if the inferred cutoff looks slightly off in
+an edge case (e.g. an application rejected the same day it was marked
+sent, before any other event logged).
+
+---
+
 ## 2026-08-11 — Resolved: Signal Blue (not Ink Navy) is the logo symbol's default fill on light backgrounds
 
 **Decision:** The symbol's default fill on light backgrounds is **Signal

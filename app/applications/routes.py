@@ -10,6 +10,7 @@ from app.models import Job, Document, Application, GeneratedDocument, GeneratedE
 from app.models.integration import GmailMessage
 from app.applications.forms import CoverLetterForm, EmailForm, StatusForm
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
+from app.applications.status_route import build_status_route
 from app.ai.cover_letter import generate_cover_letter, validate_cover_letter
 from app.ai.email_gen import generate_email
 from app.ai.provider import AIProviderError
@@ -93,6 +94,7 @@ def detail(application_id):
         cover_letter_form=CoverLetterForm(obj=application.cover_letter),
         email_form=EmailForm(obj=application.email),
         status_form=StatusForm(obj=application),
+        status_route=build_status_route(application),
     )
 
 

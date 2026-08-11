@@ -45,6 +45,34 @@
       },
     }
   </script>
+  <style>
+    /*
+      Signature construction rule (visual direction 1a, Counterform): the
+      logo symbol's leg is a 1:2 rise, i.e. 63.4deg from horizontal (see
+      LOGO.md section 02). Applied as the leading (right) edge of every
+      progress-bar fill in the product, so a bar reads as an opening cut
+      rather than a flat rectangle - the same construction language as the
+      mark, at a different scale. Defined once here; every bar references
+      --ausvia-shear-ratio and --bar-h rather than a hand-copied clip-path.
+      Scoped to progress-bar fills only - not buttons, cards, or anything
+      else (see DESIGN_SYSTEM.md).
+    */
+    :root {
+      --ausvia-shear-ratio: 0.5; /* horizontal run = bar height * ratio (rise:run 2:1) */
+    }
+    .ausvia-bar-fill {
+      clip-path: polygon(0 0, 100% 0, calc(100% - (var(--bar-h, 6px) * var(--ausvia-shear-ratio))) 100%, 0 100%);
+    }
+    @keyframes ausvia-bar-fill-in {
+      from { width: 0; }
+    }
+    .ausvia-bar-animated {
+      animation: ausvia-bar-fill-in 0.6s ease-out both;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ausvia-bar-animated { animation: none; }
+    }
+  </style>
   {% block head %}{% endblock %}
 </head>
 <body class="min-h-screen bg-paper text-slate-900 antialiased font-sans">

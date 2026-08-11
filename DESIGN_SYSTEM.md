@@ -7,6 +7,78 @@ gaps flagged then (background warmth, shadow usage, ink navy's footprint).
 This is still a design-system checkpoint, not Phase 6 — no product features
 changed, only brand/visual foundation.
 
+Updated again the same day with a scoped visual-direction pass (Counterform
++ Wayfinding, see "Signature construction: the 63.4° shear" and
+"Application status: Wayfinding" below) — still a design-system checkpoint,
+not Phase 6.
+
+## Visual direction: Counterform (1a), scoped exception for status (1c)
+
+Three directions were explored (Counterform, Record, Wayfinding — see the
+design-exploration PDF referenced in `DECISIONS.md`). **Counterform (1a) is
+the product's direction everywhere**, except the application-status
+component, which uses **Wayfinding's (1c)** station/marker approach
+instead. Record (1b) is not used anywhere. This is a deliberate scoped
+exception, not an inconsistency: Counterform's signature (the mark's
+counterform cut, extended into a process-flow graphic and a bar-fill
+shear) is about the *product's construction language*; Wayfinding's
+signature (named stations, a marker for where you are) is about *reducing
+anxiety for someone navigating an unfamiliar process*, which is exactly
+what the application-status view's job is. Two directions, applied to two
+different problems, not two houses styles competing on one page.
+
+### Landing hero + process flow (1a)
+
+The five-stage sequence ("Discover → Match → Prepare → Apply → Track") is
+an ascending counterform staircase — a single stroked path, constant
+width, mitered corners, living inside the existing `bg-ink` hero (extended,
+not a second dark section) — replacing the old plain-text arrow heading.
+Implementation: `app/templates/landing.html`, `<svg>` with `<text>` labels
+in the same coordinate space as the path itself, so labels stay aligned at
+any viewport width without a separate positioned overlay. No motion on
+this graphic (per the direction's own note — only bars animate).
+
+### Signature construction: the 63.4° shear
+
+The logo symbol's leg is a 1:2 rise (63.4° from horizontal — see `LOGO.md`
+section 02). That same ratio is now a real, reusable token — `--ausvia-
+shear-ratio: 0.5` in `app/templates/base.html`'s `<style>` block — applied
+via a `.ausvia-bar-fill` class (`clip-path`) to the **leading edge of every
+progress-bar fill** in the product: the match-score category breakdown
+bars and the dashboard profile-completeness bar. One class, one token,
+referenced everywhere — not hand-copied per component. Scoped to bar fills
+only, never buttons/cards/other elements, per the "one signature moment"
+rule. Bars fill once on page load, staggered 60ms per row
+(`.ausvia-bar-animated`, `animation-delay` set per loop index), respecting
+`prefers-reduced-motion`.
+
+### Application status: Wayfinding (1c)
+
+`app/templates/applications/detail.html`'s old status `<select>` +
+separate timeline list is now a single vertical route
+(`app/applications/status_route.py` computes it): six fixed stations
+(Preparing/Ready/Sent/Follow-up/Interview/Offer, matching
+`Application.APPLICATION_STATUSES` — the four terminal exception statuses
+accepted/rejected/withdrawn/expired surface as a small badge instead of a
+seventh/eighth station, since they're exits from the route, not stops on
+it). Every marker state and one-line description is computed from data
+that already existed (status, `ApplicationEvent` log, contact/interview/
+follow-up fields) — a display change, not a new data source. Current
+station gets a heavier ring, never a color change, so it survives at small
+sizes. Skipped stations (e.g. Follow-up, when a reply arrives before the
+reminder date) still render with an outline-adjacent marker and an
+explanatory line, never hidden.
+
+**Not a clean 1:1 swap — flagged per the design brief's own request:** the
+old form combined status editing with contact/interview/follow-up-date/
+notes fields. Only the status dropdown competed visually with the new
+route (the other fields are just data entry, not status *display*), so
+only the dropdown was extracted — into a collapsed `<details>` "Manually
+correct status" disclosure at the end of the (renamed) "Contact & tracking
+details" form. This keeps manual correction possible (e.g. marking
+withdrawn/rejected, fixing a mistake) without it visually competing with
+the route component above it.
+
 ## Brand
 
 - **Name:** AUSVIA in running text, page titles, and documentation (all

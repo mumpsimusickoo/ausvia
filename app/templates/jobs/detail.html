@@ -68,7 +68,7 @@
         <span class="font-semibold text-slate-900">{{ cat_score }}%</span>
       </div>
       <div class="h-1.5 w-full rounded-full bg-slate-100">
-        <div class="h-1.5 rounded-full {% if cat_score >= 80 %}bg-green-600{% elif cat_score >= 60 %}bg-brand-600{% elif cat_score >= 40 %}bg-amber-600{% else %}bg-red-600{% endif %}" style="width: {{ cat_score }}%"></div>
+        <div class="h-1.5 rounded-l-full ausvia-bar-fill ausvia-bar-animated {% if cat_score >= 80 %}bg-green-600{% elif cat_score >= 60 %}bg-brand-600{% elif cat_score >= 40 %}bg-amber-600{% else %}bg-red-600{% endif %}" style="width: {{ cat_score }}%; --bar-h: 6px; animation-delay: {{ loop.index0 * 60 }}ms"></div>
       </div>
     </div>
     {% endfor %}
