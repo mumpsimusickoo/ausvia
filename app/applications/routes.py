@@ -353,7 +353,7 @@ def check_replies(application_id):
     """Manual, user-triggered check (spec: reply tracking) - there is no
     background polling yet (see ARCHITECTURE.md). Searches the connected
     Gmail inbox for messages from this application's contact email; cannot
-    track an exact thread from the start since Ausvia never sends the
+    track an exact thread from the start since AUSVIA never sends the
     original email itself."""
     application = _owned_application_or_404(application_id)
     try:

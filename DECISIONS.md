@@ -1,8 +1,24 @@
-# Decision Log — Ausvia
+# Decision Log — AUSVIA
 
 Each entry: decision, reason, alternatives considered, consequences. Newest
 first. Don't reopen a settled decision without new evidence — see entry
 format below for what was actually weighed.
+
+---
+
+## 2026-08-11 — Brand casing corrected to "AUSVIA" (all caps) everywhere
+
+**Decision:** Display the brand name in all caps, "AUSVIA", in the wordmark
+(`app/templates/_logo.html`), every page `<title>`, and all documentation -
+replacing the earlier mixed-case "Ausvia" and the wordmark's lowercase
+"ausvia".
+
+**Reason:** Explicit product-owner correction.
+
+**Consequences:** Purely a text/copy change (wordmark macro + page titles +
+docs) - no layout, component, or functional changes. Repo folder name,
+Python package (`app.*`), and database remain unchanged, consistent with
+the original rebrand decision below.
 
 ---
 
@@ -50,10 +66,10 @@ email (`from:<contact_email>`, optionally scoped to after the application
 was marked sent) - not by tracking a specific Gmail thread ID from the
 moment the application email was created.
 
-**Reason:** Ausvia never sends the original application email itself (spec:
+**Reason:** AUSVIA never sends the original application email itself (spec:
 the user always sends manually via the created draft). The Gmail thread
 doesn't exist until the user actually sends - there is nothing to track a
-thread ID *of* until after that point, which Ausvia has no visibility into.
+thread ID *of* until after that point, which AUSVIA has no visibility into.
 Searching by contact email is the best available signal without controlling
 the send step.
 
@@ -75,10 +91,10 @@ the background-jobs gap in `ARCHITECTURE.md`.
 
 ---
 
-## 2026-08-11 — Rebrand to "Ausvia"
+## 2026-08-11 — Rebrand to "AUSVIA"
 
 **Decision:** Rename the product from the working title "Ausbildung Career
-Agent" to **Ausvia**, with tagline "Your path to Ausbildung." Apply the new
+Agent" to **AUSVIA**, with tagline "Your path to Ausbildung." Apply the new
 brand across user-facing surfaces (page titles, nav, landing page, logo)
 without renaming the repository, Python package structure, or database.
 
@@ -90,7 +106,7 @@ churn touching every file's imports, and the directive itself says "do not
 delete, restart, replace, or rebuild."
 
 **Consequences:** All template titles, nav branding, and landing copy now
-say Ausvia. `app.py`, the `app/` package, `requirements.txt`, and the git
+say AUSVIA. `app.py`, the `app/` package, `requirements.txt`, and the git
 history still reference the original working name in places (e.g. the repo
 folder name `ausbildung-finder/`) - this is cosmetic-only and intentional.
 
@@ -232,7 +248,7 @@ explicit user "Approve application" action; nothing is ever auto-sent.
 Gmail integration only ever creates drafts, never sends.
 
 **Reason:** Explicit, repeated spec requirement (sections 47/58/28 across
-both the original and Ausvia directives).
+both the original and AUSVIA directives).
 
 **Consequences:** Every AI-assisted generation step (cover letter, email)
 is followed by a review/edit step before the approval gate; this shaped the

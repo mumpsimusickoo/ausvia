@@ -36,7 +36,7 @@ class GmailConnection(db.Model):
 class GmailMessage(db.Model):
     """A detected inbound message related to an application (spec: reply
     tracking). We can only ever *detect* replies by searching, never track a
-    thread from creation, because Ausvia never sends the original email
+    thread from creation, because AUSVIA never sends the original email
     itself - the Gmail thread doesn't exist until the user sends the draft
     manually. See app/integrations/gmail_reply_tracking.py."""
 

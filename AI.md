@@ -1,4 +1,4 @@
-# AI Architecture — Ausvia
+# AI Architecture — AUSVIA
 
 ## Core principle: deterministic-first, AI-optional
 

@@ -1,4 +1,4 @@
-# Product — Ausvia
+# Product — AUSVIA
 
 **Your path to Ausbildung.**
 
@@ -6,7 +6,7 @@
 
 A private, invitation-only AI-assisted platform that helps people find and
 apply for Ausbildung (apprenticeship) opportunities in Germany. The core
-promise: tell Ausvia what you're looking for, it searches real sources,
+promise: tell AUSVIA what you're looking for, it searches real sources,
 explains why (or why not) an opportunity fits, prepares your application,
 and tracks it - while you keep final control over anything sent externally.
 

@@ -1,4 +1,4 @@
-# Architecture — Ausvia
+# Architecture — AUSVIA
 
 See `DECISIONS.md` for *why* these choices were made.
 

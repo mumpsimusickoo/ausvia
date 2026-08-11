@@ -1,5 +1,5 @@
 """
-Reply detection (spec section 31). Ausvia never sends the original
+Reply detection (spec section 31). AUSVIA never sends the original
 application email itself (spec: user always sends manually), so there is no
 Gmail thread to track from creation - the thread doesn't exist in Gmail
 until the user sends the draft. Detection therefore works by searching the

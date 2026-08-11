@@ -1,4 +1,4 @@
-# Project Audit — Ausvia
+# Project Audit — AUSVIA
 
 Audit date: 2026-08-11, after Phase 5 (originally written after Phase 4, now
 updated). This is an honest snapshot, not aspirational. Nothing below is
@@ -178,5 +178,5 @@ live-smoke-tested against the running app).
 | 2 — Job Discovery | Complete; Arbeitsagentur adapter unverified live (sandbox network block, documented); manual import fully verified |
 | 3 — AI Matching | Complete; deterministic engine solid; AI narrative path unverified live (no API key configured) |
 | 4 — Application Generation | Complete and tested |
-| 4.5 — Audit + Brand | Complete: Ausvia rebrand, full documentation set |
+| 4.5 — Audit + Brand | Complete: AUSVIA rebrand, full documentation set |
 | 5 — Product Completion | Complete: per-user Gmail OAuth, reply tracking, AI reply suggestions, per-category match UI, AI-route rate limiting. Gmail stack unverified against real Google infrastructure (no credentials.json in this environment) |

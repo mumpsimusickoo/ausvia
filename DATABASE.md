@@ -1,4 +1,4 @@
-# Database — Ausvia
+# Database — AUSVIA
 
 SQLAlchemy models, SQLite by default (`instance/app.db`), Postgres-ready via
 `DATABASE_URL` (untested against real Postgres). Migrations via Flask-

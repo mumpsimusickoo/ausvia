@@ -1,4 +1,4 @@
-# Security — Ausvia
+# Security — AUSVIA
 
 This is a running account of what's implemented and what's flagged, not a
 one-time checklist. See `PROJECT_AUDIT.md` for the fuller "needs security

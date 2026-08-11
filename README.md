@@ -1,4 +1,4 @@
-# Ausvia
+# AUSVIA
 
 **Your path to Ausbildung.**
 
@@ -118,7 +118,7 @@ standalone reference.
   shared-token approach.
 - **Reply detection** (`app/integrations/gmail_reply_tracking.py`): a manual
   "Check for replies" action searches the connected inbox for messages from
-  an application's contact email. Ausvia never sends the original
+  an application's contact email. AUSVIA never sends the original
   application email itself, so there's no thread to track from creation -
   this is the best available detection approach without controlling the
   send step (see `DECISIONS.md`).
