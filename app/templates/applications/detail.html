@@ -13,7 +13,7 @@
   <a href="{{ url_for('jobs.detail', job_id=application.job.id) }}" class="text-brand-700 hover:underline">View job posting &rarr;</a>
 </p>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-slate-900">Cover letter (Anschreiben)</h2>
     <form method="post" action="{{ url_for('applications.generate_cover_letter_route', application_id=application.id) }}">
@@ -37,7 +37,7 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-slate-900">Application email</h2>
     <form method="post" action="{{ url_for('applications.generate_email_route', application_id=application.id) }}">
@@ -58,7 +58,7 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <h2 class="font-semibold text-slate-900 mb-3">Documents to include</h2>
   <form method="post" action="{{ url_for('applications.select_documents', application_id=application.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -100,7 +100,7 @@
   </div>
 </section>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <h2 class="font-semibold text-slate-900 mb-3">Status &amp; tracking</h2>
   <form method="post" action="{{ url_for('applications.update_status', application_id=application.id) }}">
     {{ status_form.hidden_tag() }}
@@ -116,7 +116,7 @@
   </form>
 </section>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-slate-900">Gmail replies</h2>
     {% if gmail_connected %}
@@ -185,7 +185,7 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+<section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <h2 class="font-semibold text-slate-900 mb-3">Timeline</h2>
   <ul class="space-y-2 text-sm">
     {% for event in application.events|reverse %}

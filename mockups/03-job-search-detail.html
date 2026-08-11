@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — Job search + detail — AUSVIA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  MOCKUP, not live app code.
+
+  STRUCTURAL FLAG: the live job detail page (jobs/detail.html) puts the
+  match score, category breakdown, strengths, gaps, AI narrative, and
+  improvement tips all inside one long card. That's fine at today's
+  content volume, but this mockup splits "Compatibility" into its own
+  focused card separate from "Strengths & gaps" - with 5 category bars
+  plus narrative plus tips plus strengths/gaps all in one box, the single-
+  card version reads as one undifferentiated wall by the time every
+  section has real content. Splitting these is a real structural change
+  to jobs/detail.html, not just a token swap - flagging it rather than
+  applying it live.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  colors: {
+    brand: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'},
+    bright: '#3B82F6', ink: '#0B1220', paper: '#FAF8F5',
+  },
+}}}
+</script>
+</head>
+<body class="bg-paper text-slate-900 antialiased font-sans">
+<div class="flex min-h-screen">
+  <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
+    <div class="px-5 py-5 border-b border-white/10">
+      <img src="../app/static/brand/ausvia-lockup-primary-dark.svg" alt="ausvia" style="height:26px">
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white">Dashboard</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium bg-white/10 text-white">Find Ausbildung</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white">Saved Jobs</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white">Applications</a>
+    </nav>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">
+
+      <!-- Search strip -->
+      <h1 class="text-2xl font-bold text-slate-900">Job Search</h1>
+      <form class="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm p-6 flex flex-wrap items-end gap-4">
+        <div class="flex-1 min-w-[16rem]">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Keywords</label>
+          <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value="Elektroniker Automatisierungstechnik">
+        </div>
+        <div class="flex-1 min-w-[12rem]">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Location</label>
+          <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value="Nordrhein-Westfalen">
+        </div>
+        <button class="mb-4 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">Search</button>
+      </form>
+
+      <div class="mt-4 space-y-3">
+        <div class="rounded-xl border border-brand-200 bg-brand-50/60 shadow-sm p-5 flex items-start justify-between">
+          <div>
+            <p class="font-semibold text-slate-900">Elektroniker für Automatisierungstechnik</p>
+            <p class="text-sm text-slate-600">Siemens AG · Stuttgart</p>
+          </div>
+          <span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700">91/100 match</span>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 flex items-start justify-between">
+          <div>
+            <p class="font-semibold text-slate-900">Elektroniker für Automatisierungs- und Systemtechnik</p>
+            <p class="text-sm text-slate-600">XYZ GmbH · Köln</p>
+          </div>
+          <span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-brand-50 text-brand-700">74/100 match</span>
+        </div>
+      </div>
+
+      <!-- Job detail -->
+      <div class="mt-10 flex items-start justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Elektroniker für Automatisierungstechnik</h2>
+          <p class="mt-1 text-slate-600">Siemens AG · Stuttgart</p>
+        </div>
+        <a href="#" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Start application</a>
+      </div>
+
+      <section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="font-semibold text-slate-900">Compatibility with your profile</h3>
+          <span class="text-2xl font-bold text-green-700">91/100</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Computed directly from your profile and this posting's listed requirements — not an AI guess.</p>
+        <div class="space-y-3">
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1"><span class="font-medium text-slate-600">Skills</span><span class="font-semibold text-slate-900">95%</span></div>
+            <div class="h-1.5 w-full rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-green-600" style="width:95%"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1"><span class="font-medium text-slate-600">Language</span><span class="font-semibold text-slate-900">70%</span></div>
+            <div class="h-1.5 w-full rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-amber-600" style="width:70%"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1"><span class="font-medium text-slate-600">Education</span><span class="font-semibold text-slate-900">100%</span></div>
+            <div class="h-1.5 w-full rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-green-600" style="width:100%"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1"><span class="font-medium text-slate-600">Location</span><span class="font-semibold text-slate-900">100%</span></div>
+            <div class="h-1.5 w-full rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-green-600" style="width:100%"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between text-xs mb-1"><span class="font-medium text-slate-600">Start date</span><span class="font-semibold text-slate-900">85%</span></div>
+            <div class="h-1.5 w-full rounded-full bg-slate-100"><div class="h-1.5 rounded-full bg-brand-600" style="width:85%"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+        <div class="grid gap-6 sm:grid-cols-2">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Strong matches</p>
+            <ul class="space-y-1.5 text-sm text-slate-700">
+              <li class="flex gap-2"><span class="text-green-600 font-semibold">✓</span> Electromechanics education</li>
+              <li class="flex gap-2"><span class="text-green-600 font-semibold">✓</span> PLC / Siemens STEP7 knowledge</li>
+              <li class="flex gap-2"><span class="text-green-600 font-semibold">✓</span> Industrial electricity experience</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Potential gaps</p>
+            <ul class="space-y-1.5 text-sm text-slate-700">
+              <li class="flex gap-2"><span class="text-amber-600 font-semibold">!</span> German B2 preferred, profile shows B1</li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-5 border-t border-slate-100 pt-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">AI summary (Anthropic)</p>
+          <p class="text-sm text-slate-700">Your automation and PLC background lines up closely with this role's core requirements. The main gap is language level — B2 is preferred but not always required for apprenticeship entry, so this is worth applying to.</p>
+        </div>
+      </section>
+
+      <section class="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+        <h3 class="font-semibold text-slate-900 mb-3">Application</h3>
+        <a href="#" class="text-brand-700 hover:underline text-sm font-medium">View original posting / apply &rarr;</a>
+        <p class="mt-2 text-sm text-slate-600">Contact: Frau Weber &lt;bewerbung@siemens-stuttgart.example&gt;</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — Dashboard — AUSVIA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  MOCKUP, not live app code. Close to what's already live (base.html's
+  sidebar + dashboard.html were updated in this same pass) - shown here
+  with fuller content density to check the system holds up at realistic
+  scale, not just the seeded-demo-data view.
+
+  STRUCTURAL FLAG: the live dashboard's 4-stat grid and 3-card grid both
+  assume short content. With realistic data (e.g. "3 saved opportunities"
+  plus a real notification like a new-match count), the cards want a touch
+  more vertical rhythm than the current p-5/p-6 gives them - not a blocker,
+  just noting it per the "flag, don't silently redesign" instruction.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  colors: {
+    brand: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'},
+    bright: '#3B82F6', ink: '#0B1220', paper: '#FAF8F5',
+  },
+}}}
+</script>
+</head>
+<body class="bg-paper text-slate-900 antialiased font-sans">
+<div class="flex min-h-screen">
+
+  <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
+    <div class="px-5 py-5 border-b border-white/10">
+      <a href="#" class="flex items-center">
+        <img src="../app/static/brand/ausvia-lockup-primary-dark.svg" alt="ausvia" style="height:26px">
+      </a>
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium bg-white/10 text-white">Dashboard</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Find Ausbildung</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Saved Jobs</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Applications</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Candidate Profile</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Documents</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Gmail</a>
+    </nav>
+    <div class="px-3 py-4 border-t border-white/10 text-sm">
+      <p class="px-3 truncate text-slate-400">amina.k@example.com</p>
+      <a href="#" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Log out</a>
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">
+      <h1 class="text-2xl font-bold text-slate-900">Good morning, Amina.</h1>
+      <p class="mt-1 text-sm text-slate-600">Here's what's happening with your Ausbildung search.</p>
+
+      <div class="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-5">
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-semibold text-brand-800">Profile completeness</p>
+          <p class="text-sm font-semibold text-brand-800">85%</p>
+        </div>
+        <div class="h-2 w-full rounded-full bg-white">
+          <div class="h-2 rounded-full bg-brand-600" style="width: 85%"></div>
+        </div>
+        <a href="#" class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Complete your profile &rarr;</a>
+      </div>
+
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Applications in progress</p>
+          <p class="mt-1 text-3xl font-bold text-slate-900">3</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Applications sent</p>
+          <p class="mt-1 text-3xl font-bold text-slate-900">7</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Interviews</p>
+          <p class="mt-1 text-3xl font-bold text-green-700">2</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Follow-ups due</p>
+          <p class="mt-1 text-3xl font-bold text-amber-700">1</p>
+        </div>
+      </div>
+
+      <div class="mt-8 grid gap-4 md:grid-cols-3">
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900">Job search</h2>
+          <p class="mt-1 text-sm text-slate-600">12 saved opportunities, 3 new matches this week.</p>
+          <a href="#" class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Search Ausbildung postings &rarr;</a>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900">Documents</h2>
+          <p class="mt-1 text-sm text-slate-600">4 documents uploaded.</p>
+          <a href="#" class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Manage documents &rarr;</a>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900">Candidate profile</h2>
+          <p class="mt-1 text-sm text-slate-600">2 education entries on file.</p>
+          <a href="#" class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Edit profile &rarr;</a>
+        </div>
+      </div>
+
+      <section class="mt-8 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 px-6 py-4">
+          <h2 class="font-semibold text-slate-900">Recent activity</h2>
+        </div>
+        <table class="w-full text-sm">
+          <tbody>
+            <tr class="border-b border-slate-100">
+              <td class="px-6 py-3 text-xs uppercase tracking-wide text-slate-400 w-32">Application</td>
+              <td class="px-6 py-3 text-slate-700">Reply detected from Elektro Schmidt GmbH — interview invitation</td>
+              <td class="px-6 py-3 text-xs text-slate-400 text-right w-32">Today, 09:14</td>
+            </tr>
+            <tr class="border-b border-slate-100">
+              <td class="px-6 py-3 text-xs uppercase tracking-wide text-slate-400">Matching</td>
+              <td class="px-6 py-3 text-slate-700">New 91% match: Elektroniker für Automatisierungstechnik at Siemens</td>
+              <td class="px-6 py-3 text-xs text-slate-400 text-right">Yesterday</td>
+            </tr>
+            <tr>
+              <td class="px-6 py-3 text-xs uppercase tracking-wide text-slate-400">Application</td>
+              <td class="px-6 py-3 text-slate-700">Cover letter generated for XYZ GmbH application</td>
+              <td class="px-6 py-3 text-xs text-slate-400 text-right">2 days ago</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}AUSVIA — Your path to Ausbildung{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='brand/favicon-16.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,15 +19,27 @@
             sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
           },
           colors: {
-            // AUSVIA brand blue - matches Tailwind's own blue-500/600 exactly,
-            // so this scale is effectively the standard blue ramp around it.
+            // Signal Blue - approved logo spec section 08 (#2563EB), 5.17:1 on
+            // white. Matches Tailwind's own blue-500/600 almost exactly, so
+            // this scale is effectively the standard blue ramp around it.
             brand: {
               50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
               400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
               800: '#1e40af', 900: '#1e3a8a',
             },
-            // Deep ink - used sparingly for high-contrast surfaces (landing hero).
+            // Bright Blue - approved logo spec section 08 (#3B82F6). Dark-
+            // background-only: 5.4:1 on Ink Navy vs. Signal Blue's 2.9:1.
+            // Numerically equal to brand-500, named explicitly so any use on
+            // a dark/navy surface is an intentional choice, not an accident.
+            bright: '#3B82F6',
+            // Ink Navy - approved logo spec section 08 (#0B1220). Now a real
+            // foundation element (authenticated sidebar), not just the
+            // landing hero - see DESIGN_SYSTEM.md.
             ink: '#0B1220',
+            // Warm off-white page background (replaces slate-50's cool cast)
+            // - closes the brand-direction gap flagged in the Phase 5.5
+            // checkpoint. See DESIGN_SYSTEM.md.
+            paper: '#FAF8F5',
           },
         },
       },
@@ -32,15 +47,14 @@
   </script>
   {% block head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased font-sans">
+<body class="min-h-screen bg-paper text-slate-900 antialiased font-sans">
   {% if current_user.is_authenticated %}
   <div class="flex min-h-screen">
-    <aside class="hidden md:flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div class="px-5 py-5 border-b border-slate-200">
-        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2">
-          {% from "_logo.html" import mark, wordmark %}
-          {{ mark(32) }}
-          {{ wordmark() }}
+    <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
+      <div class="px-5 py-5 border-b border-white/10">
+        <a href="{{ url_for('main.dashboard') }}" class="flex items-center">
+          {% from "_logo.html" import lockup %}
+          {{ lockup(26, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
         </a>
       </div>
       <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
@@ -56,27 +70,27 @@
         {% for endpoint, label in nav_items %}
         <a href="{{ url_for(endpoint) }}"
            class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
-             {% if request.endpoint == endpoint %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+             {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
           {{ label }}
         </a>
         {% endfor %}
         {% if current_user.is_admin %}
-        <div class="pt-4 mt-4 border-t border-slate-200">
-          <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Admin</p>
+        <div class="pt-4 mt-4 border-t border-white/10">
+          <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
           <a href="{{ url_for('admin.overview') }}"
-             class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 {% if request.blueprint == 'admin' %}bg-brand-50 text-brand-700{% else %}text-slate-600 hover:bg-slate-100{% endif %}">
+             class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
             Admin Dashboard
           </a>
-          <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-150">Invitation Codes</a>
-          <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-150">Users</a>
-          <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-150">Job Sources</a>
-          <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-150">AI Usage</a>
+          <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Invitation Codes</a>
+          <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Users</a>
+          <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Job Sources</a>
+          <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">AI Usage</a>
         </div>
         {% endif %}
       </nav>
-      <div class="px-3 py-4 border-t border-slate-200 text-sm">
-        <p class="px-3 truncate text-slate-500">{{ current_user.email }}</p>
-        <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-150">Log out</a>
+      <div class="px-3 py-4 border-t border-white/10 text-sm">
+        <p class="px-3 truncate text-slate-400">{{ current_user.email }}</p>
+        <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Log out</a>
       </div>
     </aside>
     <div class="flex-1 min-w-0">

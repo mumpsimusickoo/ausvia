@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mockup — Application generation — AUSVIA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  MOCKUP, not live app code.
+
+  STRUCTURAL FLAG: the live applications/detail.html stacks cover letter,
+  email, documents, approval, status/tracking, Gmail replies, and timeline
+  as seven full-width cards in one long scroll. That's honest and simple,
+  but by the time an application has Gmail replies with AI classification
+  and a suggested-reply draft (Phase 5's actual feature set), the page is
+  genuinely long. This mockup keeps the same sections but groups
+  "generation" (cover letter + email + documents + approve) as the primary
+  flow and visually demotes "status/tracking" + "timeline" into a lighter
+  secondary zone, since those are reference/history, not action. Real
+  structural change (would need a two-zone layout in the template), not
+  applied live - flagging per instruction.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','sans-serif'] },
+  colors: {
+    brand: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'},
+    bright: '#3B82F6', ink: '#0B1220', paper: '#FAF8F5',
+  },
+}}}
+</script>
+</head>
+<body class="bg-paper text-slate-900 antialiased font-sans">
+<div class="flex min-h-screen">
+  <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
+    <div class="px-5 py-5 border-b border-white/10">
+      <img src="../app/static/brand/ausvia-lockup-primary-dark.svg" alt="ausvia" style="height:26px">
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white">Dashboard</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white">Find Ausbildung</a>
+      <a href="#" class="flex items-center rounded-lg px-3 py-2 font-medium bg-white/10 text-white">Applications</a>
+    </nav>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">
+
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Elektroniker für Automatisierungstechnik</h1>
+          <p class="mt-1 text-slate-600">Siemens AG</p>
+        </div>
+        <span class="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700">Preparing</span>
+      </div>
+      <p class="mt-2 text-sm"><a href="#" class="text-brand-700 hover:underline">View job posting &rarr;</a></p>
+
+      <!-- Primary zone: generation + approval -->
+      <div class="mt-6 space-y-4">
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-slate-900">Cover letter (Anschreiben)</h2>
+            <button class="text-sm font-medium text-brand-700 hover:underline">Regenerate</button>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">Source: ai (anthropic) · <span class="text-green-700">Validated</span></p>
+          <textarea class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono" rows="8">Sehr geehrte Frau Weber,
+
+mit großem Interesse habe ich Ihre Ausschreibung für die Ausbildung zum
+Elektroniker für Automatisierungstechnik gelesen. Durch meine bisherige
+Ausbildung im Bereich Elektromechanik sowie praktische Erfahrung mit
+Siemens STEP7 bringe ich bereits fundierte Grundlagen mit...</textarea>
+          <button class="mt-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save edits</button>
+        </section>
+
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-slate-900">Application email</h2>
+            <button class="text-sm font-medium text-brand-700 hover:underline">Regenerate</button>
+          </div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+          <input class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm mb-3" value="Bewerbung um einen Ausbildungsplatz zum Elektroniker für Automatisierungstechnik">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Body</label>
+          <textarea class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" rows="4">Sehr geehrte Frau Weber, anbei sende ich Ihnen meine Bewerbungsunterlagen für die ausgeschriebene Ausbildungsstelle...</textarea>
+          <button class="mt-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save edits</button>
+        </section>
+
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+          <h2 class="font-semibold text-slate-900 mb-3">Documents to include</h2>
+          <div class="space-y-2 text-sm">
+            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded border-slate-300 text-brand-600"> Lebenslauf_Amina_K.pdf <span class="text-slate-400">(cv)</span></label>
+            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded border-slate-300 text-brand-600"> Abschlusszeugnis.pdf <span class="text-slate-400">(diploma)</span></label>
+            <label class="flex items-center gap-2"><input type="checkbox" checked class="rounded border-slate-300 text-brand-600"> Deutsch_B1_Zertifikat.pdf <span class="text-slate-400">(language_certificate)</span></label>
+          </div>
+        </section>
+
+        <section class="rounded-xl border border-brand-200 bg-brand-50 shadow-sm p-6">
+          <h2 class="font-semibold text-brand-900 mb-2">Review and approve</h2>
+          <p class="text-sm text-brand-800 mb-4">Nothing is ever sent automatically. Review the cover letter, email, and documents above, then approve to build the final PDF package.</p>
+          <div class="flex flex-wrap gap-3">
+            <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Approve application</button>
+            <button class="rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Download PDF package</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Secondary zone: reference/history, visually quieter -->
+      <div class="mt-10">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Status &amp; history</p>
+        <div class="space-y-3">
+          <section class="rounded-xl border border-slate-200 bg-white/60 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">Status &amp; tracking</h3>
+            <div class="grid gap-3 sm:grid-cols-2 text-sm text-slate-600">
+              <p>Contact: Frau Weber</p>
+              <p>Contact email: bewerbung@siemens-stuttgart.example</p>
+            </div>
+          </section>
+          <section class="rounded-xl border border-slate-200 bg-white/60 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">Gmail replies</h3>
+            <p class="text-sm text-slate-500">No messages detected yet.</p>
+          </section>
+          <section class="rounded-xl border border-slate-200 bg-white/60 p-5">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">Timeline</h3>
+            <ul class="space-y-1.5 text-sm">
+              <li class="flex gap-3"><span class="text-slate-400 shrink-0">11 Aug 09:02</span><span class="text-slate-600">Cover letter generated</span></li>
+              <li class="flex gap-3"><span class="text-slate-400 shrink-0">11 Aug 08:58</span><span class="text-slate-600">Application started</span></li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

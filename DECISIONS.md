@@ -6,6 +6,84 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-11 — Logo rev 1.0 implemented: outlined Sora wordmark, ink-default symbol, Sora scoped to logotype only
+
+**Decision:** Implement the approved Aperture logo spec exactly, with four
+judgment calls where the spec didn't fully pin things down: (1) extract the
+real Sora SemiBold wordmark as a static vector outline via `fontTools`
+rather than loading Sora as a live webfont; (2) follow the spec's file
+table literally — Ink Navy is the symbol's default fill for light/editorial
+contexts, Signal Blue is reserved for the favicon/app-icon/accent role; (3)
+the wordmark *graphic* stays lowercase "ausvia" per the spec, while plain-
+text brand mentions (titles, docs, prose) stay "AUSVIA" uppercase per the
+standing Phase 5.5 correction — two different rules for two different
+things, not a contradiction; (4) Sora is scoped to the logotype only
+(Option A) — Inter remains the sole UI/body typeface.
+
+**Reason:** (1) avoids a font-loading dependency for the logo entirely,
+and is strictly more faithful to "outline the wordmark... do not re-set it
+in a substitute typeface" than live text would be. (2) is the literal,
+unambiguous reading of the spec's own file-naming table, safer to follow
+than to guess at pixel colors from a rendered PDF thumbnail. (3) both
+rules are independently sourced from explicit instructions (the approved
+logo spec; the user's standing casing correction) and apply to different
+things (a graphic vs. running text) — real brands draw this same
+distinction routinely. (4) the wordmark no longer needs Sora as a webfont
+(see 1), so adding it as a second UI typeface would be pure added
+complexity for a stylistic change nobody asked for — the spec scopes Sora
+to "wordmark" (section 03), not to UI type generally.
+
+**Alternatives considered:** Hand-approximating Sora's letterforms with
+bezier curves - rejected outright, would not actually be Sora, directly
+contradicts the spec. Using Signal Blue as the default symbol fill
+everywhere (matching the visual pattern across earlier exploration PDFs) -
+plausible alternate reading, explicitly flagged as reversible in `LOGO.md`
+rather than silently chosen. Loading Sora everywhere as the new UI display
+face (Option B) - rejected as unrequested scope creep once outlining made
+it unnecessary for the logo itself.
+
+**Consequences:** `app/static/brand/` holds the full production asset set
+(symbol/wordmark/lockup variants, app icon, favicon + PNG fallbacks, the
+bundled Sora OFL license). `app/templates/_logo.html` was rewritten with
+three macros (`symbol()`, `wordmark()`, `lockup()`) using the exact spec
+geometry, not an approximation. If judgment call (2) turns out backwards
+(blue should be the default, not ink), it's a one-line fill swap, not a
+rebuild - see `LOGO.md` for the exact reasoning to revisit.
+
+---
+
+## 2026-08-11 — Closed the three Phase 5.5 design-system gaps: warm background, card shadows, ink navy as sidebar foundation
+
+**Decision:** `bg-slate-50` → `bg-paper` (`#FAF8F5`) site-wide; `shadow-sm`
+added to every instance of the shared card pattern (45 occurrences across
+20 templates); the authenticated sidebar changed from white to solid
+`bg-ink`, with nav text/hover/active states redesigned for a dark surface
+(default `text-slate-300`, hover `hover:bg-white/5 hover:text-white`,
+active `bg-white/10 text-white`) and the logo lockup switched to the
+"reversed on ink" bright-blue + white variant inside it.
+
+**Reason:** these were the three gaps `DESIGN_SYSTEM.md` flagged (but
+deliberately did not fix) in the Phase 5.5 checkpoint; this session's
+brief explicitly asked to close them alongside the logo implementation.
+
+**Alternatives considered:** Leaving the sidebar white and only using ink
+on the landing hero (status quo) - rejected, explicitly called out as
+insufficient ("not just the landing hero") in this session's brief.
+Applying ink to the main content background instead of the sidebar -
+rejected, would fight with white cards and hurt readability across many
+long-form pages (profile, applications); the sidebar is a bounded,
+persistent, non-text-heavy surface, a much safer place for a saturated
+dark fill.
+
+**Consequences:** any future new authenticated page inherits the dark
+sidebar automatically (it's in `base.html`, not per-template). Contrast on
+the new dark surface was spot-checked visually (screenshotted against the
+live dev server) but not yet measured formally against WCAG AA - carried
+into the existing Phase 9 accessibility-audit item in `ROADMAP.md`, not
+newly introduced by this change.
+
+---
+
 ## 2026-08-11 — Brand casing corrected to "AUSVIA" (all caps) everywhere
 
 **Decision:** Display the brand name in all caps, "AUSVIA", in the wordmark

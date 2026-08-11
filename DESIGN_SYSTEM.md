@@ -1,204 +1,189 @@
 # Design System — AUSVIA
 
-Audit date: 2026-08-11 (post-Phase 5 design checkpoint). This document has
-two jobs: (1) state the target brand direction, and (2) honestly compare it
-against what's actually implemented today, so gaps are visible rather than
-assumed away. No UI changes were made as part of this pass — see
-`PROJECT_STATUS.md` for why.
+Status: **rev 1.0 implemented**, 2026-08-11. The Phase 5.5 checkpoint left
+this document as a target-vs-actual gap analysis with nothing implemented.
+This pass implements the approved logo (`LOGO.md`) and closes all three
+gaps flagged then (background warmth, shadow usage, ink navy's footprint).
+This is still a design-system checkpoint, not Phase 6 — no product features
+changed, only brand/visual foundation.
 
 ## Brand
 
-- **Name:** AUSVIA (all caps everywhere — wordmark, page titles, docs;
-  corrected 2026-08-11, see `DECISIONS.md`)
+- **Name:** AUSVIA in running text, page titles, and documentation (all
+  caps — a standing correction, see `DECISIONS.md`). The **logotype**
+  itself (the graphic wordmark) is set lowercase "ausvia" per the approved
+  logo spec — this is a deliberate, common distinction (compare Sony,
+  IKEA, adidas: stylized logotype vs. normal-case brand references in
+  prose) and not an inconsistency. When in doubt: if it's the SVG mark,
+  it's lowercase; if it's text you're writing, it's AUSVIA.
 - **Tagline:** Your path to Ausbildung.
 - **Personality:** premium European career-tech. Intelligent, trustworthy,
   calm, precise. Explicitly **not**: generic "AI startup" purple/gradient
   aesthetics, glassmorphism, chatbot-bubble styling, neon accents, clutter.
-- **Logo:** `app/templates/_logo.html` — two macros, `mark()` (an abstract
-  route/path icon on a rounded `brand-600` badge — deliberately not a
-  graduation cap, briefcase, flag, or sparkle) and `wordmark()` (now
-  "AUSVIA", all caps). Always imported and used together.
+- **Logo:** Aperture, rev 1.0, approved — full construction spec, ratios,
+  and rationale in `LOGO.md`. Implemented as real production assets
+  (`app/static/brand/*.svg`) and Jinja macros (`app/templates/_logo.html`:
+  `symbol()`, `wordmark()`, `lockup()`). The wordmark is a true outlined
+  path extracted from the licensed Sora SemiBold font (fontTools, not
+  hand-approximated, not live text in a substitute face) — see `LOGO.md`
+  section on typography for why and how.
 
-## Target color direction (brand spec)
+## Typography decision: Sora is wordmark-only (Option A)
 
-| Role | Direction |
+The logo spec sets the wordmark in Sora SemiBold; the existing design
+system uses Inter for all UI/body text. **Decision: Sora is scoped to the
+logotype only. Inter remains the UI/body/data typeface everywhere else,
+unchanged.**
+
+**Why:** the wordmark is now a pre-outlined vector path (see `LOGO.md`) —
+it doesn't need Sora loaded as a webfont at all, anywhere, to render
+correctly. Introducing Sora as a second UI typeface would add a font-
+loading dependency and a second type system to maintain, for a stylistic
+gain that isn't what was actually requested (the spec scopes Sora to
+section 03, "wordmark," not to body/display type generally). Inter already
+satisfies "clean, modern, highly readable" for UI copy, and Phase 4.5
+already established it with zero complaints. Keeping two systems cleanly
+separated — Sora as a fixed, outlined brand mark; Inter as the living,
+webfont-loaded UI face — is simpler and lower-risk than blending them.
+**Consequence:** nowhere in the live app does `<link>`-load Sora; only the
+outlined path data (baked into `_logo.html` and the static SVGs) uses its
+letterforms. The `ausvia-lockup-tagline.svg` reference asset (for
+print/social use outside the app) does render live tagline text in Sora
+Regular for visual consistency with the mark in that specific standalone
+context — this is the one exception, and it's an asset file, not the
+running app.
+
+## Color tokens (confirmed, from the approved logo spec section 08)
+
+Defined in `app/templates/base.html`'s Tailwind runtime config.
+
+| Token | Hex | Role |
+|---|---|---|
+| `ink` | `#0B1220` | Foundation surface (sidebar), high-contrast text/backgrounds, monochrome mark |
+| `brand-600` (Signal Blue) | `#2563EB` | Primary actions, links, focus rings on **light** surfaces — 5.17:1 on white, AA-safe for text |
+| `bright` (Bright Blue) | `#3B82F6` | Accent on **dark/ink** surfaces only — 5.4:1 on Ink Navy. Numerically equal to `brand-500` but named explicitly so any use on a dark surface is intentional, not accidental copy-paste of the light-surface blue |
+| `paper` | `#FAF8F5` | Page background — warm off-white, replaces the old `slate-50` (which had a cool/blue cast, flagged as a gap in the last checkpoint) |
+| `green-600`/`green-100` | Tailwind default | Success / good match |
+| `amber-600`/`amber-100` | Tailwind default | Warning / gaps |
+| `red-600` | Tailwind default | Error / destructive |
+| `slate-*` | Tailwind default | Neutrals: borders, secondary text, card backgrounds stay white |
+
+**Rule that must not be broken:** Signal Blue (`brand-600`) is for light
+surfaces; Bright Blue (`bright`) is for dark surfaces. Using Signal Blue as
+text/icon color directly on `bg-ink` drops to 2.9:1 contrast — fails AA.
+This is why the sidebar's active-nav-item text and the logo's "on ink"
+variant both use `bright`, never `brand-600`.
+
+### Role mapping
+
+| UI role | Token |
 |---|---|
-| Foundation | Deep navy / ink |
-| Primary action | Blue |
-| Background | Warm off-white |
-| Success / good match | Green |
-| Warning / gaps | Amber |
-| Error | Red (implied, not explicitly specified) |
+| Page background | `bg-paper` |
+| Cards / panels | `bg-white` + `border-slate-200` + `shadow-sm` |
+| Sidebar / authenticated app shell | `bg-ink` (see "Ink Navy as foundation" below) |
+| Primary CTA button | `bg-brand-600` (light surfaces) |
+| Links, tertiary actions | `text-brand-700` |
+| Focus rings | `ring-brand-500` |
+| Active nav item (on `bg-ink` sidebar) | `text-white` + `bg-white/10` |
+| Success / good match | `green-600` / `green-100` |
+| Warning / gaps | `amber-600` / `amber-100` |
+| Error / destructive | `red-600` |
 
-## Current implementation vs. target
+Signal Blue and the success/warning semantics never collide: green and
+amber are reserved exclusively for status (match quality, validation
+state), blue is reserved exclusively for actions/navigation/brand — a
+green "success" badge and a blue "primary button" never compete for the
+same meaning in the same view.
 
-Defined in `app/templates/base.html`'s Tailwind runtime config — everything
-else in the app is plain Tailwind utility classes, no custom component CSS.
+## Gap closure (from the Phase 5.5 checkpoint)
 
-- **Brand blue** (`brand-50`…`brand-900`) — matches Tailwind's `blue-500`/
-  `blue-600` almost exactly. **Aligned with target.** Used consistently for
-  primary buttons, links, active nav state, the logo badge, focus rings.
-- **Ink navy** (`bg-ink` / `text-ink`, `#0B1220`) — exists as a token but is
-  used in **exactly one place**: the landing-page hero section. The
-  authenticated app (sidebar, headers, cards) never uses it. **Gap:** the
-  brand direction calls for navy/ink as a *foundation*, not a single
-  marketing accent — right now it reads as "the app has a dark landing
-  page," not "the app has a navy foundation." Candidate treatment for a
-  future pass: the sidebar (`base.html`'s `<aside>`) is the natural place to
-  extend ink as a structural element, since it's the one persistent
-  full-height surface in the authenticated layout — worth prototyping, not
-  deciding here.
-- **Background** — `bg-slate-50` (`#F8FAFC`), a cool-toned neutral.
-  **Gap vs. target:** the brand direction specifies *warm* off-white;
-  `slate-50` has a faint blue cast, not warm. A warm neutral (e.g. something
-  closer to Tailwind's `stone-50`/`neutral-50`, or a custom near-white with
-  a slight warm tint) would match the spec more precisely. Low-risk,
-  high-visibility change — good first candidate for an actual visual pass.
-- **Success (green) / warning (amber)** — plain Tailwind `green-600`/
-  `amber-600` (+ `-100` soft backgrounds). **Aligned with target**, already
-  used correctly and consistently: green for match scores ≥80 and "primary
-  document set" badges, amber for gaps/needs-review states. Never used
-  decoratively — always tied to a real status.
-- **Error (red)** — plain Tailwind `red-600`, used only for destructive
-  actions (delete document/entry) and form validation errors. Not part of
-  the original brand spec's explicit palette but consistent with the rest
-  of the semantic system.
-- **No purple, no gradients, no glassmorphism anywhere in the codebase** —
-  confirmed by inspection. This is already fully aligned with the "no
-  generic AI aesthetic" requirement and should be actively preserved in any
-  future component work, not just avoided by omission.
+All three flagged gaps are now closed:
 
-## Typography
+1. **Warm off-white background** — `bg-slate-50` → `bg-paper`
+   (`#FAF8F5`) in `base.html`'s `<body>`. One-line token change, every
+   card stays white, so contrast/hierarchy is unaffected — only the page
+   ground shifted from a cool to a warm neutral.
+2. **Shadow usage alongside borders** — every instance of the shared card
+   pattern (`rounded-xl border border-slate-200 bg-white`) across all 20
+   templates that use it now also carries `shadow-sm`. Mechanical,
+   uniform, applied via a single find/replace across the codebase so
+   there's zero drift between templates.
+3. **Ink Navy as a real foundation element** — the authenticated app
+   shell's sidebar (`base.html`'s `<aside>`) is now solid `bg-ink`, not
+   white. Nav item text/hover states, the admin section divider, and the
+   logo lockup inside it were all updated together (nav default
+   `text-slate-300`, hover `hover:bg-white/5 hover:text-white`, active
+   `bg-white/10 text-white`) so the whole surface reads as one consistent
+   dark panel rather than a white sidebar with one dark accent. The
+   landing hero keeps its existing `bg-ink` section — ink now appears in
+   exactly two places, both structural (hero, sidebar), not decorative.
 
-**Inter**, loaded via Google Fonts in `base.html`, set as the Tailwind
-`font-sans` default. No decorative or secondary fonts. **Aligned with
-target** ("clean typography").
-
-Hierarchy is expressed directly via Tailwind utilities per template
-(`text-2xl font-bold` for H1, `font-semibold` for section headers, `text-xs
-uppercase tracking-wide text-slate-500` for eyebrow/label text) rather than
-named component classes or a documented type scale. Consistent in practice
-across all ~25 templates inspected, but not centrally defined — see
-"Known gaps" below.
+Verified live (screenshot-checked against the running dev server, not just
+read from the template source) on the dashboard, landing page, documents,
+profile, and Gmail status pages.
 
 ## Spacing & whitespace
 
-Cards/sections use `p-5`/`p-6` internally and `mt-6`/`space-y-6` between
-sections; the main content column is capped at `max-w-5xl`. This reads as
-tidy rather than spacious — **partially aligned** with "generous
-whitespace": there's no clutter, but density could be relaxed further
-(larger card padding, more breathing room around section headers) in a
-future visual pass without any structural change.
+Unchanged from the last checkpoint: cards/sections use `p-5`/`p-6`
+internally, `mt-6`/`space-y-6` between sections, content capped at
+`max-w-5xl`. Still tidy rather than spacious — not addressed in this pass
+(it wasn't one of the three flagged gaps); a candidate for a future
+polish pass, not urgent.
 
 ## Shape, borders & shadows
 
-- **Cards:** `rounded-xl` (12px), `border border-slate-200`, `bg-white`.
-  Fully consistent across every card-style section in the app (dashboard
-  stat tiles, job cards, application cards, profile sections, admin
-  tables) — this is the single most reused pattern in the codebase.
-- **Shadows:** **none used anywhere.** Every surface relies on a 1px border
-  for separation; zero instances of `shadow-*` utilities in any template.
-  **Gap vs. target:** the brand direction calls for "subtle borders/
-  shadows" (both, used lightly) — today it's borders-only, fully flat. A
-  very light `shadow-sm` on cards (or only on hover/elevated states like
-  the Gmail-reply cards or modals-to-come) would move this closer to the
-  "premium" feel without violating "restrained."
-- **Buttons:** `rounded-lg` (8px). Primary = solid `bg-brand-600` +
-  white text; secondary = `border border-slate-300` + `text-slate-700`;
-  tertiary/link = `text-brand-700 hover:underline`, no border or fill.
-  Three consistent tiers, reused everywhere — this is a strong, ready-to-
-  formalize pattern.
+- **Cards:** `rounded-xl`, `border border-slate-200`, `bg-white`,
+  **`shadow-sm`** (new, see gap closure above).
+- **Buttons:** `rounded-lg`. Primary = solid `bg-brand-600` + white text;
+  secondary = `border border-slate-300` + `text-slate-700`; tertiary/link
+  = `text-brand-700 hover:underline`. Unchanged, still the strongest
+  ready-to-formalize pattern.
 
 ## Motion
 
-`transition-colors duration-150` on interactive nav/hover states only — no
-page transitions, no entrance animations, no loading spinners with motion.
-**Fully aligned** with "restrained animation."
+Unchanged: `transition-colors duration-150` on interactive states only.
+Still fully aligned with "restrained animation" — not revisited here.
 
 ## Reusable components — what actually exists today
 
 - `app/templates/_macros.html` — `render_field()`, `render_checkbox()`
-  (WTForms field rendering: label + input + inline error, consistent
-  everywhere a form appears)
-- `app/templates/_logo.html` — `mark()`, `wordmark()`
-- `app/templates/_flashes.html` — flash message banner (error/success/info,
-  color-coded)
+- `app/templates/_logo.html` — `symbol()`, `wordmark()`, `lockup()` (real
+  production geometry, see `LOGO.md`)
+- `app/templates/_flashes.html` — flash message banner
 
-That's the entire shared-component surface. Everything else below is a
-**repeated Tailwind utility pattern**, not a shared macro — same look,
-copy-pasted per template.
+## Patterns in active use, still ready to formalize
 
-## Patterns in active use, ready to formalize (not yet shared components)
+Unchanged from the last checkpoint — extracting these into real macros
+was explicitly deferred to whenever Phase 6 actually needs a third/fourth
+call site, per the sequencing note in `ROADMAP.md`:
 
-Identified by inspecting all ~25 templates. These are visually consistent
-today (good sign — no ad hoc drift), which makes them low-risk to extract
-into macros later without a visual change:
+- Card/section container, status/count pill, stat tile, button tiers,
+  per-category progress bar, `<details>` accordion.
 
-- **Card/section container** — `rounded-xl border border-slate-200 bg-white
-  p-6` — used in essentially every template (job detail, application
-  detail, profile sections, admin panels, Gmail status). The single highest-
-  value extraction candidate.
-- **Status/count pill** — `rounded-full bg-slate-100 px-3 py-1 text-xs
-  font-medium text-slate-700` (application status), and its scored variant
-  `rounded-full px-2 py-0.5 text-xs font-semibold` with green/blue/amber/
-  slate backgrounds keyed to a score threshold (match-score pill, job
-  search results). Same shape, three call sites, not shared.
-- **Stat tile** — `rounded-xl border border-slate-200 bg-white p-5` with an
-  uppercase label + large bold number (dashboard, admin overview). Two call
-  sites, identical markup.
-- **Primary / secondary / tertiary button** — see "Shape" above. Extremely
-  consistent already; the best candidate for a first real macro since it
-  has zero visual ambiguity to resolve.
-- **Per-category / progress bar** — `h-1.5 w-full rounded-full bg-slate-100`
-  track + colored fill sized by `style="width: X%"`, thresholded to green/
-  brand/amber/red. Currently used for match category breakdown and profile
-  completeness; same shape both places.
-- **`<details>` accordion** — used for "Add education/experience/skill/
-  language" forms on the profile page. Native HTML, no JS, works, but has
-  no custom open/close styling (no chevron rotation, no transition).
+## Components that don't exist yet
 
-## Components that don't exist yet (needed before Phase 6/9 UI work)
+Unchanged: modal/dialog, toast, tabs, empty-state component, table
+component. Still deferred to when Phase 6 features actually need them.
 
-- **Modal / dialog** — nothing in the app currently uses one; destructive
-  actions use a native `confirm()` (document delete) rather than a styled
-  confirmation dialog.
-- **Toast/inline notification beyond flash-on-reload** — flashes only
-  appear after a full page redirect; no client-side toast for async
-  actions.
-- **Tabs** — not used anywhere yet; would matter if company profile pages
-  or a future settings area need sub-navigation.
-- **Empty state component** — every "no X yet" message is currently a
-  hand-styled `<p class="text-sm text-slate-500">`, consistent in tone but
-  not a shared component.
-- **Table component** — documents list and admin tables both hand-roll
-  `<table>` markup with the same header/row styling; not shared.
+## Iconography & imagery
+
+Not covered by the logo spec (that's the mark only). See `BRAND_VOICE.md`
+for the product's iconography stance — kept in the voice doc rather than
+here since it's as much a content decision (what to show, what not to)
+as a visual one.
 
 ## Accessibility
 
-Not yet audited. Semantic HTML is used throughout (real `<label>`/`<form>`
-elements via WTForms rendering, real `<table>` for tabular data), but
-keyboard navigation, focus-visible states, color contrast (particularly
-`text-slate-400`/`text-slate-500` on white — likely borderline for small
-text), and reduced-motion support have not been explicitly reviewed.
-Remains scheduled for Phase 9 in `ROADMAP.md`.
+Not yet audited. Unchanged from the last checkpoint — still scheduled for
+Phase 9. One new item to check then: text contrast on the new `bg-ink`
+sidebar (`text-slate-300`/`text-slate-400`/`text-slate-500` against
+`#0B1220`) — spot-checked visually during this pass and reads clearly,
+but not measured against WCAG AA formally yet.
 
-## Summary: what would actually change in a real visual pass
+## What's next
 
-In priority order, cheapest/highest-impact first:
-
-1. Swap `bg-slate-50` → a warm off-white token (background only — every
-   card stays white, so this is a one-line config change with broad visual
-   effect).
-2. Add a restrained `shadow-sm` to card containers (one shared pattern,
-   touches every template but is mechanical).
-3. Extend ink/navy beyond the landing hero into the authenticated shell
-   (sidebar is the natural candidate) — this is a real design decision, not
-   mechanical, and should be prototyped/reviewed before rolling out broadly.
-4. Extract the patterns listed above ("ready to formalize") into real Jinja
-   macros or a small component set — reduces drift risk as Phase 6 adds
-   more pages (company profiles, document AI extraction UI).
-5. Build the missing components (modal, toast, tabs, empty state, table) as
-   Phase 6 features actually need them, rather than speculatively.
-
-None of this was executed in this pass per instruction — this list is the
-starting brief for whenever a visual-refinement pass is explicitly scoped.
+Per `DESIGN_SYSTEM.md`'s own prior recommendation and `ROADMAP.md`'s
+sequencing note: extract the "ready to formalize" patterns into real
+components when Phase 6's new pages (company profiles, document
+extraction UI) need a third call site, rather than before. No further
+visual work is scoped here — see `PROJECT_STATUS.md` for what's next.
