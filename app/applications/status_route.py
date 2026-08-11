@@ -74,6 +74,7 @@ def build_status_route(application):
     for i, key in enumerate(STATION_ORDER):
         reached = i <= current_idx
         is_current = reached and i == current_idx and not is_terminal
+        is_skipped = False
         description = None
         date_label = None
 
@@ -122,6 +123,7 @@ def build_status_route(application):
                 # the route moved past this point without ever actually
                 # pausing at "follow_up" - a reply arriving first is the
                 # one case worth naming; otherwise just say it was skipped.
+                is_skipped = True
                 reply = _latest(events, "reply_detected")
                 description = "Skipped — the employer replied first." if reply else "Skipped."
                 date_label = "—"
@@ -154,6 +156,7 @@ def build_status_route(application):
             "label": STATION_LABELS[key],
             "reached": reached,
             "current": is_current,
+            "skipped": is_skipped,
             "description": description,
             "date_label": date_label or "—",
         })

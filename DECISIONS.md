@@ -6,6 +6,69 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-12 — Correction pass: hardcoded exact values instead of ratio-derived ones for the three signature details
+
+**Decision:** Replaced ratio/proportion-derived implementations of the
+three visual-direction signature details with the exact literal values
+from an approved correction reference, applied verbatim: hero route as a
+filled counterform cut (not a stroked line), bar shear as a hardcoded 12px
+at 14px bar height with a 28px fill min-width (not `bar-height × ratio`),
+and the application-status current-marker as a 24px/4px-ring/10px-dot
+combination that differs from other states in size, ring weight, and fill
+together (not ring weight alone).
+
+**Reason:** the previous pass's ratio-based approach was *technically*
+correct (the shear ratio genuinely was 1:2, matching the logo's own leg
+angle) but produced values too small to actually see at the sizes the
+product uses (3-4px shear on 6-8px bars; a ring-weight-only difference
+that read as noise). Correctness of the underlying math didn't survive
+contact with real pixel sizes. The fix is to stop re-deriving the shear
+from a ratio at every call site and instead hardcode the values that were
+verified to actually render visibly, once.
+
+**Alternatives considered:** Keeping the ratio-based token and just
+tuning the ratio itself upward - rejected; a ratio still recomputes
+differently at every bar height, which is exactly the fragility that
+caused the original bug once bar height itself also needed to change (6-8px
+→ 14px). A single hardcoded value that's independent of bar height is more
+robust for a "signature detail" that's meant to be uniform across the
+product, not proportional to whatever container it's in.
+
+**Consequences:** `--ausvia-shear-ratio` and the per-element `--bar-h`
+custom property are removed entirely from `base.html` - `.ausvia-bar-fill`
+now has no configurable inputs at all, which is deliberate (see
+`DESIGN_SYSTEM.md`). Two judgment calls made while implementing this
+pass, not explicitly covered by the reference:
+
+1. **Hero labels use percentage-based absolute positioning, not SVG
+   `<text>`.** The reference's own markup uses absolutely-positioned HTML
+   divs at fixed pixel coordinates, sized for its 1240px-wide demo
+   sheet - not directly usable on the product's fluid-width hero.
+   Converted the same relative positions to percentages of an
+   `aspect-ratio`-locked container (so they scale in lockstep with the
+   SVG at any viewport width) rather than switching to SVG `<text>`
+   nodes (which the *previous* pass had used successfully) - staying
+   closer to the reference's literal technique since the correction
+   explicitly asks not to re-derive/approximate this section.
+2. **The match-score category bars keep their existing green/amber/red/
+   blue semantic-threshold coloring**, even though the reference's own
+   illustrative example (using AUSVIA's real seeded data: Skills 25%,
+   Location 50%, Start date 100%) renders every bar in flat Signal Blue
+   regardless of score. Read the reference's uniform blue as a
+   simplification for demonstrating the shear mechanic specifically, not
+   an instruction to remove an existing, working, documented color
+   system - both correction documents state this is "a values
+   correction, not a new redesign" and that colors don't change. Did
+   *not* extend this same reasoning to darkening the "Compatibility with
+   your profile" card background (the reference's section-02 demo wraps
+   its bars in a dark `#0B1220` card) - kept it white, for the same
+   "colors/cards don't change" reason, since section 03's demo of the
+   *same* kind of card renders it white, confirming section 02's dark
+   backdrop was a spec-sheet presentation choice, not a product
+   instruction.
+
+---
+
 ## 2026-08-11 — Visual direction: Counterform (1a) everywhere, Wayfinding (1c) for application status only
 
 **Decision:** Of three explored directions (Counterform, Record,

@@ -110,6 +110,18 @@
   interview/follow-up fields) - this is a display change, not a new data
   source. See LOGO.md / DECISIONS.md for why this direction (not 1a) was
   used here specifically.
+
+  Marker states (correction pass 2026-08-12 - must differ by size AND ring
+  weight AND fill, not color alone, so the current station is unmistakable
+  even at small sizes / for colorblind users):
+    current   - 24px circle, 4px solid ink ring, 10px Signal Blue core dot
+    completed - 14px circle, solid Signal Blue, no ring
+    skipped   - 14px circle, white fill, 2px Signal Blue ring
+    future    - 14px circle, white fill, 2px ink/20% ring
+  The connector rail below each marker uses a CSS grid row (24px marker
+  column + 1fr content column) so the rail's height auto-matches however
+  tall that row's description text actually is, rather than a hand-tuned
+  absolute-positioned guess.
 #}
 <section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   <div class="flex items-center justify-between mb-1">
@@ -118,31 +130,33 @@
     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{{ status_route.terminal_label }}</span>
     {% endif %}
   </div>
-  <ol class="mt-5">
+  <div class="grid pt-6" style="grid-template-columns: 24px 1fr; column-gap: 22px">
     {% for s in status_route.stations %}
-    <li class="relative flex gap-4 {% if not loop.last %}pb-6{% endif %}">
-      {% if not loop.last %}
-      <span class="absolute left-[7px] top-5 bottom-0 w-px {% if status_route.stations[loop.index0 + 1].reached %}bg-brand-300{% else %}bg-slate-200{% endif %}"></span>
-      {% endif %}
-      <span class="relative z-10 mt-1 shrink-0">
-        {% if s.current %}
-        <span class="block h-3.5 w-3.5 rounded-full bg-brand-600 ring-4 ring-brand-100"></span>
-        {% elif s.reached %}
-        <span class="block h-3.5 w-3.5 rounded-full bg-brand-600"></span>
-        {% else %}
-        <span class="block h-3.5 w-3.5 rounded-full border-2 border-slate-300 bg-white"></span>
-        {% endif %}
+    <div class="flex flex-col items-center">
+      {% if s.current %}
+      <span class="w-6 h-6 rounded-full bg-white border-4 border-ink box-border shrink-0 flex items-center justify-center">
+        <span class="w-2.5 h-2.5 rounded-full bg-brand-600"></span>
       </span>
-      <div class="flex-1 min-w-0 flex items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-semibold {% if s.reached %}text-slate-900{% else %}text-slate-400{% endif %}">{{ s.label }}</p>
-          <p class="text-sm {% if s.reached %}text-slate-600{% else %}text-slate-400{% endif %}">{{ s.description }}</p>
-        </div>
-        <span class="shrink-0 text-xs text-slate-400 whitespace-nowrap">{{ s.date_label }}</span>
+      {% elif s.skipped %}
+      <span class="w-3.5 h-3.5 rounded-full bg-white border-2 border-brand-600 box-border shrink-0"></span>
+      {% elif s.reached %}
+      <span class="w-3.5 h-3.5 rounded-full bg-brand-600 shrink-0"></span>
+      {% else %}
+      <span class="w-3.5 h-3.5 rounded-full bg-white border-2 border-ink/20 box-border shrink-0"></span>
+      {% endif %}
+      {% if not loop.last %}
+      <span class="w-0.5 flex-1 {% if status_route.stations[loop.index0 + 1].reached %}bg-brand-600{% else %}bg-ink/20{% endif %}" style="min-height: 8px"></span>
+      {% endif %}
+    </div>
+    <div class="flex items-start justify-between gap-6 {% if not loop.last %}pb-[26px]{% endif %}" style="margin-top: -2px">
+      <div>
+        <p class="{% if s.current %}text-[16px]{% else %}text-[15px]{% endif %} font-semibold {% if s.reached %}text-slate-900{% else %}text-slate-400{% endif %}">{{ s.label }}</p>
+        <p class="text-[13px] {% if s.reached %}text-slate-600{% else %}text-slate-400{% endif %}">{{ s.description }}</p>
       </div>
-    </li>
+      <span class="shrink-0 text-[13px] text-slate-400 whitespace-nowrap tabular-nums">{{ s.date_label }}</span>
+    </div>
     {% endfor %}
-  </ol>
+  </div>
 </section>
 
 {# --- Secondary zone: status/history/replies are reference material, not

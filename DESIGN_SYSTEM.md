@@ -12,6 +12,14 @@ Updated again the same day with a scoped visual-direction pass (Counterform
 "Application status: Wayfinding" below) — still a design-system checkpoint,
 not Phase 6.
 
+**Correction pass, 2026-08-12:** the first visual-direction pass shipped
+all three signature details technically correct in code but visually
+imperceptible or under-emphasized — a 3-4px clip-path shear on 6-8px bars,
+a stroked hero line instead of a true counterform cut, and a current-station
+ring too close in weight to the completed markers. All three are corrected
+below with exact, hardcoded values (not re-derived from a ratio) — see the
+per-section notes and the two new `DECISIONS.md` entries dated 2026-08-12.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the
@@ -29,28 +37,41 @@ different problems, not two houses styles competing on one page.
 
 ### Landing hero + process flow (1a)
 
-The five-stage sequence ("Discover → Match → Prepare → Apply → Track") is
-an ascending counterform staircase — a single stroked path, constant
-width, mitered corners, living inside the existing `bg-ink` hero (extended,
-not a second dark section) — replacing the old plain-text arrow heading.
-Implementation: `app/templates/landing.html`, `<svg>` with `<text>` labels
-in the same coordinate space as the path itself, so labels stay aligned at
-any viewport width without a separate positioned overlay. No motion on
-this graphic (per the direction's own note — only bars animate).
+The five-stage sequence ("Discover → Match → Prepare → Apply → Track") is a
+**filled compound path** (`fill-rule="evenodd"`, `fill="#0B1220"`) — subpath
+1 is a solid ink rectangle spanning the full graphic band, subpath 2 is the
+route, cut out as the hole. The route is never a drawn/stroked line (the
+first version of this pass used a 3px stroke, which read as "a line on a
+dark background," not as an opening cut through solid material — corrected
+2026-08-12). The band is full-bleed (breaks out of the centered content
+column) and sits on the app's `paper` background color, so the counterform
+cut reveals the page surface through it — literally the same construction
+as the logo mark, at hero scale. Path data in
+`app/templates/landing.html` is copied verbatim from the approved
+correction and must not be re-derived or approximated. Labels are
+percentage-positioned over an `aspect-ratio`-locked container (not SVG
+`<text>` this time — see the correction's judgment-call note in
+`DECISIONS.md` for why). No motion on this graphic — only bars animate.
 
-### Signature construction: the 63.4° shear
+### Signature construction: the shear is a fixed 12px, not a ratio
 
 The logo symbol's leg is a 1:2 rise (63.4° from horizontal — see `LOGO.md`
-section 02). That same ratio is now a real, reusable token — `--ausvia-
-shear-ratio: 0.5` in `app/templates/base.html`'s `<style>` block — applied
-via a `.ausvia-bar-fill` class (`clip-path`) to the **leading edge of every
-progress-bar fill** in the product: the match-score category breakdown
-bars and the dashboard profile-completeness bar. One class, one token,
-referenced everywhere — not hand-copied per component. Scoped to bar fills
-only, never buttons/cards/other elements, per the "one signature moment"
-rule. Bars fill once on page load, staggered 60ms per row
-(`.ausvia-bar-animated`, `animation-delay` set per loop index), respecting
-`prefers-reduced-motion`.
+section 02) — that ratio is where the shear idea comes from, but **the
+implementation is a hardcoded 12px `clip-path` offset**, not a CSS custom
+property derived from bar height. The first version of this pass computed
+the offset as `bar-height × 0.5`, which at the product's actual 6-8px bar
+heights produced an imperceptible 3-4px notch — technically present,
+invisible in practice. Corrected 2026-08-12: bar height is now **14px**
+everywhere this is used (was 6-8px), the shear is a **literal 12px**
+(`.ausvia-bar-fill` in `app/templates/base.html`), and every fill carries
+**`min-width: 28px`** so a low score (e.g. 25%) still renders a complete,
+legible shear instead of a clipped sliver. A bar at exactly 0% renders no
+fill element at all (track only) rather than a misleading 28px-wide nub.
+Motion changed from a `width` keyframe to `transform: scaleX(0→1)`
+(`transform-origin: left`), 500ms ease-out, 60ms stagger — `scaleX` doesn't
+fight the `clip-path` calculation the way animating `width` did, so the
+sheared edge holds its angle steadily through the animation instead of
+recomputing (and briefly distorting) every frame.
 
 ### Application status: Wayfinding (1c)
 
@@ -63,11 +84,23 @@ accepted/rejected/withdrawn/expired surface as a small badge instead of a
 seventh/eighth station, since they're exits from the route, not stops on
 it). Every marker state and one-line description is computed from data
 that already existed (status, `ApplicationEvent` log, contact/interview/
-follow-up fields) — a display change, not a new data source. Current
-station gets a heavier ring, never a color change, so it survives at small
-sizes. Skipped stations (e.g. Follow-up, when a reply arrives before the
-reminder date) still render with an outline-adjacent marker and an
-explanatory line, never hidden.
+follow-up fields) — a display change, not a new data source. Skipped
+stations (e.g. Follow-up, when a reply arrives before the reminder date)
+still render with an explanatory line, never hidden.
+
+**Marker sizing, corrected 2026-08-12:** the first version distinguished
+the current station from completed ones by ring weight alone
+(`ring-4 ring-brand-100`, a pale tint), which read as noise, not emphasis,
+at a glance. Corrected to differ by size, ring weight, *and* fill
+simultaneously, so it can't be missed or mistaken for a color-only cue:
+current = **24px** circle, **4px solid ink ring**, **10px Signal Blue core
+dot** (15.9:1 against white); completed = 14px solid Signal Blue, no ring;
+skipped = 14px white fill with a 2px Signal Blue ring; not-yet-reached =
+14px white fill with a 2px `ink/20%` ring. No pale brand-tint rings
+anywhere in this component. The connecting rail is a CSS grid row (24px
+marker column + content column, `align-items: stretch`), so its length
+auto-matches however tall each row's description actually renders,
+instead of a hand-tuned absolute-positioned guess.
 
 **Not a clean 1:1 swap — flagged per the design brief's own request:** the
 old form combined status editing with contact/interview/follow-up-date/
