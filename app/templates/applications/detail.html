@@ -117,6 +117,75 @@
 </section>
 
 <section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="font-semibold text-slate-900">Gmail replies</h2>
+    {% if gmail_connected %}
+    <form method="post" action="{{ url_for('applications.check_replies', application_id=application.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="text-sm font-medium text-brand-700 hover:underline">Check for replies</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if not gmail_connected %}
+  <p class="text-sm text-slate-500">
+    <a href="{{ url_for('integrations.gmail_status') }}" class="text-brand-700 hover:underline">Connect Gmail</a>
+    to detect replies to this application.
+  </p>
+  {% elif not application.contact_email %}
+  <p class="text-sm text-slate-500">Add a contact email above to check for replies.</p>
+  {% elif not gmail_messages %}
+  <p class="text-sm text-slate-500">No messages detected yet.</p>
+  {% else %}
+  <div class="space-y-4">
+    {% for msg in gmail_messages %}
+    <div class="rounded-lg border border-slate-200 p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-sm font-semibold text-slate-900">{{ msg.subject or "(no subject)" }}</p>
+          <p class="text-xs text-slate-500">{{ msg.from_address }}{% if msg.received_at %} · {{ msg.received_at.strftime('%d %b %Y %H:%M') }}{% endif %}</p>
+        </div>
+        {% if msg.classified_intent %}
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+          {{ msg.classified_intent.replace('_', ' ')|title }} ({{ msg.classification_confidence }} confidence)
+        </span>
+        {% endif %}
+      </div>
+      <p class="mt-2 text-sm text-slate-600 whitespace-pre-line">{{ (msg.body_text or msg.snippet or "")[:500] }}</p>
+
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        {% if not msg.classified_intent %}
+        <form method="post" action="{{ url_for('applications.classify_message', application_id=application.id, message_id=msg.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="text-xs font-medium text-brand-700 hover:underline">Classify with AI</button>
+        </form>
+        {% endif %}
+        {% if msg.classification_notes and not msg.classified_intent %}
+        <span class="text-xs text-slate-400">{{ msg.classification_notes }}</span>
+        {% endif %}
+        {% if not msg.ai_suggested_reply %}
+        <form method="post" action="{{ url_for('applications.suggest_reply', application_id=application.id, message_id=msg.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="text-xs font-medium text-brand-700 hover:underline">Suggest a reply</button>
+        </form>
+        {% endif %}
+      </div>
+
+      {% if msg.ai_suggested_reply %}
+      <form method="post" action="{{ url_for('applications.create_reply_draft', application_id=application.id, message_id=msg.id) }}" class="mt-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Suggested reply ({{ msg.ai_suggested_reply_provider }}) - edit before sending</label>
+        <textarea name="reply_text" rows="5" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
+        <button type="submit" class="mt-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Create reply draft in Gmail</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="mt-6 rounded-xl border border-slate-200 bg-white p-6">
   <h2 class="font-semibold text-slate-900 mb-3">Timeline</h2>
   <ul class="space-y-2 text-sm">
     {% for event in application.events|reverse %}

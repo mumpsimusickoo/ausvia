@@ -19,6 +19,7 @@ from app.models.application import (
     GeneratedEmail,
     ApplicationDocument,
 )
+from app.models.integration import GmailConnection, GmailMessage
 
 __all__ = [
     "User",
@@ -44,4 +45,6 @@ __all__ = [
     "GeneratedDocument",
     "GeneratedEmail",
     "ApplicationDocument",
+    "GmailConnection",
+    "GmailMessage",
 ]

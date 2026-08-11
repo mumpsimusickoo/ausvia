@@ -29,6 +29,7 @@ def test_trivial_location_only_match_scores_100(app, db, make_user):
     assert result.score == 100
     assert "Open to opportunities Germany-wide" in result.strengths
     assert set(result.skipped_categories) == {"skills", "language", "education", "start_date"}
+    assert result.category_scores == {"location": 100}  # skipped categories are absent, not zero
 
 
 def test_strong_match_scenario(app, db, make_user):
@@ -56,6 +57,12 @@ def test_strong_match_scenario(app, db, make_user):
     assert any(g.label == "STEP7" and g.status == "preferred_missing" for g in result.gaps)
     assert any("German B2" in s for s in result.strengths)
     assert result.recommendation in ("strong_candidate", "possible_candidate")
+
+    assert result.category_scores["skills"] == 50  # 1 of 2 job skills matched
+    assert result.category_scores["language"] == 100
+    assert result.category_scores["education"] == 100
+    assert result.category_scores["location"] == 100
+    assert result.category_scores["start_date"] == 100
 
 
 def test_language_level_below_requirement_is_a_gap_not_a_match(app, db, make_user):

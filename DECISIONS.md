@@ -6,6 +6,75 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-11 — Gmail OAuth: real per-user web flow, token encryption keyed from SECRET_KEY
+
+**Decision:** Replace the prototype's single-machine `InstalledAppFlow.
+run_local_server()` + shared `token.json` with a standard authorization-code
+web flow (`google_auth_oauthlib.flow.Flow`, not `InstalledAppFlow`):
+redirect to Google → user consents → Google redirects back to our own
+`/integrations/gmail/callback` route. Tokens are stored per-user
+(`GmailConnection`, unique on `user_id`), encrypted at rest via Fernet
+symmetric encryption with a key derived from `SECRET_KEY`
+(`app/utils/crypto.py`).
+
+**Reason:** The old flow doesn't work for more than one user - it opens a
+browser and blocks on the *server's own machine*, and the resulting token
+is shared globally. Flagged as the top priority gap in `PROJECT_AUDIT.md`
+after Phase 4.5.
+
+**Alternatives considered:** A dedicated encryption key (separate from
+`SECRET_KEY`) with its own env var and rotation story - rejected for now as
+more infrastructure than this app's current scale needs; noted as a Phase
+8/10 revisit in `SECURITY.md` rather than silently accepted. Storing tokens
+in plaintext - rejected outright, tokens are credentials.
+
+**Consequences:** Reusing the same `credentials.json` a "Desktop app"-type
+Google Cloud OAuth client produces still works locally, because Google's
+loopback exception for that client type accepts `http://127.0.0.1:<port>/...`
+redirect URIs without pre-registration - which matches how this app runs
+(`python app.py` binds `127.0.0.1`). A real (non-localhost) deployment needs
+a "Web application"-type client with the callback URL registered in Google
+Cloud Console instead - documented in README.md. Never exercised against a
+live Google OAuth consent screen in this environment (no `credentials.json`
+configured) - same honesty standard as the Anthropic provider and the
+Arbeitsagentur adapter: the code follows the documented API, but its live
+behavior is unverified.
+
+---
+
+## 2026-08-11 — Gmail reply detection is search-based, not thread-tracked from creation
+
+**Decision:** `app/integrations/gmail_reply_tracking.py` detects replies by
+searching the connected inbox for messages from the application's contact
+email (`from:<contact_email>`, optionally scoped to after the application
+was marked sent) - not by tracking a specific Gmail thread ID from the
+moment the application email was created.
+
+**Reason:** Ausvia never sends the original application email itself (spec:
+the user always sends manually via the created draft). The Gmail thread
+doesn't exist until the user actually sends - there is nothing to track a
+thread ID *of* until after that point, which Ausvia has no visibility into.
+Searching by contact email is the best available signal without controlling
+the send step.
+
+**Alternatives considered:** Waiting for the user to paste back the sent
+message's thread ID or manually link a thread - rejected as extra manual
+work that defeats the point of automatic tracking. Requesting
+`gmail.send`/`gmail.modify` scope to send *and* track directly - rejected
+outright, contradicts the core "user always sends, AI never does" product
+rule (spec sections 30/58).
+
+**Consequences:** Reply detection can miss a reply if the company replies
+from a different address than the one stored as `contact_email`, or
+mis-attribute a message if multiple applications share a contact email at
+the same company. Acceptable v1 tradeoff, upgradable later (e.g. once a
+thread's `threadId` is known from a first detected reply, subsequent checks
+could also search by that thread ID directly - not yet implemented).
+Detection is manual (a "Check for replies" button), not backgrounded - see
+the background-jobs gap in `ARCHITECTURE.md`.
+
+---
+
 ## 2026-08-11 — Rebrand to "Ausvia"
 
 **Decision:** Rename the product from the working title "Ausbildung Career

@@ -43,6 +43,10 @@ class MatchResult:
     gaps: list[GapItem] = field(default_factory=list)
     recommendation: str = "insufficient_data"
     skipped_categories: list[str] = field(default_factory=list)
+    # per-category 0-100 score for categories that had usable data on both
+    # sides; a skipped category is simply absent here, not zero (zero would
+    # falsely read as "bad fit" rather than "not evaluated")
+    category_scores: dict = field(default_factory=dict)
 
 
 def _tokenize(text):
@@ -205,6 +209,7 @@ def compute_match(profile, job):
     }
 
     strengths, gaps, skipped = [], [], []
+    category_scores = {}
     earned = 0.0
     possible = 0
 
@@ -216,6 +221,7 @@ def compute_match(profile, job):
         weight = CATEGORY_WEIGHTS[category]
         possible += weight
         earned += ratio * weight
+        category_scores[category] = round(100 * ratio)
         strengths.extend(cat_strengths)
         gaps.extend(cat_gaps)
 
@@ -223,6 +229,7 @@ def compute_match(profile, job):
         return MatchResult(
             score=None, strengths=strengths, gaps=gaps,
             recommendation="insufficient_data", skipped_categories=skipped,
+            category_scores=category_scores,
         )
 
     score = round(100 * earned / possible)
@@ -235,4 +242,5 @@ def compute_match(profile, job):
     return MatchResult(
         score=score, strengths=strengths, gaps=gaps,
         recommendation=recommendation, skipped_categories=skipped,
+        category_scores=category_scores,
     )

@@ -10,6 +10,7 @@ from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
 from app.jobs.matching import get_or_compute_match, generate_narrative, generate_improvement_tips
 from app.ai.provider import AIProviderError
+from app.extensions import limiter
 from app.utils.logging import log_event
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
@@ -76,6 +77,7 @@ def detail(job_id):
 
 @bp.route("/<int:job_id>/narrative", methods=["POST"])
 @login_required
+@limiter.limit("30 per hour")
 def narrative(job_id):
     job = db.get_or_404(Job, job_id)
     match = get_or_compute_match(current_user, job)
@@ -89,6 +91,7 @@ def narrative(job_id):
 
 @bp.route("/<int:job_id>/improve-tips", methods=["POST"])
 @login_required
+@limiter.limit("30 per hour")
 def improve_tips(job_id):
     job = db.get_or_404(Job, job_id)
     match = get_or_compute_match(current_user, job)

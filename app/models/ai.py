@@ -19,6 +19,9 @@ class JobMatch(db.Model):
     gaps = db.Column(db.JSON, nullable=False, default=list)  # [{"label", "status", "note"}]
     recommendation = db.Column(db.String(30), nullable=False, default="insufficient_data")
     skipped_categories = db.Column(db.JSON, nullable=False, default=list)
+    category_scores = db.Column(
+        db.JSON, nullable=False, default=dict, server_default="{}"
+    )  # {"skills": 92, "language": 88, ...}
 
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     computed_at = db.Column(db.DateTime, nullable=False, default=utcnow)

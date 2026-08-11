@@ -36,9 +36,17 @@ template fallback exists instead of just skipping the feature.
 
 | Feature | Deterministic core | Optional AI layer |
 |---|---|---|
-| Job matching (`app/ai/matching.py`) | Score, strengths, gaps - always computed from real profile/job data | Narrative explanation, improvement tips (`app/ai/prompts/narrative.py`) |
+| Job matching (`app/ai/matching.py`) | Score, strengths, gaps, per-category breakdown - always computed from real profile/job data | Narrative explanation, improvement tips (`app/ai/prompts/narrative.py`) |
 | Cover letter (`app/ai/cover_letter.py`) | Template-based German business letter (used when no AI provider) | AI-personalized generation + a second AI validation/self-correction pass |
 | Application email (`app/ai/email_gen.py`) | Template-based email | AI-personalized generation |
+| Reply intent classification (`app/ai/reply_ai.py`) | None - there's no reliable non-AI way to classify arbitrary reply text | AI classifies into one of 6 intents + a high/medium/low confidence (never a fake numeric score); mock mode honestly declines rather than guessing |
+| Reply suggestions (`app/ai/reply_ai.py`) | None, same reasoning as above | AI drafts a contextual reply grounded in candidate facts + the company's message; mock mode says so plainly instead of faking a reply |
+
+Reply classification/suggestion (Phase 5) are the first features with **no
+deterministic fallback** - unlike matching or cover letters, there's no
+principled non-AI way to classify or respond to arbitrary incoming text, so
+mock mode's honesty is the whole story there rather than a fallback to a
+"good enough" alternative.
 
 ## Prompt architecture
 
@@ -63,6 +71,11 @@ has no way to know about it.
   instructions to follow.
 - Match scores and gap lists are never AI output - they're Python-computed
   and merely *described* by AI when a narrative is requested.
+- Inbound Gmail reply content (Phase 5) gets the same treatment: it's
+  untrusted external data passed to the classification/reply-suggestion
+  prompts as content to interpret, and every relevant system prompt
+  explicitly instructs the model to ignore anything in it that resembles an
+  instruction directed at the model itself.
 
 ## Cost control
 
@@ -74,8 +87,10 @@ has no way to know about it.
   accumulating.
 - `AIUsage` logs token counts per real (non-mock) call; visible at
   `/admin/ai-usage`. Mock calls are never logged (no real cost).
-- **Gap:** no per-user rate limit on AI-calling routes yet - flagged in
-  `PROJECT_AUDIT.md` under "Needs security review."
+- All AI-calling routes (cover letter/email/narrative/improvement-tips/
+  reply-classification/reply-suggestion generation) are rate-limited
+  (30/hour/IP) via Flask-Limiter - added Phase 5, verified with a dedicated
+  test that forces the limiter on.
 
 ## Structured output
 

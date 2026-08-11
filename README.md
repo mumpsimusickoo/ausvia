@@ -19,10 +19,12 @@ missing, and `ROADMAP.md` for what's next.
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
 
 The legacy prototype scripts are now wrapped rather than replaced:
-`jobsearch.py` by `app/jobs/adapters/arbeitsagentur.py`, `pdfmerge.py`'s
-text-to-PDF rendering by `app/applications/pdf_package.py`, and
-`gmail_client.py` directly by the optional Gmail-draft action in
-`app/applications/routes.py`. `coverletter.py` itself is superseded by
+`jobsearch.py` by `app/jobs/adapters/arbeitsagentur.py` and `pdfmerge.py`'s
+text-to-PDF rendering by `app/applications/pdf_package.py`. `gmail_client.py`
+has been fully superseded by `app/integrations/gmail_oauth.py` +
+`gmail_drafts.py` (real per-user OAuth, not a single shared token - see
+`DECISIONS.md`) and is kept only as a standalone reference. `coverletter.py`
+itself is superseded by
 `app/ai/cover_letter.py` (same idea - a real template-based generator - but
 built against the actual `CandidateProfile`/`Job` models) and kept only as a
 standalone reference.
@@ -100,11 +102,41 @@ standalone reference.
 - **Human approval is mandatory** (spec section 47): nothing is ever sent
   automatically. "Approve application" is the one action that builds the
   final PDF; a separate explicit "mark as sent" or optional Gmail-draft
-  action (draft only, via the existing `gmail_client.py` - can never send or
-  read email) follows after the user has reviewed everything.
+  action (draft only, can never send or read email) follows after the user
+  has reviewed everything.
 - **Application CRM**: `Application` status lifecycle (preparing → ready →
   sent → follow_up/interview/offer/... ), auto-logged `ApplicationEvent`
   timeline, and a status/notes/interview-date/follow-up-date update form.
+
+## Gmail integration + reply tracking (Phase 5)
+
+- **Per-user Gmail OAuth** (`app/integrations/gmail_oauth.py`): a real
+  authorization-code web flow, not the earlier single-machine desktop-app
+  flow - each user connects their own account at `/integrations/gmail`,
+  tokens are stored per-user and encrypted at rest (`app/utils/crypto.py`).
+  See `DECISIONS.md` for why this replaced the original prototype's
+  shared-token approach.
+- **Reply detection** (`app/integrations/gmail_reply_tracking.py`): a manual
+  "Check for replies" action searches the connected inbox for messages from
+  an application's contact email. Ausvia never sends the original
+  application email itself, so there's no thread to track from creation -
+  this is the best available detection approach without controlling the
+  send step (see `DECISIONS.md`).
+- **AI reply classification + suggestions** (`app/ai/reply_ai.py`): classifies
+  a detected reply's intent (interview invitation / rejection / document
+  request / offer / acknowledgement / unclear) with a plain high/medium/low
+  confidence - never a fake precise percentage - and can draft a contextual
+  reply grounded in your profile and the company's actual message. Reply
+  drafts thread correctly in Gmail (`In-Reply-To`/`References` headers +
+  `threadId`). Mock mode (no AI provider configured) is honest about not
+  being able to classify or draft contextual replies, rather than guessing.
+- **Per-category match breakdown**: the job detail page now shows a
+  percentage bar per category (skills/language/education/location/start
+  date) alongside the overall score - same underlying deterministic data
+  from Phase 3, just broken out visually.
+- **Known limitation:** none of the Gmail-related code above has been
+  exercised against real Google infrastructure in this environment (no
+  `credentials.json` configured) - see `PROJECT_AUDIT.md`.
 
 ## 1. Install
 
@@ -156,27 +188,44 @@ Covers auth/access-code flows, profile CRUD and cross-user ownership checks,
 document upload validation (content-sniffing, not just extension) and
 cross-user access, admin authorization boundaries, duplicate-detection
 heuristics, job search/import/save flows, deterministic match scoring across
-multiple profile/job scenarios, AI provider selection/fallback/error handling,
-and the full application workflow (cover letter/email generation and
-validation, document selection, PDF package assembly including a corrupt-file
-regression test, the human-approval gate, and cross-user ownership). No test
-calls the real Anthropic API or the real Jobsuche API.
+multiple profile/job scenarios (including the per-category breakdown), AI
+provider selection/fallback/error handling, the full application workflow
+(cover letter/email generation and validation, document selection, PDF
+package assembly including a corrupt-file regression test, the human-approval
+gate, and cross-user ownership), token encryption (roundtrip + fails-closed
+on tampering), the per-user Gmail OAuth connect/disconnect flow, reply
+detection and body extraction (deduped, ownership-scoped), AI reply
+classification/suggestion (including honest mock-mode behavior and
+malformed-response fallback), and AI-route rate limiting (verified with a
+dedicated fixture that forces the limiter on). No test calls the real
+Anthropic API, the real Jobsuche API, or the real Gmail API — Gmail is
+exercised against a faked service object, never live Google infrastructure.
 
-## 6. (Optional) Gmail draft creation
+## 6. (Optional) Gmail integration
 
-Used by the "Create Gmail draft" action on an approved application (only
-appears once an application is ready). Google requires this to come from
-your own account - without it, use "I sent this myself" / download the PDF
-package and send however you like.
+Powers the "Gmail replies" section on an application's detail page: creating
+the initial application draft, checking for and reading replies, and
+creating in-thread reply drafts. Google requires this to come from each
+user's own account — without it, use "I sent this myself" / download the PDF
+package and send however you like, and reply manually in Gmail.
 
 1. Go to https://console.cloud.google.com/ and create a new project.
 2. **APIs & Services → Library** → enable "Gmail API".
 3. **APIs & Services → OAuth consent screen** → External, add yourself as a test user.
 4. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → **Desktop app** → download the JSON.
 5. Rename it to `credentials.json` and put it in the project root.
+6. Start the app, go to **Gmail** in the nav (`/integrations/gmail`), and
+   click **Connect Gmail**. This is a real per-user OAuth flow — each user
+   who wants Gmail features connects their own account; nothing is shared
+   between users. Google's loopback exception for "Desktop app"-type clients
+   accepts the `http://127.0.0.1:<port>/...` redirect this app uses without
+   any redirect URI pre-registration, as long as it's run locally.
 
-The app only ever requests the `gmail.compose` scope — it can create drafts
-but can never send email or read your inbox.
+The app requests two scopes: `gmail.readonly` (to detect and read replies)
+and `gmail.compose` (to create drafts). It can never send email on your
+behalf, and only ever reads messages when you click "Check for replies" on
+a specific application. Tokens are stored encrypted per-user
+(`GmailConnection` — see `DATABASE.md`, `SECURITY.md`).
 
 ## Notes
 

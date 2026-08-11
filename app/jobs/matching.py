@@ -35,6 +35,7 @@ def get_or_compute_match(user, job):
     match.gaps = [{"label": g.label, "status": g.status, "note": g.note} for g in result.gaps]
     match.recommendation = result.recommendation
     match.skipped_categories = result.skipped_categories
+    match.category_scores = result.category_scores
     match.profile_updated_at_snapshot = profile_updated_at
     match.computed_at = utcnow()
     # a stale narrative could misrepresent a changed profile/job - clear it on recompute
@@ -55,6 +56,7 @@ def _match_result_from_cached(job_match):
         gaps=gaps,
         recommendation=job_match.recommendation,
         skipped_categories=job_match.skipped_categories or [],
+        category_scores=job_match.category_scores or {},
     )
 
 

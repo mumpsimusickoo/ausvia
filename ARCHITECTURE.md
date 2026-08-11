@@ -35,9 +35,10 @@ app/
   ai/                           # provider abstraction, matching engine, prompts
     providers/                     # MockAIProvider, AnthropicProvider
     prompts/                        # prompt-builder modules, one per feature
+  integrations/                    # Gmail OAuth (per-user), drafts, reply tracking
   admin/                            # admin dashboard blueprint
   templates/                        # Jinja2 templates, mirrors blueprint structure
-  utils/                             # decorators, logging helpers
+  utils/                             # decorators, logging, encryption (crypto.py)
 migrations/                          # Alembic migration history
 tests/                                 # pytest suite, one file per feature area
 config.py                              # environment-driven config classes

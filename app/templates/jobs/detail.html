@@ -59,6 +59,21 @@
   {% if match.score is none %}
   <p class="text-sm text-slate-500">Not enough profile or job data to compute a match yet.</p>
   {% else %}
+  {% if match.category_scores %}
+  <div class="mb-6 space-y-2">
+    {% for category, cat_score in match.category_scores.items() %}
+    <div>
+      <div class="flex items-center justify-between text-xs mb-1">
+        <span class="font-medium text-slate-600">{{ category.replace('_', ' ')|title }}</span>
+        <span class="font-semibold text-slate-900">{{ cat_score }}%</span>
+      </div>
+      <div class="h-1.5 w-full rounded-full bg-slate-100">
+        <div class="h-1.5 rounded-full {% if cat_score >= 80 %}bg-green-600{% elif cat_score >= 60 %}bg-brand-600{% elif cat_score >= 40 %}bg-amber-600{% else %}bg-red-600{% endif %}" style="width: {{ cat_score }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="grid gap-4 sm:grid-cols-2">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Strong matches</p>

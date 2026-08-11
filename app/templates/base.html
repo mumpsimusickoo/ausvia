@@ -51,6 +51,7 @@
           ('applications.list_applications', 'Applications'),
           ('profile.view', 'Candidate Profile'),
           ('documents.list_documents', 'Documents'),
+          ('integrations.gmail_status', 'Gmail'),
         ] %}
         {% for endpoint, label in nav_items %}
         <a href="{{ url_for(endpoint) }}"

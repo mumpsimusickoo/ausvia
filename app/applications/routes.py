@@ -5,15 +5,18 @@ from flask_login import login_required, current_user
 
 from pypdf.errors import PdfReadError
 
-import gmail_client
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import Job, Document, Application, GeneratedDocument, GeneratedEmail, ApplicationDocument
+from app.models.integration import GmailMessage
 from app.applications.forms import CoverLetterForm, EmailForm, StatusForm
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
 from app.ai.cover_letter import generate_cover_letter, validate_cover_letter
 from app.ai.email_gen import generate_email
 from app.ai.provider import AIProviderError
+from app.ai.reply_ai import classify_reply, generate_reply_suggestion
 from app.documents.storage import LocalStorageProvider
+from app.integrations import gmail_oauth, gmail_drafts
+from app.integrations.gmail_reply_tracking import check_for_replies
 from app.utils.logging import log_event
 
 bp = Blueprint("applications", __name__, url_prefix="/applications")
@@ -75,11 +78,18 @@ def detail(application_id):
     application = _owned_application_or_404(application_id)
     documents = Document.query.filter_by(user_id=current_user.id).order_by(Document.uploaded_at.desc()).all()
     selected_ids = {sd.document_id for sd in application.selected_documents}
+    gmail_messages = (
+        GmailMessage.query.filter_by(application_id=application.id)
+        .order_by(GmailMessage.created_at.desc())
+        .all()
+    )
     return render_template(
         "applications/detail.html",
         application=application,
         documents=documents,
         selected_ids=selected_ids,
+        gmail_messages=gmail_messages,
+        gmail_connected=gmail_oauth.get_connection(current_user) is not None,
         cover_letter_form=CoverLetterForm(obj=application.cover_letter),
         email_form=EmailForm(obj=application.email),
         status_form=StatusForm(obj=application),
@@ -88,6 +98,7 @@ def detail(application_id):
 
 @bp.route("/<int:application_id>/generate-cover-letter", methods=["POST"])
 @login_required
+@limiter.limit("30 per hour")
 def generate_cover_letter_route(application_id):
     application = _owned_application_or_404(application_id)
     try:
@@ -136,6 +147,7 @@ def save_cover_letter(application_id):
 
 @bp.route("/<int:application_id>/generate-email", methods=["POST"])
 @login_required
+@limiter.limit("30 per hour")
 def generate_email_route(application_id):
     application = _owned_application_or_404(application_id)
     selected_types = [sd.document.doc_type for sd in application.selected_documents]
@@ -273,9 +285,9 @@ def mark_sent(application_id):
 @bp.route("/<int:application_id>/gmail-draft", methods=["POST"])
 @login_required
 def create_gmail_draft(application_id):
-    """Optional: creates a Gmail DRAFT (never sends) via gmail_client.py. Requires
-    credentials.json to be configured (see README) - if it isn't, this fails
-    gracefully and the user can still send manually using the downloaded package."""
+    """Creates a Gmail DRAFT (never sends) using the current user's own
+    connected Gmail account (app/integrations/gmail_oauth.py) - not a single
+    shared credential. Requires the user to have connected Gmail first."""
     application = _owned_application_or_404(application_id)
     if application.status != "ready" or not application.package_storage_path:
         flash("Approve the application first to build the package.", "error")
@@ -288,7 +300,9 @@ def create_gmail_draft(application_id):
         return redirect(url_for("applications.detail", application_id=application.id))
 
     try:
-        gmail_client.create_draft(
+        service = gmail_oauth.get_gmail_service(current_user)
+        gmail_drafts.create_draft(
+            service,
             application.contact_email,
             application.email.subject,
             application.email.body,
@@ -297,7 +311,9 @@ def create_gmail_draft(application_id):
         application.log_event("gmail_draft_created", "Gmail draft created (not sent).")
         db.session.commit()
         flash("Gmail draft created - check your Drafts folder, review, and send it yourself.", "success")
-    except FileNotFoundError as e:
+    except gmail_oauth.GmailNotConnectedError:
+        flash("Connect your Gmail account first.", "error")
+    except gmail_oauth.GmailNotConfiguredError as e:
         flash(str(e), "error")
     except Exception as e:
         flash(f"Could not create the Gmail draft: {e}", "error")
@@ -320,4 +336,97 @@ def update_status(application_id):
         flash("Application updated.", "success")
     else:
         flash("Please correct the errors in the form.", "error")
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+def _owned_message_or_404(application, message_id):
+    message = db.get_or_404(GmailMessage, message_id)
+    if message.application_id != application.id:
+        abort(404)
+    return message
+
+
+@bp.route("/<int:application_id>/check-replies", methods=["POST"])
+@login_required
+@limiter.limit("20 per hour")
+def check_replies(application_id):
+    """Manual, user-triggered check (spec: reply tracking) - there is no
+    background polling yet (see ARCHITECTURE.md). Searches the connected
+    Gmail inbox for messages from this application's contact email; cannot
+    track an exact thread from the start since Ausvia never sends the
+    original email itself."""
+    application = _owned_application_or_404(application_id)
+    try:
+        service = gmail_oauth.get_gmail_service(current_user)
+        new_messages = check_for_replies(current_user, application, service)
+        if new_messages:
+            flash(f"{len(new_messages)} new message(s) found.", "success")
+        else:
+            flash("No new messages found.", "info")
+    except gmail_oauth.GmailNotConnectedError:
+        flash("Connect your Gmail account first.", "error")
+    except gmail_oauth.GmailNotConfiguredError as e:
+        flash(str(e), "error")
+    except Exception as e:
+        flash(f"Could not check for replies: {e}", "error")
+        log_event("gmail", f"Reply check failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/messages/<int:message_id>/classify", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def classify_message(application_id, message_id):
+    application = _owned_application_or_404(application_id)
+    message = _owned_message_or_404(application, message_id)
+    classify_reply(current_user, application, message)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/messages/<int:message_id>/suggest-reply", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def suggest_reply(application_id, message_id):
+    application = _owned_application_or_404(application_id)
+    message = _owned_message_or_404(application, message_id)
+    try:
+        generate_reply_suggestion(current_user, application, message)
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Reply suggestion failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/messages/<int:message_id>/create-reply-draft", methods=["POST"])
+@login_required
+def create_reply_draft(application_id, message_id):
+    application = _owned_application_or_404(application_id)
+    message = _owned_message_or_404(application, message_id)
+
+    reply_text = (request.form.get("reply_text") or message.ai_suggested_reply or "").strip()
+    if not reply_text:
+        flash("Write or generate a reply first.", "error")
+        return redirect(url_for("applications.detail", application_id=application.id))
+    if not message.from_address:
+        flash("This message has no sender address on file.", "error")
+        return redirect(url_for("applications.detail", application_id=application.id))
+
+    try:
+        service = gmail_oauth.get_gmail_service(current_user)
+        gmail_drafts.create_reply_draft(
+            service,
+            message.from_address,
+            message.subject or f"Re: {application.job.title}",
+            reply_text,
+            thread_id=message.gmail_thread_id,
+            in_reply_to_rfc_id=message.rfc_message_id,
+        )
+        application.log_event("reply_draft_created", "Reply draft created (not sent).")
+        db.session.commit()
+        flash("Reply draft created in Gmail - review and send it yourself.", "success")
+    except gmail_oauth.GmailNotConnectedError:
+        flash("Connect your Gmail account first.", "error")
+    except Exception as e:
+        flash(f"Could not create the reply draft: {e}", "error")
+        log_event("gmail", f"Reply draft creation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))

@@ -1,8 +1,9 @@
-# Project Audit — Ausvia (formerly "Ausbildung Career Agent")
+# Project Audit — Ausvia
 
-Audit date: 2026-08-11, after Phases 1–4. This is an honest snapshot, not
-aspirational. Nothing below is claimed as done unless it's been exercised
-(unit-tested and/or live-smoke-tested against the running app).
+Audit date: 2026-08-11, after Phase 5 (originally written after Phase 4, now
+updated). This is an honest snapshot, not aspirational. Nothing below is
+claimed as done unless it's been exercised (unit-tested and/or
+live-smoke-tested against the running app).
 
 ## Already working (real, exercised)
 
@@ -23,7 +24,9 @@ aspirational. Nothing below is claimed as done unless it's been exercised
   (company/title/location/start-date normalization) is real and tested.
 - **AI matching engine** (`app/ai/matching.py`) — fully real, deterministic,
   zero AI dependency. Score/strengths/gaps computed from actual profile vs.
-  job data every time.
+  job data every time, now including a **per-category breakdown**
+  (skills/language/education/location/start-date, each shown as its own
+  percentage bar on the job detail page - added Phase 5).
 - **AI provider abstraction** — real `MockAIProvider` (honest, labeled) and
   real `AnthropicProvider` (real SDK integration code). See "Needs testing"
   below — the Anthropic path has never been exercised against a live API key
@@ -41,24 +44,39 @@ aspirational. Nothing below is claimed as done unless it's been exercised
   package is built, separate explicit "mark sent" action.
 - **Admin dashboard** — users (activate/deactivate), invitation codes,
   job-source enable/disable + diagnostics, AI usage/token log.
-- **Gmail draft creation** — real integration code (`gmail_client.py`,
-  pre-existing) wired into the application-approval flow. See "Needs
-  redesign" — the OAuth architecture underneath it does not fit a multi-user
-  web app.
+- **Gmail OAuth (per-user, redesigned in Phase 5)** — real authorization-code
+  web flow (`app/integrations/gmail_oauth.py`): connect/disconnect UI,
+  encrypted per-user token storage (`GmailConnection`, Fernet-encrypted via
+  `app/utils/crypto.py`, key derived from `SECRET_KEY`), automatic token
+  refresh. Replaces the old single-shared-`token.json` desktop-app flow -
+  see `DECISIONS.md`. Draft creation now goes through each user's own
+  connection. **Never exercised against a live Google OAuth consent screen**
+  in this environment (no `credentials.json` configured) - the code follows
+  the documented `google-auth-oauthlib` API precisely, but its live behavior
+  is unverified, same honesty standard applied to the Anthropic provider and
+  the Arbeitsagentur adapter.
+- **Gmail reply tracking** (`app/integrations/gmail_reply_tracking.py`) —
+  real Gmail API search/read code (`gmail.readonly` scope), extracts the
+  full plain-text body (not just the short snippet), deduplicates against
+  already-seen messages, logs a timeline event. Manually triggered ("Check
+  for replies" button) - no background polling yet. Unverified live for the
+  same credentials.json reason as above; unit-tested against a fake Gmail
+  service object that mimics the real API's response shape.
+- **AI reply classification + suggested replies**
+  (`app/ai/reply_ai.py`) — real dual-path code (mock: honestly says
+  AI isn't configured, no fake classification; real: AI classifies
+  intent + confidence and can draft a contextual reply), reply drafts are
+  created in-thread (`In-Reply-To`/`References` headers + Gmail `threadId`)
+  via `app/integrations/gmail_drafts.py`. Same untrusted-external-content
+  framing as cover letter generation - the company's message is data to
+  respond to, never instructions to follow.
+- **AI-route rate limiting** — cover letter/email/narrative/reply-suggestion
+  generation are now rate-limited (30/hour/IP), closing the gap flagged
+  after Phase 4.5. Verified with a dedicated test that forces the limiter on
+  and confirms a 429 actually fires.
 
 ## Partially implemented
 
-- **Gmail integration** — draft creation is wired and uses real Gmail API
-  calls, but the OAuth flow it depends on (`gmail_client.get_gmail_service`)
-  is a single-machine "desktop app" flow: `InstalledAppFlow.run_local_server()`
-  opens a browser and blocks waiting for a redirect on the same machine the
-  Flask process runs on, and the resulting token is a single shared
-  `token.json` file at the project root — not per-user, not database-backed.
-  This works only when one person runs the app on their own laptop. It does
-  **not** work for more than one user, or for any real deployment. This needs
-  a real per-user OAuth web flow (authorization URL → callback route →
-  encrypted per-user token storage) before Gmail can be considered a genuine
-  multi-user feature. Flagged as the top priority for Phase 5/6.
 - **AI-generated content** — the architecture is real and dual-path (never
   mocked-and-labeled-as-real), but the Anthropic path has literally never
   run against a live API key in this environment (none was configured). The
@@ -69,27 +87,25 @@ aspirational. Nothing below is claimed as done unless it's been exercised
   gets HTTP 403 from that API (likely bot-protection on datacenter IPs, not
   a broken key — confirmed general internet connectivity works). Documented
   in README since Phase 2.
+- **Gmail (OAuth + reply tracking + AI replies)** — see above: the code is
+  real and unit-tested against faked API responses, but nothing Gmail-related
+  has been exercised against real Google infrastructure in this environment.
 
 ## Broken
 
 - Nothing currently fails in the app's own test suite or live smoke tests.
-  The one architectural item that would break in a real multi-user
-  deployment is the Gmail OAuth flow above — listed there rather than here
-  since it "works" for the single-developer local case it was written for.
 
 ## Mocked (and clearly labeled as such — never presented as real)
 
 - `MockAIProvider` — the default when no `ANTHROPIC_API_KEY` is configured.
   Returns an honest "AI narrative not available, here's why" message rather
-  than fabricated AI-sounding text. No fake job data, fake company data, or
-  fake match scores exist anywhere in the app — every job comes from a real
-  source (Arbeitsagentur API or the user's own manual import), and match
-  scores are always computed from real profile/job data, never invented.
+  than fabricated AI-sounding text. Same honesty pattern extended in Phase 5
+  to reply classification and reply suggestions - mock mode never guesses an
+  intent or fakes a contextual reply. No fake job data, fake company data,
+  or fake match scores exist anywhere in the app.
 
 ## Missing (not started)
 
-- Gmail reply tracking / thread-to-application association
-- AI email-reply classification and AI-drafted reply suggestions
 - Interview preparation (question generation, mock interview)
 - Persistent AI Assistant / chat interface
 - In-app notification system
@@ -100,10 +116,8 @@ aspirational. Nothing below is claimed as done unless it's been exercised
   and no AI synthesis of "why this company might fit you")
 - Structured first-time onboarding wizard (users currently just land on
   their profile page and fill it in organically)
-- Per-category match breakdown UI (education/skills/language/location as
-  separate percentage bars) — current UI shows one overall score + a
-  strengths/gaps list, which is the same underlying data but not broken out
-  visually per category
+- Background job system - reply checking, AI generation, and PDF assembly
+  are all still synchronous in the request cycle
 - Saved searches / automatic job radar
 - Application analytics/statistics
 - Account data export / account deletion (privacy)
@@ -113,47 +127,45 @@ aspirational. Nothing below is claimed as done unless it's been exercised
 
 ## Needs redesign
 
-- **Visual identity** — this is what Phase 4.5 addresses: rebrand to Ausvia
-  (name, color system, typography, logo wordmark, landing page copy).
-- **Gmail OAuth architecture** — see "Partially implemented" above.
-- **Match breakdown UI** — add the per-category percentage view.
+- Nothing currently flagged. (Visual identity was addressed in Phase 4.5;
+  Gmail OAuth architecture was addressed in Phase 5; per-category match
+  breakdown was addressed in Phase 5.)
 
 ## Needs security review
 
-- **Gmail token storage is the most serious open item.** A single
-  `token.json` on disk, shared across all users, is unacceptable for a
-  multi-user app — whoever's browser most recently completed the OAuth flow
-  effectively "owns" Gmail access for the whole app. Must become per-user,
-  database-backed (or at minimum per-user file), and the refresh/access
-  tokens should not be logged or exposed. No user-facing Gmail feature
-  should ship broadly until this is fixed.
-- **Rate limiting** currently covers only auth endpoints. AI-calling routes
-  (cover letter/email/narrative generation) have no per-user rate limit,
-  so a compromised or careless account could run up real API costs once a
-  real provider is configured. Worth adding before enabling a real API key
-  in anything beyond a personal/trusted deployment.
-- File upload validation, CSRF, session cookie flags, and cross-user
-  ownership checks were reviewed in Phases 1–4 and are solid.
+- **Gmail token encryption uses a key derived from `SECRET_KEY`**, not a
+  separate dedicated secret. Adequate for this app's current scale and
+  threat model (protects against casual DB file exposure), but a real
+  production deployment should consider a dedicated encryption key with its
+  own rotation story, independent of the session-signing key. Noted in
+  `app/utils/crypto.py`'s docstring.
+- **No background job system** means a slow AI provider or Gmail API call
+  blocks the request/response cycle - not a security issue per se, but a
+  potential availability one worth addressing before higher traffic.
+- File upload validation, CSRF, session cookie flags, cross-user ownership
+  checks, and AI-route rate limiting were reviewed and are solid.
 
 ## Needs testing
 
 - `AnthropicProvider`'s live behavior (by design — no test should burn real
   API credits or require a key in CI; this is an accepted coverage gap, not
   an oversight, but should be manually verified once a key is available).
-- Gmail draft creation route has no test coverage (no test mocks
-  `gmail_client` and exercises `create_gmail_draft`).
+- The entire Gmail OAuth/reply-tracking/reply-suggestion stack's live
+  behavior against real Google infrastructure (same reasoning as above -
+  unit tests use a faked Gmail API service object that mirrors the
+  documented response shape, but nothing has hit the real API).
 
 ## Technical debt
 
-- `coverletter.py` (root-level legacy script) is now fully superseded by
-  `app/ai/cover_letter.py` and is effectively dead code, kept only as a
-  standalone reference per the original phase decision. Worth removing once
-  confirmed nobody depends on it standalone.
-- All "long-running" work (AI generation, PDF assembly) currently runs
-  synchronously inside the request/response cycle. Fine for template-mode
-  and fast API calls; will need a background job system once real AI calls
-  or larger workloads make requests slow (spec explicitly anticipates this
-  in Phase 6+).
+- `coverletter.py` and `gmail_client.py` (root-level legacy scripts) are now
+  fully superseded by `app/ai/cover_letter.py` and
+  `app/integrations/gmail_oauth.py`/`gmail_drafts.py` respectively, and are
+  effectively dead code, kept only as standalone reference per the original
+  phase decisions. Worth removing once confirmed nobody depends on them
+  standalone.
+- All "long-running" work (AI generation, PDF assembly, Gmail reply
+  checking) currently runs synchronously inside the request/response cycle.
+  Fine at today's scale; will need a background job system as usage grows.
 - SQLite in dev; Postgres migration path exists (`DATABASE_URL` env var,
   zero code changes needed) but has never been exercised against a real
   Postgres instance.
@@ -165,4 +177,6 @@ aspirational. Nothing below is claimed as done unless it's been exercised
 | 1 — Foundation | Complete, tested, solid |
 | 2 — Job Discovery | Complete; Arbeitsagentur adapter unverified live (sandbox network block, documented); manual import fully verified |
 | 3 — AI Matching | Complete; deterministic engine solid; AI narrative path unverified live (no API key configured) |
-| 4 — Application Generation | Complete and tested; Gmail draft wired but built on a single-user OAuth architecture that needs redesign before real multi-user use |
+| 4 — Application Generation | Complete and tested |
+| 4.5 — Audit + Brand | Complete: Ausvia rebrand, full documentation set |
+| 5 — Product Completion | Complete: per-user Gmail OAuth, reply tracking, AI reply suggestions, per-category match UI, AI-route rate limiting. Gmail stack unverified against real Google infrastructure (no credentials.json in this environment) |

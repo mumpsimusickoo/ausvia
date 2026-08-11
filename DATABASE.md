@@ -35,9 +35,20 @@ Migrate/Alembic in `migrations/versions/` - one migration per phase so far.
 - `JobSourceSetting` — admin enable/disable + last-run diagnostics per source
 
 ### AI (`app/models/ai.py`)
-- `JobMatch` — cached deterministic match result per (user, job) + optional
-  cached AI narrative/improvement-tips text
+- `JobMatch` — cached deterministic match result per (user, job): overall
+  score, strengths, gaps, recommendation, `category_scores` (per-category
+  0-100 breakdown, added Phase 5) + optional cached AI narrative/
+  improvement-tips text
 - `AIUsage` — token usage log per real (non-mock) AI call, for cost tracking
+
+### Integrations (`app/models/integration.py`, added Phase 5)
+- `GmailConnection` — one row per user (unique on `user_id`), encrypted
+  access/refresh tokens (`app/utils/crypto.py`), token expiry, granted scopes
+- `GmailMessage` — a detected inbound reply linked to an `Application`:
+  Gmail message/thread IDs, the RFC `Message-ID` header (needed to thread a
+  reply draft), sender, subject, full plain-text body, AI classification
+  (intent + high/medium/low confidence, never a fake numeric score), and any
+  AI-suggested reply text
 
 ### Applications (`app/models/application.py`)
 - `Application` — status lifecycle, contact info, package storage path

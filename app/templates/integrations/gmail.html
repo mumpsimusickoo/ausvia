@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Gmail — Ausvia{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Gmail</h1>
+<p class="mt-1 text-sm text-slate-600 mb-6">
+  Ausvia only ever creates Gmail <strong>drafts</strong> - it can never send email or read your inbox beyond
+  what's needed to detect replies to your own applications. You always review and send yourself.
+</p>
+
+<section class="rounded-xl border border-slate-200 bg-white p-6">
+  {% if not configured %}
+  <p class="text-sm text-amber-700">
+    Gmail isn't configured on this instance yet - an admin needs to add <code>credentials.json</code>. See README.md.
+  </p>
+  {% elif connection %}
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="font-semibold text-slate-900">Connected{% if connection.google_email %}: {{ connection.google_email }}{% endif %}</p>
+      <p class="text-sm text-slate-500">Since {{ connection.connected_at.strftime('%d %b %Y') }}</p>
+    </div>
+    <form method="post" action="{{ url_for('integrations.gmail_disconnect') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Disconnect</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="text-sm text-slate-600 mb-4">Connect your Gmail account to create application drafts and detect replies.</p>
+  <a href="{{ url_for('integrations.gmail_connect') }}" class="inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+    Connect Gmail
+  </a>
+  {% endif %}
+</section>
+{% endblock %}
