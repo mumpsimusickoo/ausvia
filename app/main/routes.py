@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
@@ -6,6 +8,17 @@ from app.models.job import SavedJob
 from app.models.application import Application
 
 bp = Blueprint("main", __name__)
+
+
+def _time_of_day_greeting():
+    # Server local time - a reasonable default for now; per-user timezone
+    # would need a stored profile preference, tracked as future polish.
+    hour = datetime.now().hour
+    if hour < 12:
+        return "Good morning"
+    if hour < 18:
+        return "Good afternoon"
+    return "Good evening"
 
 
 @bp.route("/")
@@ -29,6 +42,7 @@ def dashboard():
 
     return render_template(
         "main/dashboard.html",
+        greeting=_time_of_day_greeting(),
         profile=profile,
         doc_count=doc_count,
         has_cv=has_cv,

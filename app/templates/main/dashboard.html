@@ -1,8 +1,8 @@
-{% extends "base.html" %}
-{% block title %}Dashboard — Ausbildung Career Agent{% endblock %}
+﻿{% extends "base.html" %}
+{% block title %}Dashboard — Ausvia{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-<p class="mt-1 text-sm text-slate-600">Welcome back{% if profile and profile.first_name %}, {{ profile.first_name }}{% endif %}.</p>
+<h1 class="text-2xl font-bold text-slate-900">{{ greeting }}{% if profile and profile.first_name %}, {{ profile.first_name }}{% endif %}.</h1>
+<p class="mt-1 text-sm text-slate-600">Here's what's happening with your Ausbildung search.</p>
 
 {% if completeness < 100 %}
 <div class="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-5">

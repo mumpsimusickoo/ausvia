@@ -1,8 +1,13 @@
-# Ausbildung Career Agent
+# Ausvia
 
-An AI-assisted platform to help international applicants find, prepare for, and
-track Ausbildung (apprenticeship) applications in Germany. This is being built
-in phases; see `PROJECT_STATUS.md` (created after each phase) for what's live.
+**Your path to Ausbildung.**
+
+A private, invitation-only AI-assisted platform that helps people find and
+apply for Ausbildung (apprenticeship) opportunities in Germany - discover,
+match, prepare, apply, and track, with AI drafting and the user always in
+control of what actually gets sent. This is being built in phases; see
+`PROJECT_AUDIT.md` for an honest account of what's implemented, mocked, or
+missing, and `ROADMAP.md` for what's next.
 
 ## Architecture
 

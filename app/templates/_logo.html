@@ -1,0 +1,14 @@
+{% macro mark(size=32, class="") %}
+{# Abstract route/path mark: a line curving toward a destination point.
+   Deliberately not a graduation cap, briefcase, flag, or AI sparkle. #}
+<span class="inline-flex items-center justify-center rounded-lg bg-brand-600 shrink-0 {{ class }}" style="width: {{ size }}px; height: {{ size }}px;">
+  <svg width="{{ (size * 0.6)|round|int }}" height="{{ (size * 0.6)|round|int }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 18C3 18 7 19 11 15C15 11 13 6 17 5" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="19" cy="4.5" r="2" fill="white"/>
+  </svg>
+</span>
+{% endmacro %}
+
+{% macro wordmark(text_class="text-slate-900") %}
+<span class="font-semibold tracking-tight {{ text_class }}">ausvia</span>
+{% endmacro %}
