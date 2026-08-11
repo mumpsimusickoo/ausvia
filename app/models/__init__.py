@@ -12,6 +12,13 @@ from app.models.document import Document
 from app.models.system_log import SystemLog
 from app.models.job import Company, Job, JobListing, SavedJob, JobSourceSetting
 from app.models.ai import JobMatch, AIUsage
+from app.models.application import (
+    Application,
+    ApplicationEvent,
+    GeneratedDocument,
+    GeneratedEmail,
+    ApplicationDocument,
+)
 
 __all__ = [
     "User",
@@ -32,4 +39,9 @@ __all__ = [
     "JobSourceSetting",
     "JobMatch",
     "AIUsage",
+    "Application",
+    "ApplicationEvent",
+    "GeneratedDocument",
+    "GeneratedEmail",
+    "ApplicationDocument",
 ]

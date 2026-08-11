@@ -13,11 +13,14 @@ in phases; see `PROJECT_STATUS.md` (created after each phase) for what's live.
 - **AI:** provider-agnostic abstraction (`app/ai/provider.py`) with a mock implementation (default) and a real Anthropic implementation — set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to enable it, otherwise the app runs fully rule-based with no credentials
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
 
-The legacy prototype scripts (`coverletter.py`, `pdfmerge.py`, `gmail_client.py`)
-still work standalone and contain real, working integrations (Gmail draft
-creation, PDF merging). They'll be wrapped into the AI-generation architecture
-in a later phase rather than rewritten from scratch. `jobsearch.py` is now
-wrapped by `app/jobs/adapters/arbeitsagentur.py` as the first `JobSourceAdapter`.
+The legacy prototype scripts are now wrapped rather than replaced:
+`jobsearch.py` by `app/jobs/adapters/arbeitsagentur.py`, `pdfmerge.py`'s
+text-to-PDF rendering by `app/applications/pdf_package.py`, and
+`gmail_client.py` directly by the optional Gmail-draft action in
+`app/applications/routes.py`. `coverletter.py` itself is superseded by
+`app/ai/cover_letter.py` (same idea - a real template-based generator - but
+built against the actual `CandidateProfile`/`Job` models) and kept only as a
+standalone reference.
 
 ## Job discovery (Phase 2)
 
@@ -63,6 +66,40 @@ wrapped by `app/jobs/adapters/arbeitsagentur.py` as the first `JobSourceAdapter`
   AI narrative/tips are generated once and cached alongside it. Every real
   (non-mock) AI call's token usage is logged to `AIUsage` and visible at
   `/admin/ai-usage` — mock calls are never logged, since they cost nothing.
+
+## Application generation (Phase 4)
+
+- **Cover letter (Anschreiben) generation** (`app/ai/cover_letter.py`): AI path
+  (personalized, grounded only in `app/ai/facts.py`'s fact block - never raw
+  job HTML) when a real provider is configured, or a genuinely usable
+  template-based German business-letter generator otherwise - not a stub,
+  the same dual-path philosophy as Phase 3's matching engine. A second AI
+  validation pass checks the letter against the source facts and
+  self-corrects (spec: never trust one AI pass); in template/mock mode a
+  deterministic sanity check confirms the job title/company/candidate name
+  actually appear in the output.
+- **Application email generation** (`app/ai/email_gen.py`): same AI/template
+  dual path, short and distinct from the cover letter.
+- **Salutation logic** (`app/ai/salutation.py`): uses a named contact only
+  when the source data already encodes gender (a stored "Frau"/"Herr"
+  prefix) - never guesses from a first name; falls back to the standard
+  neutral "Sehr geehrte Damen und Herren" otherwise.
+- **PDF package assembly** (`app/applications/pdf_package.py`): cover letter
+  first, then the user's selected documents (PDFs and JPG/PNG, auto-converted
+  to a PDF page) in spec-suggested order (CV → diplomas/certs → other).
+  Original uploaded files are never modified. A corrupted/unparseable
+  document fails the build with a clear, specific error rather than a 500 -
+  the upload step's magic-byte check only verifies a file *starts with* a
+  valid signature, not full structural validity, so this failure mode is
+  real and was caught by live testing, not just unit tests.
+- **Human approval is mandatory** (spec section 47): nothing is ever sent
+  automatically. "Approve application" is the one action that builds the
+  final PDF; a separate explicit "mark as sent" or optional Gmail-draft
+  action (draft only, via the existing `gmail_client.py` - can never send or
+  read email) follows after the user has reviewed everything.
+- **Application CRM**: `Application` status lifecycle (preparing → ready →
+  sent → follow_up/interview/offer/... ), auto-logged `ApplicationEvent`
+  timeline, and a status/notes/interview-date/follow-up-date update form.
 
 ## 1. Install
 
@@ -114,14 +151,18 @@ Covers auth/access-code flows, profile CRUD and cross-user ownership checks,
 document upload validation (content-sniffing, not just extension) and
 cross-user access, admin authorization boundaries, duplicate-detection
 heuristics, job search/import/save flows, deterministic match scoring across
-multiple profile/job scenarios, and AI provider selection/fallback/error
-handling (a fake provider is injected in tests — no test calls the real
-Anthropic API or the real Jobsuche API).
+multiple profile/job scenarios, AI provider selection/fallback/error handling,
+and the full application workflow (cover letter/email generation and
+validation, document selection, PDF package assembly including a corrupt-file
+regression test, the human-approval gate, and cross-user ownership). No test
+calls the real Anthropic API or the real Jobsuche API.
 
 ## 6. (Optional) Gmail draft creation
 
-Used by the existing `gmail_client.py` module (wired into the UI in a later
-phase). Google requires this to come from your own account.
+Used by the "Create Gmail draft" action on an approved application (only
+appears once an application is ready). Google requires this to come from
+your own account - without it, use "I sent this myself" / download the PDF
+package and send however you like.
 
 1. Go to https://console.cloud.google.com/ and create a new project.
 2. **APIs & Services → Library** → enable "Gmail API".

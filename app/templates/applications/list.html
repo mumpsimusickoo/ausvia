@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Applications — Ausbildung Career Agent{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Applications</h1>
+<div class="mt-6 space-y-3">
+  {% for app in applications %}
+  <a href="{{ url_for('applications.detail', application_id=app.id) }}" class="block rounded-xl border border-slate-200 bg-white p-5 hover:border-brand-300">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="font-semibold text-slate-900">{{ app.job.title }}</p>
+        <p class="text-sm text-slate-600">{{ app.job.company_name or "Unknown company" }}</p>
+      </div>
+      <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{{ app.status.replace('_', ' ')|title }}</span>
+    </div>
+  </a>
+  {% else %}
+  <p class="text-sm text-slate-500">No applications yet. Open a job and click "Start application".</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -64,7 +64,14 @@ def detail(job_id):
     job = db.get_or_404(Job, job_id)
     is_saved = SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first() is not None
     match = get_or_compute_match(current_user, job)
-    return render_template("jobs/detail.html", job=job, is_saved=is_saved, match=match)
+
+    from app.models import Application
+
+    application = Application.query.filter_by(user_id=current_user.id, job_id=job.id).first()
+
+    return render_template(
+        "jobs/detail.html", job=job, is_saved=is_saved, match=match, application=application
+    )
 
 
 @bp.route("/<int:job_id>/narrative", methods=["POST"])

@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 
 from app.models.document import Document
 from app.models.job import SavedJob
+from app.models.application import Application
 
 bp = Blueprint("main", __name__)
 
@@ -22,11 +23,18 @@ def dashboard():
     has_cv = Document.query.filter_by(user_id=current_user.id, is_primary_cv=True).first() is not None
     saved_job_count = SavedJob.query.filter_by(user_id=current_user.id).count()
 
+    applications = Application.query.filter_by(user_id=current_user.id).all()
+    applications_sent = sum(1 for a in applications if a.status not in ("preparing", "ready"))
+    interviews = sum(1 for a in applications if a.status == "interview")
+
     return render_template(
         "main/dashboard.html",
         profile=profile,
         doc_count=doc_count,
         has_cv=has_cv,
         saved_job_count=saved_job_count,
+        applications_count=len(applications),
+        applications_sent=applications_sent,
+        interviews=interviews,
         completeness=profile.completeness_percent() if profile else 0,
     )

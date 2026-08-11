@@ -32,6 +32,7 @@ def create_app(config_name=None):
     from app.profile.routes import bp as profile_bp
     from app.documents.routes import bp as documents_bp
     from app.jobs.routes import bp as jobs_bp
+    from app.applications.routes import bp as applications_bp
     from app.admin.routes import bp as admin_bp
 
     app.register_blueprint(auth_bp)
@@ -39,6 +40,7 @@ def create_app(config_name=None):
     app.register_blueprint(profile_bp)
     app.register_blueprint(documents_bp)
     app.register_blueprint(jobs_bp)
+    app.register_blueprint(applications_bp)
     app.register_blueprint(admin_bp)
 
     register_error_handlers(app)
