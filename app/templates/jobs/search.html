@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %}
 {% from "_macros.html" import render_field %}
+{% from "_icons.html" import check %}
 {% block title %}Job Search — AUSVIA{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold text-slate-900">Job Search</h1>
@@ -48,8 +49,8 @@
         {% endif %}
         <form method="post" action="{{ url_for('jobs.save', job_id=job.id) if job.id not in saved_job_ids else url_for('jobs.unsave', job_id=job.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-sm font-medium {% if job.id in saved_job_ids %}text-slate-500{% else %}text-brand-700{% endif %} hover:underline">
-            {{ "Saved ✓" if job.id in saved_job_ids else "Save" }}
+          <button class="inline-flex items-center gap-1 text-sm font-medium {% if job.id in saved_job_ids %}text-slate-500{% else %}text-brand-700{% endif %} hover:underline">
+            {% if job.id in saved_job_ids %}{{ check(12) }} Saved{% else %}Save{% endif %}
           </button>
         </form>
       </div>

@@ -84,23 +84,80 @@ These exact numbers are what's baked into both `app/templates/_logo.html`
 
 | Name | Hex | Usage |
 |---|---|---|
-| Ink Navy | `#0B1220` | Default light-background symbol/wordmark fill; dark-surface backgrounds |
-| Signal Blue | `#2563EB` | Accent and app icon; light-surface interactive color (5.17:1 on white) |
-| Bright Blue | `#3B82F6` | Dark-background-only accent (5.4:1 on Ink Navy vs. Signal Blue's 2.9:1) |
-| Black / White | — | Monochrome pair |
+| Ink Navy | `#0B1220` | Text/wordmark color and backgrounds on **light** surfaces; the page/surface background on **dark** contexts |
+| Signal Blue | `#2563EB` | **The symbol's default fill on light backgrounds** (5.17:1 on white, AA-safe) |
+| Bright Blue | `#3B82F6` | The symbol's fill on **dark/ink** backgrounds only (5.4:1 on Ink Navy vs. Signal Blue's 2.9:1) |
+| Black / White | — | Monochrome pair (symbol and wordmark both the same single color) |
 
-**One explicit reading call:** section 09's file table lists
-`ausvia-symbol-ink.svg` as "default, light backgrounds" and
-`ausvia-symbol-blue.svg` as "accent and app icon" — i.e., the spec
-distinguishes an **editorial default** (ink, for the mark sitting in
-plain content/document/nav contexts) from an **interactive/icon accent**
-(Signal Blue, for favicons, app icons, and CTA-adjacent contexts). This
-pass followed that literal file-table reading: the primary in-app lockup
-(sidebar-equivalent light contexts, landing header) uses **ink**, while
-the favicon and app-icon source use **Signal Blue**. If the intent was
-actually "blue is the default everywhere, ink is a secondary variant,"
-that's a one-line fill-color swap in `_logo.html` and easy to reverse —
-flagging this explicitly rather than silently picking one reading.
+### Signal Blue vs. Ink Navy: resolved
+
+**Signal Blue is the symbol's default fill on light backgrounds. Ink Navy
+is not a default mark color at all — it's the text/wordmark and
+surface color.** This was re-examined and confirmed (previously left as
+an open reading, flagged as reversible) against explicit spec language,
+not just asset file names:
+
+- The earlier "Brand identity with logo.pdf" (v1.0, the document this
+  rev 1.0 spec refines) states the color roles explicitly: **"Signal
+  Blue: Primary actions, the mark on light"** and **"Bright Blue: Dark
+  mode only — the mark on ink."** Ink Navy's row reads "Surfaces, type,
+  the mark" — listing "the mark" too, but alongside "surfaces" and
+  "type," which is why it reads as the *type/background* color that
+  happens to also cover monochrome/print treatments of the mark, not the
+  primary colored fill. Signal Blue and Bright Blue are the two rows that
+  name a *background context* ("on light" / "on ink") for the mark
+  specifically — that pairing is the actual rule: light → Signal Blue,
+  dark → Bright Blue.
+- Rev 1.0's own section 08 confirms the same pairing operationally: "On
+  `#0B1220` [Signal Blue] drops to 2.9:1, which is **why the dark version
+  steps up to Bright Blue** at 5.4:1." "Steps up to Bright Blue" only
+  makes sense as a description of swapping *away from* a Signal-Blue
+  baseline for dark contexts — i.e., Signal Blue is the assumed light-
+  context default that the dark version deviates from.
+- The rendered reference art across all three logo PDFs in this project
+  (the original 8-concept exploration, the v1.0 identity, and this rev
+  1.0 spec) consistently shows the primary lockup's symbol in blue, not
+  ink, in every "primary/light" example shown.
+
+Section 09's file table (`ausvia-symbol-ink.svg` = "default, light
+backgrounds") is the one piece of text that reads the other way taken in
+isolation — but weighed against the explicit color-role sentence above
+plus the contrast-figure phrasing plus the consistent reference art
+across three documents, the file table's "default" more plausibly means
+"the default *neutral/monochrome-adjacent variant* for editorial/print
+use," not "the default colored fill for the primary product lockup."
+**This is the final determination — not re-litigated further unless a
+future spec revision says otherwise.**
+
+**What changed as a result:** the symbol now renders Signal Blue by
+default on light backgrounds (was Ink Navy); the wordmark text stays Ink
+Navy (unchanged — text color was never the ambiguous part). Updated in
+`app/templates/_logo.html`'s macro defaults, and regenerated
+`ausvia-lockup-primary-light.svg`, `ausvia-lockup-stacked.svg`, and
+`ausvia-lockup-tagline.svg` in `app/static/brand/`. The dark/ink lockup
+(Bright Blue symbol + white wordmark) was already correct and is
+unchanged. `ausvia-symbol-ink.svg` remains available as a real asset (an
+ink-colored symbol variant genuinely has print/monochrome-adjacent uses)
+but is no longer the implied default anywhere in the live app.
+
+### Signal Blue as primary-action color: confirmed, one inconsistency fixed
+
+Separately from the symbol-color question: Signal Blue (`bg-brand-600`,
+exactly `#2563EB`) already drives every primary CTA button across the
+app (confirmed by grep across all templates - "Approve application,"
+"Start application," "Search," every primary form-submit button). Links
+use `text-brand-700` (`#1D4ED8`) — one shade darker than Signal Blue
+within the same scale, a deliberate, defensible offset for text-on-white
+legibility, not a deviation from the brand color.
+
+**One real inconsistency found and fixed:** form focus rings
+(`app/templates/_macros.html`) used `focus:ring-brand-500`, which
+resolves to `#3B82F6` — **Bright Blue**, the spec's dark-background-only
+color — applied to focus states on white input fields. Changed to
+`brand-600` (Signal Blue) in both `render_field()` and
+`render_checkbox()`, the two places this is defined. This was a real,
+if minor, violation of the "Bright Blue is dark-only" rule; it's fixed
+project-wide from a single centralized location.
 
 ## Wordmark casing: two different rules for two different things
 

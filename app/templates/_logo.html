@@ -8,9 +8,18 @@
   SemiBold (600) font at -4% tracking (fontTools, glyph outlines) - not
   live text in a substitute face. Sora's OFL license is bundled at
   app/static/brand/Sora-OFL.txt.
+
+  Color defaults (revised - see LOGO.md "Signal Blue vs Ink Navy" and
+  DECISIONS.md): the SYMBOL carries the brand color - Signal Blue
+  (#2563EB) on light backgrounds, Bright Blue (#3B82F6) on dark - per the
+  color spec's own role table ("Signal Blue: ... the mark on light";
+  "Bright Blue: ... the mark on ink"). The WORDMARK TEXT follows normal
+  text-color convention - Ink Navy on light, white on dark. Symbol and
+  wordmark are therefore two different colors by default on light
+  backgrounds, not one monolithic ink block.
 #}
 
-{% macro symbol(size=32, class="", color="#0B1220") %}
+{% macro symbol(size=32, class="", color="#2563EB") %}
 <svg width="{{ size }}" height="{{ size }}" viewBox="0 0 96 96" class="{{ class }}" aria-hidden="true">
   <path fill-rule="evenodd" fill="{{ color }}" d="M24 2 H72 A22 22 0 0 1 94 24 V72 A22 22 0 0 1 72 94 H24 A22 22 0 0 1 2 72 V24 A22 22 0 0 1 24 2 Z M20 75 L48 19 L76 75 L62 75 L48 47 L34 75 Z"/>
 </svg>
@@ -29,7 +38,7 @@
   `height` sets the overall lockup height in px (the symbol tile's height,
   since it's the taller of the two elements).
 #}
-{% macro lockup(height=32, class="", symbol_color="#0B1220", wordmark_color="#0B1220") %}
+{% macro lockup(height=32, class="", symbol_color="#2563EB", wordmark_color="#0B1220") %}
 <svg height="{{ height }}" width="{{ (height * 4058.332 / 814.8)|round(2) }}" viewBox="0 0 4058.332 814.8" class="{{ class }}" role="img" aria-label="ausvia">
   <path fill-rule="evenodd" fill="{{ symbol_color }}" transform="translate(0 0) scale(8.4875)" d="M24 2 H72 A22 22 0 0 1 94 24 V72 A22 22 0 0 1 72 94 H24 A22 22 0 0 1 2 72 V24 A22 22 0 0 1 24 2 Z M20 75 L48 19 L76 75 L62 75 L48 47 L34 75 Z"/>
   <g transform="translate(1091.832 19.4)">

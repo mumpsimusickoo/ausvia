@@ -1,4 +1,5 @@
 ﻿{% extends "base.html" %}
+{% from "_icons.html" import check, cross, warning, unknown %}
 {% block title %}{{ job.title }} — AUSVIA{% endblock %}
 {% block content %}
 <div class="flex items-start justify-between">
@@ -44,7 +45,7 @@
 </div>
 
 <section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-  <div class="flex items-center justify-between mb-3">
+  <div class="flex items-center justify-between mb-1">
     <h2 class="font-semibold text-slate-900">Compatibility with your profile</h2>
     {% if match.score is not none %}
     <span class="text-2xl font-bold {% if match.score >= 80 %}text-green-700{% elif match.score >= 60 %}text-brand-700{% elif match.score >= 40 %}text-amber-700{% else %}text-slate-600{% endif %}">{{ match.score }}/100</span>
@@ -58,9 +59,8 @@
 
   {% if match.score is none %}
   <p class="text-sm text-slate-500">Not enough profile or job data to compute a match yet.</p>
-  {% else %}
-  {% if match.category_scores %}
-  <div class="mb-6 space-y-2">
+  {% elif match.category_scores %}
+  <div class="space-y-2">
     {% for category, cat_score in match.category_scores.items() %}
     <div>
       <div class="flex items-center justify-between text-xs mb-1">
@@ -74,27 +74,37 @@
     {% endfor %}
   </div>
   {% endif %}
-  <div class="grid gap-4 sm:grid-cols-2">
+</section>
+
+{% if match.score is not none %}
+<section class="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <div class="grid gap-6 sm:grid-cols-2">
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Strong matches</p>
       {% if match.strengths %}
-      <ul class="space-y-1 text-sm text-slate-700">
-        {% for s in match.strengths %}<li>✓ {{ s }}</li>{% endfor %}
+      <ul class="space-y-1.5 text-sm text-slate-700">
+        {% for s in match.strengths %}
+        <li class="flex items-start gap-2"><span class="text-green-600 mt-0.5 shrink-0">{{ check(14) }}</span><span>{{ s }}</span></li>
+        {% endfor %}
       </ul>
       {% else %}<p class="text-sm text-slate-400">None identified.</p>{% endif %}
     </div>
     <div>
       <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Potential gaps</p>
       {% if match.gaps %}
-      <ul class="space-y-1 text-sm text-slate-700">
+      <ul class="space-y-1.5 text-sm text-slate-700">
         {% for g in match.gaps %}
-        <li>{{ "❌" if g.status == "required_missing" else ("⚠" if g.status == "preferred_missing" else "?") }} {{ g.label }}{% if g.note %} <span class="text-slate-400">— {{ g.note }}</span>{% endif %}</li>
+        <li class="flex items-start gap-2">
+          <span class="mt-0.5 shrink-0 {% if g.status == 'required_missing' %}text-red-600{% elif g.status == 'preferred_missing' %}text-amber-600{% else %}text-slate-400{% endif %}">
+            {% if g.status == 'required_missing' %}{{ cross(14) }}{% elif g.status == 'preferred_missing' %}{{ warning(14) }}{% else %}{{ unknown(14) }}{% endif %}
+          </span>
+          <span>{{ g.label }}{% if g.note %} <span class="text-slate-400">— {{ g.note }}</span>{% endif %}</span>
+        </li>
         {% endfor %}
       </ul>
       {% else %}<p class="text-sm text-slate-400">None identified.</p>{% endif %}
     </div>
   </div>
-  {% endif %}
 
   <div class="mt-5 border-t border-slate-100 pt-4">
     {% if match.narrative_text %}
@@ -120,6 +130,7 @@
     {% endif %}
   </div>
 </section>
+{% endif %}
 
 {% if job.description %}
 <section class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm p-6">

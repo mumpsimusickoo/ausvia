@@ -6,6 +6,49 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-11 — Resolved: Signal Blue (not Ink Navy) is the logo symbol's default fill on light backgrounds
+
+**Decision:** The symbol's default fill on light backgrounds is **Signal
+Blue** (`#2563EB`), not Ink Navy. Ink Navy governs the wordmark text and
+surfaces, not the mark's default color. `app/templates/_logo.html`'s
+`symbol()`/`lockup()` macro defaults, and the corresponding static assets
+(`ausvia-lockup-primary-light.svg`, `ausvia-lockup-stacked.svg`,
+`ausvia-lockup-tagline.svg`), were updated accordingly.
+
+**Reason:** this reverses the previous session's implementation, which
+followed section 09's asset-filename table literally
+(`ausvia-symbol-ink.svg` = "default, light backgrounds") and explicitly
+flagged that reading as reversible. Asked to re-examine against the
+spec's actual color-role language rather than file names: the earlier
+"Brand identity with logo.pdf" (v1.0) states outright — "**Signal Blue:**
+Primary actions, **the mark on light**" and "**Bright Blue:** Dark mode
+only — **the mark on ink**." That is an explicit, unambiguous pairing of
+background context to symbol color, naming Signal Blue for light and
+Bright Blue for dark. Rev 1.0's own section 08 is consistent with this:
+"the dark version **steps up to** Bright Blue" only makes sense as a
+description of moving away from a Signal-Blue baseline. And the rendered
+primary-lockup reference art in all three logo PDFs produced across this
+project (8-concept exploration, v1.0 identity, rev 1.0 spec) consistently
+shows the symbol in blue on light backgrounds, never ink.
+
+**Alternatives considered:** Keeping the ink-default reading exactly as
+previously implemented, since it wasn't demonstrably *wrong*, just
+under-evidenced - rejected because it directly contradicts the explicit
+"the mark on light" / "the mark on ink" sentence once weighed against it;
+that sentence is the single clearest piece of textual evidence in either
+direction and it says the opposite of what was implemented.
+
+**Consequences:** `ausvia-symbol-ink.svg` remains a valid, real asset
+(genuine use for print/monochrome-adjacent editorial contexts) but is no
+longer implied as the default anywhere live. Also fixed while auditing
+this: form focus rings (`_macros.html`) used Bright Blue's hex on light-
+surface white inputs (`ring-brand-500`), which violates "Bright Blue is
+dark-background-only" - changed to `brand-600` (Signal Blue) in both
+field-rendering macros. Full reasoning and the exact quotes: `LOGO.md`
+"Signal Blue vs. Ink Navy."
+
+---
+
 ## 2026-08-11 — Logo rev 1.0 implemented: outlined Sora wordmark, ink-default symbol, Sora scoped to logotype only
 
 **Decision:** Implement the approved Aperture logo spec exactly, with four

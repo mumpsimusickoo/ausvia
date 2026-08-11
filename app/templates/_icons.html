@@ -1,0 +1,36 @@
+{#
+  Minimal status icon set - replaces emoji-style Unicode glyphs (✓ ❌ ⚠)
+  per BRAND_VOICE.md's "icons only, no illustration" rule and the
+  single-weight line/stroke language matching the logo mark. All use
+  stroke="currentColor" so they inherit the wrapping element's text
+  color (green/red/amber/slate) - unlike emoji glyphs, which render in
+  their own fixed platform color regardless of surrounding CSS.
+#}
+
+{% macro check(size=14, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 8.5L6.5 12L13 4"/>
+</svg>
+{% endmacro %}
+
+{% macro cross(size=14, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+  <path d="M4 4L12 12M12 4L4 12"/>
+</svg>
+{% endmacro %}
+
+{% macro warning(size=14, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M8 2L14.5 13.5H1.5Z"/>
+  <path d="M8 6.3V9.4"/>
+  <circle cx="8" cy="11.4" r="0.15" fill="currentColor" stroke="none"/>
+</svg>
+{% endmacro %}
+
+{% macro unknown(size=14, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="8" cy="8" r="6.3"/>
+  <path d="M5.8 6.3C5.8 5.1 6.8 4.2 8 4.2C9.2 4.2 10.2 4.9 10.2 6.1C10.2 7.4 8.3 7.6 8.1 9.1"/>
+  <circle cx="8.05" cy="11.4" r="0.2" fill="currentColor" stroke="none"/>
+</svg>
+{% endmacro %}
