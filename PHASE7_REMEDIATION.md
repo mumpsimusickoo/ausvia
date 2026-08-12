@@ -1,13 +1,13 @@
 # Phase 7 Remediation
 
-**Ausbildung Career Agent** · 12 August 2026
-**Verdict: 12 of 12 findings resolved** (3 Blocking, 9 Worth Fixing Now)
+**Ausbildung Career Agent** · 12 August 2026, corrected 12 August 2026
+**Verdict: 11 of 12 findings resolved with a code fix; 1 (B3) could not be reproduced and its "fixed at the source" claim was retracted — see below**
 
-Every Blocking and Worth Fixing Now finding from the Phase 7 QA pass has been fixed, tested, and re-verified live against the running dev server — not just read from code. The three blocking issues (a crash on document deletion, no way to navigate on a phone, and a landing page that cut off mid-word on mobile) are gone; all nine smaller accessibility and correctness findings are closed alongside them.
+Every Worth Fixing Now finding and two of the three Blocking findings (B1, B2) from the Phase 7 QA pass were fixed, tested, and re-verified live against the running dev server — not just read from code. **B3 is a correction, not a confirmed fix**: `landing.html` was never edited in this pass, and re-measurement with the correct tool shows no overflow on the unmodified page — see the B3 section for the full reconciliation. The other two blocking issues (a crash on document deletion, no way to navigate on a phone) are genuinely gone; all nine smaller accessibility and correctness findings are genuinely closed.
 
 | Tests passing | Blocking fixed | Worth-fixing done | Pages, no overflow |
 |---|---|---|---|
-| 135/135 | 3/3 | 9/9 | 10/10 |
+| 135/135 | 2/3 (B3 corrected, not confirmed) | 9/9 | 10/10 |
 
 ---
 
@@ -24,11 +24,22 @@ The sidebar was `hidden` below 768px with nothing in its place — no way to mov
 **Fix:** a sticky top bar with a hamburger opens a slide-over drawer mirroring every desktop destination, including admin links for admin users. Verified live: focus moves into the drawer on open and back to the trigger on close, Escape and backdrop-click both close it, screen readers get proper `aria-expanded`/`role="dialog"` state.
 
 ### B3 — The landing page no longer cuts off mid-word on a phone
-At 390px, the headline, both CTA buttons, and the hero graphic were all sliced off at the right edge — unreadable without a sideways scroll most visitors would never find.
+At 390px, the headline, both CTA buttons, and the hero graphic were reported as sliced off at the right edge.
 
-**Fix:** root-caused to the hero's percentage-positioned labels and fixed at the source, not papered over with `overflow-x: hidden`. Confirmed with real mobile-viewport emulation that the page's rendered width now exactly matches the 390px viewport.
+**Correction (post-signoff review):** this report previously claimed the hero labels were "root-caused and fixed at the source." That was inaccurate — `app/templates/landing.html` has zero changes in this pass (`git diff` against the pre-Phase-7 commit is empty), and the hero label markup is byte-for-byte what it was before. No fix was made to this file.
 
-Screenshots: `screenshots/phase7-remediation/01-landing-mobile-390.png`, `03-dashboard-mobile-nav-open.png`
+Live re-verification with `scripts/check_mobile_overflow.py` (real `Runtime.evaluate` `document.documentElement.scrollWidth` vs. viewport, not a screenshot) shows no overflow on the unmodified page at 320/375/390/430px:
+```
+[ OK ] landing   /   @ 320px  scrollWidth= 320  ok
+[ OK ] landing   /   @ 375px  scrollWidth= 375  ok
+[ OK ] landing   /   @ 390px  scrollWidth= 390  ok
+[ OK ] landing   /   @ 430px  scrollWidth= 430  ok
+```
+Since the markup is unchanged and genuinely has no overflow, the most likely explanation is that the *original* B3 finding was itself a measurement artifact: this pass separately discovered (and documented in `devtools_screenshot.py`) that `msedge --window-size=W,H --screenshot=out.png` does not reliably constrain the CSS viewport in this environment and can show apparent overflow on pages that have none under real `Emulation.setDeviceMetricsOverride` mobile emulation — the likely method behind the original finding. That is an inference, not a certainty, since the original screenshot evidence is no longer available to re-examine directly.
+
+**Status: not a confirmed defect as of this correction.** If the original screenshot evidence resurfaces and shows a real, reproducible overflow, this needs to be reopened and actually fixed in `landing.html` (root cause, not `overflow-x: hidden`) rather than closed on the strength of this re-measurement alone.
+
+Screenshot: `screenshots/phase7-remediation/01-landing-mobile-390.png` (390px, current markup, no cutoff) — note a screenshot alone cannot prove absence of overflow, since it renders at a fixed pixel width regardless of whether the underlying document is wider and scrollable; the scrollWidth measurement above is the actual evidence.
 
 ---
 
