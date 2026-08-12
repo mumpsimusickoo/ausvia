@@ -69,6 +69,28 @@ def format_candidate_facts(profile):
     return "\n".join(lines) if lines else "No candidate profile details on file."
 
 
+def format_company_facts(company):
+    """Supplementary company data (Phase 6) beyond the "Company: <name>" line
+    format_job_facts already states - same fields and source as
+    app/ai/prompts/company.py's _company_facts(), minus that function's
+    "other jobs at this company" listing, which isn't relevant to generating
+    one cover letter/email. Returns None if there's no linked Company row or
+    it has no populated fields worth adding (true for many jobs, especially
+    manually-imported ones, which have no Company match at all)."""
+    if company is None:
+        return None
+    lines = []
+    if company.industry:
+        lines.append(f"Industry: {company.industry}")
+    if company.location:
+        lines.append(f"Location: {company.location}")
+    if company.website:
+        lines.append(f"Website: {company.website}")
+    if company.description:
+        lines.append(f"Description (from job postings): {company.description}")
+    return "\n".join(lines) if lines else None
+
+
 def format_job_facts(job):
     lines = [
         f"Job title: {job.title}",
@@ -85,4 +107,14 @@ def format_job_facts(job):
         lines.append(f"Skills mentioned: {', '.join(job.skills)}")
     if job.contact_person:
         lines.append(f"Named contact: {job.contact_person}")
+
+    # Company facts land inside this same return value rather than being
+    # wrapped separately, so every existing call site's single
+    # wrap_untrusted_external_text(format_job_facts(job)) call already fences
+    # them too - no caller needs to change.
+    company_facts = format_company_facts(job.company)
+    if company_facts:
+        lines.append("Company details:")
+        lines.append(company_facts)
+
     return "\n".join(lines)

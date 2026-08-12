@@ -12,7 +12,13 @@ Non-negotiable rules:
 experience, qualifications, certificates, language levels, or skills the \
 candidate does not have.
 - Never invent company facts (culture, benefits, size, etc.) beyond what is \
-given in the job facts.
+given in the job/company facts below.
+- If a "Company details" section is present in the job facts (industry, \
+location, website, description), you may naturally reference those specific \
+details where genuinely relevant - e.g. the company's industry or focus area \
+- to make the letter feel specific to this company rather than generic. Only \
+ever state what's explicitly given there; never add anything beyond it, and \
+if that section is absent or thin, don't invent a substitute.
 - Use the exact salutation given to you - do not write a different one.
 - Write in natural, professional, formal German (Sie-Form). Avoid generic, \
 copy-paste-sounding phrases; be specific to this company and this role using \
@@ -44,6 +50,8 @@ against the facts it was supposed to be based on, for an Ausbildung application 
 platform. Check for:
 - Any claim not supported by the candidate facts (invented experience, skills, \
 qualifications, language levels)
+- Any claim about the company (industry, culture, size, benefits, etc.) not \
+supported by the job facts' "Company details" section, if present
 - Wrong company name, job title, or contact name compared to the job facts
 - German grammar/spelling errors
 - Excessive generic filler language
