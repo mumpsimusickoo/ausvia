@@ -52,10 +52,13 @@ review" list with reasoning; this file is the security-specific summary.
 
 ## Known gaps (tracked, not hidden)
 
-1. **Gmail token encryption key is derived from `SECRET_KEY`**, not a
-   separate dedicated secret with its own rotation story. Adequate for
-   current scale; worth revisiting for a real production deployment (Phase
-   10 concern) - see `app/utils/crypto.py`'s docstring.
+1. **Gmail token encryption key can be a dedicated secret (`TOKEN_ENCRYPTION_KEY`),
+   but still falls back to `SECRET_KEY`-derivation if that env var is
+   unset** (Phase 8, D6a). No production requirement to set it yet, and no
+   forced-reconnect migration exists if it's introduced later on a live
+   deployment - see `app/utils/crypto.py`'s docstring for the fallback
+   details. Requiring it in production (rather than leaving it optional) is
+   still a Phase 8/10 revisit (D6b), deliberately not done yet.
 2. **No accessibility audit yet** - see `DESIGN_SYSTEM.md`.
 3. **No secrets-management story beyond `.env`** - fine for local dev, not
    evaluated for a real deployment target yet (Phase 10 concern).

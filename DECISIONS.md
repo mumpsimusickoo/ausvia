@@ -6,6 +6,33 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-13 — Phase 8 D6(a): optional dedicated Gmail token encryption key
+
+**Decision:** Added `TOKEN_ENCRYPTION_KEY` as an optional env var
+(`config.py`). When set, `app/utils/crypto.py` encrypts new Gmail tokens
+with it instead of a `SECRET_KEY`-derived key; when unset, behavior is
+identical to before this change. `decrypt_text()` additionally falls back
+to the legacy `SECRET_KEY`-derived key whenever `TOKEN_ENCRYPTION_KEY` is
+set, so already-encrypted tokens keep decrypting even if the variable is
+introduced on a live deployment - no forced reconnect.
+
+**Reason:** Requested as Phase 8 D6 option (a) specifically: real
+improvement (a compromised/rotated `SECRET_KEY` no longer also exposes or
+invalidates every stored Gmail token) with zero migration burden, unlike
+option (b) below.
+
+**Alternatives considered:** Option (b) - require `TOKEN_ENCRYPTION_KEY` in
+production and force reconnection for tokens encrypted under the old
+derivation, mirroring the `SECRET_KEY`-required-in-production check added
+earlier in Phase 8. Explicitly deferred - designing the forced-migration/
+reconnect flow is real scope that needs its own deliberate pass, not
+something to fold into the same change as the optional opt-in version.
+
+**Consequences:** `SECURITY.md`'s D6 gap entry updated to reflect the new
+optional capability while keeping option (b) documented as still open.
+
+---
+
 ## 2026-08-12 — Phase 6 scope: background jobs get one real call site, not a full retrofit
 
 **Decision:** Built real background-task infrastructure

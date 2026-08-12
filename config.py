@@ -5,6 +5,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
+    # Phase 8 security audit (D6): dedicated key for encrypting Gmail tokens
+    # at rest (app/utils/crypto.py) - optional, falls back to SECRET_KEY-
+    # derived behavior when unset. See crypto.py's docstring for the full
+    # backward-compatibility story.
+    TOKEN_ENCRYPTION_KEY = os.environ.get("TOKEN_ENCRYPTION_KEY")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'app.db')}"
     )
