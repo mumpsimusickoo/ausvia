@@ -35,6 +35,7 @@ def create_app(config_name=None):
     from app.applications.routes import bp as applications_bp
     from app.integrations.routes import bp as integrations_bp
     from app.admin.routes import bp as admin_bp
+    from app.companies.routes import bp as companies_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
@@ -44,6 +45,7 @@ def create_app(config_name=None):
     app.register_blueprint(applications_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(companies_bp)
 
     register_error_handlers(app)
     register_cli(app)

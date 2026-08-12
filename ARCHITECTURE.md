@@ -14,9 +14,12 @@ See `DECISIONS.md` for *why* these choices were made.
 - **AI:** provider-agnostic abstraction (`app/ai/provider.py`), see `AI.md`
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN, JIT config in
   `base.html`) - no SPA framework, no build step
-- **Background jobs:** none yet. Everything runs synchronously in the
-  request/response cycle (flagged as technical debt once real AI calls or
-  larger workloads make this too slow - see `PROJECT_AUDIT.md`)
+- **Background jobs:** a minimal in-process runner (`app/tasks/runner.py`,
+  Phase 6) - a `BackgroundTask` DB row plus a `ThreadPoolExecutor`, no
+  broker. One real call site so far (Gmail reply checking); PDF assembly
+  and AI generation remain synchronous - see `DECISIONS.md` for why this
+  phase scoped itself to one call site rather than retrofitting all of
+  them, and the "no new infra beyond SQLite" reasoning.
 
 ## Directory structure
 
@@ -31,11 +34,13 @@ app/
   documents/               # document upload/library + StorageProvider
   jobs/                     # search, adapters, dedup, ingest, matching, manual import
     adapters/                  # JobSourceAdapter implementations
-  applications/               # application CRM, cover letter/email/PDF workflow
+  applications/               # application CRM, cover letter/email/PDF workflow, status_route.py
+  companies/                   # company profile pages + AI fit insight (Phase 6)
   ai/                           # provider abstraction, matching engine, prompts
     providers/                     # MockAIProvider, AnthropicProvider
     prompts/                        # prompt-builder modules, one per feature
   integrations/                    # Gmail OAuth (per-user), drafts, reply tracking
+  tasks/                            # background-task runner (Phase 6, no broker)
   admin/                            # admin dashboard blueprint
   templates/                        # Jinja2 templates, mirrors blueprint structure
   utils/                             # decorators, logging, encryption (crypto.py)

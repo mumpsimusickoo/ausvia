@@ -56,3 +56,28 @@ class AIUsage(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     user = db.relationship("User")
+
+
+class CompanyInsight(db.Model):
+    """Cached "why this company might fit you" AI synthesis (Phase 6, spec
+    sections 18/19 - Company Intelligence). Per-(user, company), like
+    JobMatch - the synthesis is grounded in one candidate's real profile, so
+    it is never shared across users the way Company's own fields are.
+    Recomputed when the candidate profile changes after computed_at, same
+    staleness rule as JobMatch."""
+
+    __tablename__ = "company_insights"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False, index=True)
+
+    summary_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")
+    company = db.relationship("Company")
+
+    __table_args__ = (db.UniqueConstraint("user_id", "company_id", name="uq_company_insight_user_company"),)

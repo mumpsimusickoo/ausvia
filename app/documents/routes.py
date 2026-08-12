@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.document import Document, DOCUMENT_TYPES
 from app.documents.storage import LocalStorageProvider, UnsupportedFileError
+from app.documents.extraction import suggest_doc_type
 from app.utils.logging import log_event
 
 bp = Blueprint("documents", __name__, url_prefix="/documents")
@@ -65,10 +66,46 @@ def upload():
         file_size=file_size,
         description=description or None,
     )
+
+    # Document AI extraction (Phase 6): a heuristic best-guess at the real
+    # doc_type from the file's own text, PDF only. Stored as a suggestion
+    # only - never applied to doc.doc_type here. See app/documents/extraction.py.
+    if mime_type == "application/pdf":
+        doc.ai_suggested_doc_type = suggest_doc_type(_storage().full_path(storage_path), doc_type)
+
     db.session.add(doc)
     db.session.commit()
     log_event("upload", f"Document uploaded (type={doc_type}).", user_id=current_user.id)
-    flash("Document uploaded.", "success")
+    if doc.ai_suggested_doc_type:
+        flash(
+            f"Document uploaded. This looks like it might be a "
+            f"\"{doc.ai_suggested_doc_type.replace('_', ' ')}\" rather than "
+            f"\"{doc_type.replace('_', ' ')}\" - you can confirm the suggestion below if that's right.",
+            "info",
+        )
+    else:
+        flash("Document uploaded.", "success")
+    return redirect(url_for("documents.list_documents"))
+
+
+@bp.route("/<int:doc_id>/apply-suggested-type", methods=["POST"])
+@login_required
+def apply_suggested_type(doc_id):
+    doc = _owned_document_or_404(doc_id)
+    if doc.ai_suggested_doc_type:
+        doc.doc_type = doc.ai_suggested_doc_type
+        doc.ai_suggested_doc_type = None
+        db.session.commit()
+        flash("Document type updated.", "success")
+    return redirect(url_for("documents.list_documents"))
+
+
+@bp.route("/<int:doc_id>/dismiss-suggested-type", methods=["POST"])
+@login_required
+def dismiss_suggested_type(doc_id):
+    doc = _owned_document_or_404(doc_id)
+    doc.ai_suggested_doc_type = None
+    db.session.commit()
     return redirect(url_for("documents.list_documents"))
 
 

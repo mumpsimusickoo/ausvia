@@ -68,27 +68,47 @@ code changes - documentation and one text-only correction only.
 explicitly-scoped visual-refinement pass, not bundled automatically into
 Phase 6. See `DESIGN_SYSTEM.md`'s "what would actually change" list.
 
-## Phase 6 — Integration
+## Phase 6 — Integration (complete for the scope taken on)
 
-Connect the pieces built across Phases 1-5 that currently exist but aren't
-fully cross-linked: company profile pages (real `Company` data + clearly-
-labeled AI interpretation, never invented facts), document AI extraction
-(auto-classify/extract on upload, always shown to the user for confirmation
-before being trusted), background job system (Celery/RQ or similar) so AI
-generation, PDF assembly, and Gmail reply checking stop blocking the
-request/response cycle, and - when a real network allows it - live
-verification of the Arbeitsagentur adapter, the Anthropic provider, and the
-whole Gmail stack against real external services.
+- [x] **Company profile pages** (`app/companies/`) - real `Company` fields
+      (name, industry, location, website, description, all sourced only
+      from job postings) plus the list of known Ausbildung positions at
+      that company. Linked from job detail and application detail pages.
+- [x] **Company AI fit insight** (`app/companies/insights.py`) - "why this
+      company might fit you," dual-honesty pattern like reply
+      classification (no deterministic core, mock mode declines plainly,
+      real mode explicitly told to say company facts are thin rather than
+      invent culture/benefits/headcount). Cached per (user, company), same
+      staleness rule as `JobMatch`.
+- [x] **Document AI extraction** (`app/documents/extraction.py`) - a
+      keyword heuristic over each uploaded PDF's own text suggests a
+      doc_type when it disagrees with the user's choice, shown as an
+      explicit confirm/dismiss action, never auto-applied. Deliberately
+      *not* AI-provider-based - see `AI.md` for why a heuristic is the
+      better fit here. PDF-only (no OCR available in this environment).
+- [x] **Background job infrastructure** (`app/tasks/runner.py`) - a
+      `BackgroundTask` DB row + in-process `ThreadPoolExecutor`, no broker
+      (matches the project's "no new infra beyond SQLite" pattern - no
+      Docker/Redis available). One real call site: Gmail reply checking no
+      longer blocks the request. PDF assembly and AI generation were *not*
+      retrofitted this pass - explicit scope decision, see `DECISIONS.md`.
+- [x] **Live verification recheck** - Arbeitsagentur endpoint retested
+      directly against the exact URL/key `jobsearch.py` uses; still 403,
+      same bot-protection diagnosis as Phase 2. Anthropic/Gmail remain
+      unconfigured in this environment (no key, no `credentials.json`) -
+      unchanged from Phase 5, not re-attempted without new credentials.
 
-**Sequencing note from the Phase 5.5 checkpoint:** consider landing
-background-job groundwork before or alongside the new AI-calling features
-in this phase (document extraction, company-page AI synthesis) rather than
-after - each new synchronous AI call added on top of the existing cover
-letter/email/narrative/reply stack makes the eventual background-job
-migration larger, not smaller. Similarly, this phase's new pages (company
-profiles, document extraction UI) are a natural point to extract the
-"ready to formalize" UI patterns from `DESIGN_SYSTEM.md` into real shared
-components before copy-pasting the same card/badge/pill markup again.
+**Sequencing note from the Phase 5.5 checkpoint, revisited:** the
+background-job groundwork *did* land before this phase's new AI-calling
+features went live (company insight generation is the newest one, and
+runs synchronously - it wasn't a background-job candidate the way Gmail
+checking was, since its result needs to render inline immediately after
+the button click, same as narrative/cover-letter generation). The
+"extract UI patterns before adding more pages" note was *not* acted on
+this pass - company/document-extraction UI reused the existing per-
+template utility-class patterns rather than pausing to build a component
+library first, a scope trade-off worth revisiting before Phase 7 adds
+more surface area.
 
 ## Phase 7 — QA
 

@@ -30,6 +30,13 @@ class Document(db.Model):
     is_primary_diploma = db.Column(db.Boolean, nullable=False, default=False)
     is_primary_german_cert = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Document AI extraction (Phase 6): a heuristic best-guess doc_type from
+    # the file's own extracted text, shown to the user as a suggestion they
+    # must explicitly apply - never auto-applied. None if extraction wasn't
+    # possible (non-PDF, unreadable) or agreed with what the user picked.
+    # See app/documents/extraction.py.
+    ai_suggested_doc_type = db.Column(db.String(30), nullable=True)
+
     uploaded_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     user = db.relationship("User", back_populates="documents")

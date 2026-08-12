@@ -21,6 +21,9 @@ Migrate/Alembic in `migrations/versions/` - one migration per phase so far.
 ### Documents (`app/models/document.py`)
 - `Document` — type, original/stored filename, storage path, mime type,
   size, primary-CV/diploma/German-cert flags. Owned by `user_id`.
+  `ai_suggested_doc_type` (Phase 6) — a heuristic best-guess doc_type from
+  the file's own extracted text, shown to the user as a confirm/dismiss
+  suggestion, never auto-applied (see `app/documents/extraction.py`).
 
 ### Jobs (`app/models/job.py`)
 - `Company` — name + normalized name (for dedup matching), industry,
@@ -40,6 +43,11 @@ Migrate/Alembic in `migrations/versions/` - one migration per phase so far.
   0-100 breakdown, added Phase 5) + optional cached AI narrative/
   improvement-tips text
 - `AIUsage` — token usage log per real (non-mock) AI call, for cost tracking
+- `CompanyInsight` (Phase 6) — cached "why this company might fit you" AI
+  synthesis per (user, company), same staleness rule as `JobMatch`
+  (invalidated when the candidate profile changes). Per-user, unlike
+  `Company`'s own fields, since the synthesis is grounded in one
+  candidate's profile.
 
 ### Integrations (`app/models/integration.py`, added Phase 5)
 - `GmailConnection` — one row per user (unique on `user_id`), encrypted
@@ -62,6 +70,11 @@ Migrate/Alembic in `migrations/versions/` - one migration per phase so far.
 ### Diagnostics (`app/models/system_log.py`)
 - `SystemLog` — admin-visible event log (auth, uploads, job sources, AI,
   application events). Never stores secrets, passwords, or raw access codes.
+
+### Background tasks (`app/models/task.py`, added Phase 6)
+- `BackgroundTask` — one row per unit of work run off the request cycle
+  (`task_type`, `status` pending/running/done/error, JSON `context`,
+  result/error text). See `ARCHITECTURE.md` for the runner itself.
 
 ## Relationships worth knowing
 

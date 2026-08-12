@@ -2,6 +2,7 @@ from app.applications import routes as app_routes
 from app.integrations import gmail_oauth
 from app.models import Job, Application, GeneratedEmail
 from app.models.integration import GmailMessage
+from app.models.task import BackgroundTask
 from tests.conftest import login
 from tests.test_gmail_reply_tracking import FakeGmailService, make_message_payload
 
@@ -35,11 +36,21 @@ def test_check_replies_creates_messages_when_connected(client, db, make_user, mo
     payloads = {"m1": make_message_payload("m1", "t1", "hr@firma.de", "Re: Bewerbung", "<a@firma.de>", "Hallo!")}
     fake_service = FakeGmailService([{"id": "m1"}], payloads)
     monkeypatch.setattr(app_routes.gmail_oauth, "get_gmail_service", lambda user: fake_service)
+    monkeypatch.setattr(app_routes.gmail_oauth, "get_connection", lambda user: object())
 
     resp = client.post(f"/applications/{application.id}/check-replies", follow_redirects=True)
     assert resp.status_code == 200
-    assert b"1 new message" in resp.data
+    # check-replies now runs as a background task (app/tasks/runner.py) -
+    # under TESTING it runs synchronously (see the runner's docstring), so
+    # the real outcome is already in the DB by the time we assert, even
+    # though the flash message itself is the generic "in progress" one
+    # written before the outcome is known.
+    assert b"Checking for replies in the background" in resp.data
     assert GmailMessage.query.filter_by(application_id=application.id).count() == 1
+
+    task = BackgroundTask.query.filter_by(task_type="gmail_check_replies").order_by(BackgroundTask.id.desc()).first()
+    assert task.status == "done"
+    assert task.result_message == "1 new message(s) found."
 
 
 def test_message_routes_are_owned_per_application(client, db, make_user):

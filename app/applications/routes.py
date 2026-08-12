@@ -8,6 +8,7 @@ from pypdf.errors import PdfReadError
 from app.extensions import db, limiter
 from app.models import Job, Document, Application, GeneratedDocument, GeneratedEmail, ApplicationDocument
 from app.models.integration import GmailMessage
+from app.models.task import BackgroundTask
 from app.applications.forms import CoverLetterForm, EmailForm, StatusForm
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
 from app.applications.status_route import build_status_route
@@ -18,6 +19,7 @@ from app.ai.reply_ai import classify_reply, generate_reply_suggestion
 from app.documents.storage import LocalStorageProvider
 from app.integrations import gmail_oauth, gmail_drafts
 from app.integrations.gmail_reply_tracking import check_for_replies
+from app.tasks.runner import submit_task
 from app.utils.logging import log_event
 
 bp = Blueprint("applications", __name__, url_prefix="/applications")
@@ -84,6 +86,22 @@ def detail(application_id):
         .order_by(GmailMessage.created_at.desc())
         .all()
     )
+    # Phase 6: reply-checking now runs as a background task (see
+    # app/tasks/runner.py) so this page never blocks on the Gmail API - show
+    # whatever the most recent check for *this* application is doing/did.
+    # BackgroundTask.context is a plain JSON dict, filtered in Python rather
+    # than at the DB layer since SQLite JSON querying isn't worth the
+    # portability tradeoff for "last 5 rows of one user's one task type."
+    reply_check_task = next(
+        (
+            t for t in BackgroundTask.query
+            .filter_by(user_id=current_user.id, task_type="gmail_check_replies")
+            .order_by(BackgroundTask.created_at.desc())
+            .limit(5)
+            if t.context and t.context.get("application_id") == application.id
+        ),
+        None,
+    )
     return render_template(
         "applications/detail.html",
         application=application,
@@ -91,6 +109,7 @@ def detail(application_id):
         selected_ids=selected_ids,
         gmail_messages=gmail_messages,
         gmail_connected=gmail_oauth.get_connection(current_user) is not None,
+        reply_check_task=reply_check_task,
         cover_letter_form=CoverLetterForm(obj=application.cover_letter),
         email_form=EmailForm(obj=application.email),
         status_form=StatusForm(obj=application),
@@ -352,27 +371,46 @@ def _owned_message_or_404(application, message_id):
 @login_required
 @limiter.limit("20 per hour")
 def check_replies(application_id):
-    """Manual, user-triggered check (spec: reply tracking) - there is no
-    background polling yet (see ARCHITECTURE.md). Searches the connected
-    Gmail inbox for messages from this application's contact email; cannot
-    track an exact thread from the start since AUSVIA never sends the
-    original email itself."""
+    """Manual, user-triggered check (spec: reply tracking) - runs as a
+    background task (Phase 6, see app/tasks/runner.py) rather than blocking
+    this request on the Gmail API call, since that's exactly the kind of
+    slow network operation background jobs exist for. Searches the
+    connected Gmail inbox for messages from this application's contact
+    email; cannot track an exact thread from the start since AUSVIA never
+    sends the original email itself."""
     application = _owned_application_or_404(application_id)
-    try:
-        service = gmail_oauth.get_gmail_service(current_user)
-        new_messages = check_for_replies(current_user, application, service)
-        if new_messages:
-            flash(f"{len(new_messages)} new message(s) found.", "success")
-        else:
-            flash("No new messages found.", "info")
-    except gmail_oauth.GmailNotConnectedError:
+
+    if not gmail_oauth.get_connection(current_user):
         flash("Connect your Gmail account first.", "error")
-    except gmail_oauth.GmailNotConfiguredError as e:
-        flash(str(e), "error")
-    except Exception as e:
-        flash(f"Could not check for replies: {e}", "error")
-        log_event("gmail", f"Reply check failed: {e}", level="warning", user_id=current_user.id)
+        return redirect(url_for("applications.detail", application_id=application.id))
+    if not application.contact_email:
+        flash("Add a contact email above to check for replies.", "error")
+        return redirect(url_for("applications.detail", application_id=application.id))
+
+    submit_task(
+        current_user,
+        "gmail_check_replies",
+        _run_check_replies,
+        current_user.id,
+        application.id,
+        context={"application_id": application.id},
+    )
+    flash("Checking for replies in the background - refresh in a few seconds to see results.", "info")
     return redirect(url_for("applications.detail", application_id=application.id))
+
+
+def _run_check_replies(user_id, application_id):
+    """Runs on a background-task worker thread (its own app/db context, no
+    request) - re-fetches user/application by ID rather than closing over
+    the request-scoped objects, since those belong to a session that's
+    already gone by the time this runs."""
+    from app.models import User
+
+    user = db.session.get(User, user_id)
+    application = db.session.get(Application, application_id)
+    service = gmail_oauth.get_gmail_service(user)
+    new_messages = check_for_replies(user, application, service)
+    return f"{len(new_messages)} new message(s) found." if new_messages else "No new messages found."
 
 
 @bp.route("/<int:application_id>/messages/<int:message_id>/classify", methods=["POST"])

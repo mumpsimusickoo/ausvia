@@ -11,7 +11,7 @@ from app.models.profile import (
 from app.models.document import Document
 from app.models.system_log import SystemLog
 from app.models.job import Company, Job, JobListing, SavedJob, JobSourceSetting
-from app.models.ai import JobMatch, AIUsage
+from app.models.ai import JobMatch, AIUsage, CompanyInsight
 from app.models.application import (
     Application,
     ApplicationEvent,
@@ -20,6 +20,7 @@ from app.models.application import (
     ApplicationDocument,
 )
 from app.models.integration import GmailConnection, GmailMessage
+from app.models.task import BackgroundTask
 
 __all__ = [
     "User",
@@ -40,6 +41,7 @@ __all__ = [
     "JobSourceSetting",
     "JobMatch",
     "AIUsage",
+    "CompanyInsight",
     "Application",
     "ApplicationEvent",
     "GeneratedDocument",
@@ -47,4 +49,5 @@ __all__ = [
     "ApplicationDocument",
     "GmailConnection",
     "GmailMessage",
+    "BackgroundTask",
 ]

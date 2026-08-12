@@ -6,6 +6,121 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-12 — Phase 6 scope: background jobs get one real call site, not a full retrofit
+
+**Decision:** Built real background-task infrastructure
+(`app/tasks/runner.py`, `BackgroundTask` model) and applied it to exactly
+one operation - Gmail reply checking - rather than also retrofitting PDF
+assembly and AI generation (cover letter/email/narrative/reply-suggestion/
+company-insight) in the same pass, even though `ROADMAP.md`'s Phase 6
+description named all three.
+
+**Reason:** each of those operations has a different UX shape today. Gmail
+reply checking is already a manual, fire-and-forget "click a button, check
+back" interaction - moving it to a background task changes nothing about
+how the user experiences it, just removes the wait. AI generation and PDF
+assembly are different: the UI currently expects the result inline,
+immediately, for the user to review/edit in the same view (a generated
+cover letter appears in an editable textarea right after the button
+click). Backgrounding those would require a genuine UX redesign (a
+pending state, a way to know when it's done, probably polling or a
+refresh prompt) - real product design work, not just an infrastructure
+swap. Scoping this pass to the one call site where backgrounding is a
+clean drop-in, and leaving the UX-design-required ones for a dedicated
+pass, produces a real, honest improvement instead of a rushed one.
+
+**Alternatives considered:** Retrofitting all three - rejected as
+overreach for one pass; would have meant either half-finishing the UX for
+AI generation/PDF assembly, or spending most of this phase's effort on
+that instead of the other three Phase 6 items (company pages, document
+extraction, live-verification recheck). Not building the infrastructure at
+all until all three call sites could be done together - rejected; the
+infrastructure itself (the DB row shape, the runner) doesn't get easier to
+build later, and Gmail checking benefits from it today.
+
+**Consequences:** `PROJECT_AUDIT.md`'s "Partially implemented" section
+tracks this explicitly so it isn't mistaken for complete. The next
+candidate for backgrounding, if picked up, is PDF assembly (approve
+application) - closer to Gmail-checking's shape (a distinct build step
+with a clear "done" signal) than AI generation is.
+
+---
+
+## 2026-08-12 — Background-task runner has no broker; runs eagerly (synchronously) under TESTING
+
+**Decision:** `app/tasks/runner.py` is a `BackgroundTask` DB row plus an
+in-process `ThreadPoolExecutor` - no Celery, no RQ, no Redis. Under
+`TESTING`, `submit_task()` runs the target function synchronously instead
+of submitting it to the executor.
+
+**Reason:** no Docker/Redis is available in this development environment
+(the same constraint that's shaped every other infra choice in this
+project - SQLite not Postgres, local filesystem not S3). A DB row plus a
+thread pool achieves the actual goal stated in `ROADMAP.md` ("stop
+blocking the request/response cycle") without new infrastructure. The
+TESTING-eager behavior isn't just a convenience: the test suite's SQLite
+database is `sqlite:///:memory:`, which is connection-scoped - a real
+background thread opening its own connection would see an empty database,
+not the test's data. Running eagerly under TESTING sidesteps that
+entirely, and as a second, independent benefit, means tests assert on
+real outcomes immediately with no sleep/poll for a thread that might not
+have finished yet. This mirrors Celery's own `task_always_eager` testing
+pattern - a well-established solution to the same class of problem, not a
+project-specific workaround.
+
+**Alternatives considered:** A real broker (Celery/RQ + Redis) - rejected,
+not available in this environment, and would be premature infrastructure
+for the app's current scale (see the same reasoning already applied to
+SQLite/local storage elsewhere). Mocking the background thread entirely in
+tests instead of an eager-execution mode - rejected; that would test the
+mock, not the real `target_fn` logic, weakening exactly the tests meant to
+catch real bugs in the retrofitted route.
+
+**Consequences:** The row shape (`task_type`, `status`, JSON `context`,
+result/error text) is deliberately broker-agnostic, so swapping in
+Celery/RQ later is a runner-module change, not a schema or call-site
+change. Real (non-test) background tasks are not durable across a process
+restart (in-memory `ThreadPoolExecutor`) - acceptable for a manually-
+triggered "check for replies" action today, would need revisiting before
+anything higher-stakes (e.g. a paid action) is backgrounded this way.
+
+---
+
+## 2026-08-12 — Document type suggestion is a keyword heuristic, not an AI call
+
+**Decision:** `app/documents/extraction.py` suggests a document's likely
+type by scanning its own extracted PDF text for known German/English
+keywords per type (e.g. "Lebenslauf" → cv, "Abschlusszeugnis" → diploma) -
+it never calls the configured AI provider, not even optionally.
+
+**Reason:** this is the one place in the codebase where routing through an
+AI provider would be a worse fit than the deterministic approach, not just
+an unnecessary one. Detecting "does this document contain the word
+Zeugnis" doesn't benefit from a language model's reasoning - a keyword
+match is free, instant, and 100% reproducible, which the project's own
+deterministic-first principle already treats as the ideal, not just an
+acceptable fallback. Every other "AI-optional" feature in the app (match
+narrative, cover letter, company insight) has a deterministic core *and*
+an optional AI layer for polish; this feature is deterministic-only
+because there's no meaningful polish an LLM would add to "which
+checkbox was probably right."
+
+**Alternatives considered:** Routing extraction through the AI provider
+with a heuristic fallback in mock mode (matching the pattern used
+everywhere else) - rejected specifically because it would be slower, cost
+real tokens in production, and be *less* reproducible than the heuristic
+for zero accuracy benefit on this particular task. Full OCR for scanned
+documents - rejected as out of scope; no OCR library is available in this
+environment, and this is disclosed honestly (`PROJECT_AUDIT.md`) rather
+than silently limited to PDFs with a real text layer.
+
+**Consequences:** Image uploads (JPG/PNG) and scanned PDFs with no text
+layer get no suggestion at all - correctly absent, not a wrong guess.
+`AI.md` documents this as the intentional exception to the project's
+usual "deterministic core + optional AI layer" shape.
+
+---
+
 ## 2026-08-12 — Correction pass: hardcoded exact values instead of ratio-derived ones for the three signature details
 
 **Decision:** Replaced ratio/proportion-derived implementations of the

@@ -41,12 +41,22 @@ template fallback exists instead of just skipping the feature.
 | Application email (`app/ai/email_gen.py`) | Template-based email | AI-personalized generation |
 | Reply intent classification (`app/ai/reply_ai.py`) | None - there's no reliable non-AI way to classify arbitrary reply text | AI classifies into one of 6 intents + a high/medium/low confidence (never a fake numeric score); mock mode honestly declines rather than guessing |
 | Reply suggestions (`app/ai/reply_ai.py`) | None, same reasoning as above | AI drafts a contextual reply grounded in candidate facts + the company's message; mock mode says so plainly instead of faking a reply |
+| Company fit insight (`app/companies/insights.py`, Phase 6) | None - "why this company might fit you" is inherently interpretive, same reasoning as reply classification | AI writes a short note grounded only in `Company`'s real fields + the candidate profile, explicitly told to say so plainly if the company facts are too thin rather than inventing culture/benefits/headcount; mock mode declines honestly |
 
-Reply classification/suggestion (Phase 5) are the first features with **no
-deterministic fallback** - unlike matching or cover letters, there's no
-principled non-AI way to classify or respond to arbitrary incoming text, so
-mock mode's honesty is the whole story there rather than a fallback to a
-"good enough" alternative.
+Reply classification/suggestion (Phase 5) and company fit insight (Phase 6)
+are features with **no deterministic fallback** - unlike matching or cover
+letters, there's no principled non-AI way to classify/respond to arbitrary
+text or interpret a company's fit, so mock mode's honesty is the whole
+story there rather than a fallback to a "good enough" alternative.
+
+**Document type extraction (Phase 6, `app/documents/extraction.py`) is
+deliberately the opposite: no AI provider path at all, not even an
+optional one.** Suggesting a document's type from its own text is a
+keyword-matching problem ("does this PDF contain the word *Zeugnis*"),
+which doesn't benefit from a language model - a heuristic is free,
+instant, and 100% reproducible, which is a *better* fit for this
+project's deterministic-first principle than routing it through an AI
+call would be. See `DECISIONS.md` for the reasoning in full.
 
 ## Prompt architecture
 

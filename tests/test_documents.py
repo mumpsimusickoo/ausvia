@@ -2,6 +2,7 @@ import io
 
 from app.models.document import Document
 from tests.conftest import login
+from pdfmerge import text_to_pdf_bytes
 
 VALID_PDF = b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>"
 
@@ -83,6 +84,60 @@ def test_user_cannot_access_another_users_document(client, db, make_user):
     # document must still exist and be unmodified
     still_there = db.session.get(Document, doc.id)
     assert still_there is not None
+
+
+def test_upload_pdf_stores_ai_suggestion_when_mismatched(client, db, make_user):
+    make_user(email="d5@example.com", password="Password123!")
+    login(client, "d5@example.com", "Password123!")
+
+    cv_pdf = text_to_pdf_bytes("LEBENSLAUF\n\nBerufserfahrung: Praktikum bei Elektro Hoffmann GmbH")
+    resp = client.post(
+        "/documents/upload",
+        data={"doc_type": "other", "file": (io.BytesIO(cv_pdf), "mystery.pdf")},
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"might be a" in resp.data
+    doc = Document.query.filter_by(original_filename="mystery.pdf").first()
+    assert doc.doc_type == "other"  # never auto-applied
+    assert doc.ai_suggested_doc_type == "cv"
+
+
+def test_apply_suggested_type_updates_doc_type(client, db, make_user):
+    make_user(email="d6@example.com", password="Password123!")
+    login(client, "d6@example.com", "Password123!")
+
+    cv_pdf = text_to_pdf_bytes("LEBENSLAUF\n\nBerufserfahrung: ...")
+    client.post(
+        "/documents/upload",
+        data={"doc_type": "other", "file": (io.BytesIO(cv_pdf), "mystery2.pdf")},
+        content_type="multipart/form-data",
+    )
+    doc = Document.query.filter_by(original_filename="mystery2.pdf").first()
+    assert doc.ai_suggested_doc_type == "cv"
+
+    client.post(f"/documents/{doc.id}/apply-suggested-type")
+    db.session.refresh(doc)
+    assert doc.doc_type == "cv"
+    assert doc.ai_suggested_doc_type is None
+
+
+def test_dismiss_suggested_type_clears_suggestion_without_changing_type(client, db, make_user):
+    make_user(email="d7@example.com", password="Password123!")
+    login(client, "d7@example.com", "Password123!")
+
+    cv_pdf = text_to_pdf_bytes("LEBENSLAUF\n\nBerufserfahrung: ...")
+    client.post(
+        "/documents/upload",
+        data={"doc_type": "other", "file": (io.BytesIO(cv_pdf), "mystery3.pdf")},
+        content_type="multipart/form-data",
+    )
+    doc = Document.query.filter_by(original_filename="mystery3.pdf").first()
+
+    client.post(f"/documents/{doc.id}/dismiss-suggested-type")
+    db.session.refresh(doc)
+    assert doc.doc_type == "other"
+    assert doc.ai_suggested_doc_type is None
 
 
 def test_set_primary_cv_unsets_previous_primary(client, db, make_user):
