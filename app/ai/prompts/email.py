@@ -14,9 +14,11 @@ BODY:
 
 
 def build_email_prompt(candidate_facts, job_facts, salutation, attachment_summary):
+    from app.ai.facts import wrap_untrusted_external_text
+
     user = (
         f"CANDIDATE FACTS:\n{candidate_facts}\n\n"
-        f"JOB FACTS:\n{job_facts}\n\n"
+        f"JOB FACTS:\n{wrap_untrusted_external_text(job_facts)}\n\n"
         f"Salutation to use exactly: {salutation},\n\n"
         f"Attachments to mention: {attachment_summary}\n\n"
         "Write the email now."

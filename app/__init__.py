@@ -21,6 +21,9 @@ def create_app(config_name=None):
     csrf.init_app(app)
     limiter.init_app(app)
 
+    with app.app_context():
+        _enable_sqlite_foreign_keys(db.engine)
+
     from app.models.user import User
 
     @login_manager.user_loader
@@ -51,6 +54,23 @@ def create_app(config_name=None):
     register_cli(app)
 
     return app
+
+
+def _enable_sqlite_foreign_keys(engine):
+    """Phase 7 remediation (QA finding W2): SQLite does not enforce foreign
+    keys unless a connection explicitly turns it on - without this, an
+    orphaned FK reference (see B1) fails silently instead of being rejected.
+    No-op for any other database backend (e.g. Postgres in production)."""
+    if engine.dialect.name != "sqlite":
+        return
+
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 
 def register_error_handlers(app):

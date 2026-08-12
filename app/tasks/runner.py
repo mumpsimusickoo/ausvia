@@ -27,6 +27,17 @@ logger = logging.getLogger(__name__)
 
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ausvia-task")
 
+# Phase 7 remediation (QA finding W3): BackgroundTask.error_message used to
+# store the raw exception text, which could contain server-internal details
+# (a filesystem path, a library's repr of its own state, ...) and was shown
+# to the end user verbatim. The real exception still goes to the server log
+# via logger.exception() below - only a safe, task-appropriate message ever
+# reaches error_message / the template that renders it.
+_SAFE_ERROR_MESSAGES = {
+    "gmail_check_replies": "Couldn't check for replies right now. Please try again in a moment.",
+}
+_DEFAULT_SAFE_ERROR_MESSAGE = "This background task couldn't complete. Please try again in a moment."
+
 
 def submit_task(user, task_type, target_fn, *args, context=None, **kwargs):
     """Records a BackgroundTask row (status=pending) and runs
@@ -71,10 +82,12 @@ def _run_task(task_id, target_fn, args, kwargs):
         result = target_fn(*args, **kwargs)
         task.status = "done"
         task.result_message = (str(result)[:500] if result else "Completed.")
-    except Exception as e:
+    except Exception:
+        # Full exception + traceback goes to the server log only - never to
+        # the user-facing error_message field (see _SAFE_ERROR_MESSAGES above).
         logger.exception("Background task %s (%s) failed", task_id, task.task_type)
         task.status = "error"
-        task.error_message = str(e)[:500]
+        task.error_message = _SAFE_ERROR_MESSAGES.get(task.task_type, _DEFAULT_SAFE_ERROR_MESSAGE)
     finally:
         task.finished_at = utcnow()
         db.session.commit()

@@ -17,3 +17,7 @@ google-auth-oauthlib==1.2.1
 google-auth==2.34.0
 google-api-python-client==2.143.0
 pytest==8.3.3
+# dev-only: scripts/check_mobile_overflow.py (Phase 7 QA remediation) drives
+# a local Chromium/Edge install over the DevTools protocol - not imported
+# by the application itself.
+websocket-client==1.9.0

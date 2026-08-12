@@ -47,8 +47,10 @@ def _company_facts(company, jobs):
 
 
 def build_company_fit_prompt(profile, company, jobs, candidate_facts_text):
+    from app.ai.facts import wrap_untrusted_external_text
+
     user = (
-        f"{_company_facts(company, jobs)}\n\n"
+        f"{wrap_untrusted_external_text(_company_facts(company, jobs))}\n\n"
         f"Candidate profile:\n{candidate_facts_text}\n\n"
         "Write a short note (3-5 sentences) on why this company's Ausbildung "
         "opportunities might fit this candidate, grounded only in the facts "

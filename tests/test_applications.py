@@ -2,7 +2,7 @@ import io
 
 from pdfmerge import text_to_pdf_bytes
 
-from app.models import Application, GeneratedDocument, Document, Job
+from app.models import Application, ApplicationDocument, GeneratedDocument, Document, Job
 from tests.conftest import login
 
 # a hand-crafted minimal "%PDF..." byte string passes the upload magic-byte
@@ -132,6 +132,41 @@ def test_approve_fails_gracefully_on_corrupt_pdf_not_500(client, db, make_user):
     db.session.refresh(application)
     assert application.status == "preparing"
     assert application.package_storage_path is None
+
+
+def test_deleting_selected_document_does_not_crash_generate_email_or_approve(client, db, make_user):
+    """Regression test for QA Phase 7 finding B1: deleting a document that's
+    still selected on an application orphaned its ApplicationDocument row
+    and crashed generate-email/approve with a raw 500 the next time either
+    read sd.document. Fixed via Document.application_documents cascade
+    (app/models/document.py) + SQLite FK enforcement (app/__init__.py)."""
+    make_user(email="a10@example.com", password="Password123!")
+    login(client, "a10@example.com", "Password123!")
+    job = make_job(db)
+    _, application = start_application(client, db, job)
+    client.post(f"/applications/{application.id}/generate-cover-letter")
+
+    client.post(
+        "/documents/upload",
+        data={"doc_type": "cv", "file": (io.BytesIO(VALID_PDF), "will_be_deleted.pdf")},
+        content_type="multipart/form-data",
+    )
+    doc = Document.query.filter_by(original_filename="will_be_deleted.pdf").first()
+    client.post(f"/applications/{application.id}/documents", data={"document_ids": [str(doc.id)]})
+    assert ApplicationDocument.query.filter_by(application_id=application.id, document_id=doc.id).count() == 1
+
+    client.post(f"/documents/{doc.id}/delete")
+
+    # the selection must be cleaned up, not left dangling
+    assert ApplicationDocument.query.filter_by(document_id=doc.id).count() == 0
+
+    resp = client.post(f"/applications/{application.id}/generate-email", follow_redirects=True)
+    assert resp.status_code == 200
+
+    resp2 = client.post(f"/applications/{application.id}/approve", follow_redirects=True)
+    assert resp2.status_code == 200
+    # no documents remain selected - an honest rejection, not a crash
+    assert b"Select at least one document" in resp2.data
 
 
 def test_mark_sent_requires_ready_status(client, db, make_user):

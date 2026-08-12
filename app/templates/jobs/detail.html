@@ -2,7 +2,11 @@
 {% from "_icons.html" import check, cross, warning, unknown %}
 {% block title %}{{ job.title }} — AUSVIA{% endblock %}
 {% block content %}
-<div class="flex items-start justify-between">
+{# Phase 7 remediation (QA finding B3/W9): flex-wrap so the action buttons
+   drop below the title on narrow viewports instead of forcing the whole
+   page wider than the screen (confirmed via a real DevTools-emulated
+   390px viewport check, not just the class names). #}
+<div class="flex flex-wrap items-start justify-between gap-3">
   <div>
     <h1 class="text-2xl font-bold text-slate-900">{{ job.title }}</h1>
     <p class="mt-1 text-slate-600">

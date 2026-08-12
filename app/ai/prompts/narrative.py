@@ -43,10 +43,15 @@ def _format_strengths(strengths):
 
 
 def _job_context(job, match_result):
-    return (
+    from app.ai.facts import wrap_untrusted_external_text
+
+    job_block = (
         f"Job: {job.title}\n"
         f"Company: {job.company_name or 'not specified'}\n"
-        f"Location: {job.location or 'not specified'}\n\n"
+        f"Location: {job.location or 'not specified'}"
+    )
+    return (
+        f"{wrap_untrusted_external_text(job_block)}\n\n"
         f"Computed match score: {match_result.score if match_result.score is not None else 'not computable (insufficient data)'}/100\n"
         f"Recommendation category: {match_result.recommendation}\n\n"
         f"Strengths:\n{_format_strengths(match_result.strengths)}\n\n"

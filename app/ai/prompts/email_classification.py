@@ -25,10 +25,15 @@ NOTES: <one short sentence explaining why>
 
 
 def build_classification_prompt(application, message):
-    user = (
-        f"Application: {application.job.title} at {application.job.company_name or 'the company'}\n"
+    from app.ai.facts import wrap_untrusted_external_text
+
+    message_block = (
         f"From: {message.from_address}\n"
         f"Subject: {message.subject}\n\n"
         f"Message content:\n{message.body_text or message.snippet or '(no content available)'}"
+    )
+    user = (
+        f"Application: {application.job.title} at {application.job.company_name or 'the company'}\n\n"
+        f"{wrap_untrusted_external_text(message_block)}"
     )
     return SYSTEM, user

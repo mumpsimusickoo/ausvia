@@ -1,9 +1,11 @@
+import sqlalchemy as sa
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from app.extensions import db, limiter
 from app.models import User, InvitationCode, CodeRedemption, CandidateProfile
+from app.models.user import utcnow
 from app.utils.logging import log_event
 from app.auth.forms import RegisterForm, LoginForm, RequestResetForm, ResetPasswordForm
 
@@ -46,7 +48,33 @@ def register():
         db.session.add(user)
         db.session.flush()  # assigns user.id before we reference it below
 
-        code.use_count += 1
+        # Phase 7 remediation (QA finding W1): the is_valid() check above is
+        # only a fast, friendly rejection for the common case - it reads
+        # use_count without holding a lock, so two concurrent requests could
+        # both pass it for the same single-use code. The actual enforcement
+        # is this atomic conditional UPDATE: the database only lets the
+        # increment through if use_count is still below max_uses *at the
+        # moment the row is written*, so at most one concurrent request can
+        # ever win the last redemption of a code (single-use or otherwise).
+        redeemed = db.session.execute(
+            sa.update(InvitationCode)
+            .where(
+                InvitationCode.id == code.id,
+                InvitationCode.is_active.is_(True),
+                InvitationCode.use_count < InvitationCode.max_uses,
+                sa.or_(InvitationCode.expires_at.is_(None), InvitationCode.expires_at >= utcnow()),
+            )
+            .values(use_count=InvitationCode.use_count + 1)
+        )
+        if redeemed.rowcount == 0:
+            db.session.rollback()
+            flash(
+                "This access code just became invalid (it may have already been used, "
+                "expired, or been deactivated). Please request a new one.",
+                "error",
+            )
+            return render_template("auth/register.html", form=form)
+
         db.session.add(CodeRedemption(code_id=code.id, user_id=user.id))
         db.session.add(CandidateProfile(user_id=user.id, contact_email=user.email))
         db.session.commit()

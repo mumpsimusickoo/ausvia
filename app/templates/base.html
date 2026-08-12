@@ -79,49 +79,116 @@
 </head>
 <body class="min-h-screen bg-paper text-slate-900 antialiased font-sans">
   {% if current_user.is_authenticated %}
+  {#
+    Phase 7 remediation (QA finding B2): the desktop sidebar below is
+    `hidden` below the md breakpoint with no replacement - a mobile user
+    could not reach any page but the one they landed on. nav_links() is
+    shared by the desktop <aside> and the mobile drawer so the two can
+    never drift out of sync.
+  #}
+  {% set nav_items = [
+    ('main.dashboard', 'Dashboard'),
+    ('jobs.search', 'Find Ausbildung'),
+    ('jobs.saved', 'Saved Jobs'),
+    ('applications.list_applications', 'Applications'),
+    ('profile.view', 'Candidate Profile'),
+    ('documents.list_documents', 'Documents'),
+    ('integrations.gmail_status', 'Gmail'),
+  ] %}
+  {% macro nav_links() %}
+  <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
+    {% for endpoint, label in nav_items %}
+    <a href="{{ url_for(endpoint) }}"
+       class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
+         {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+    {% if current_user.is_admin %}
+    <div class="pt-4 mt-4 border-t border-white/10">
+      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
+      <a href="{{ url_for('admin.overview') }}"
+         class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
+        Admin Dashboard
+      </a>
+      <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Invitation Codes</a>
+      <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Users</a>
+      <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Job Sources</a>
+      <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">AI Usage</a>
+    </div>
+    {% endif %}
+  </nav>
+  <div class="px-3 py-4 border-t border-white/10 text-sm">
+    <p class="px-3 truncate text-slate-400">{{ current_user.email }}</p>
+    <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Log out</a>
+  </div>
+  {% endmacro %}
+  {% from "_logo.html" import lockup %}
+  {% from "_icons.html" import menu, cross %}
+
+  <!-- Mobile top bar: only the entry point below md, where the sidebar is hidden -->
+  <header class="md:hidden sticky top-0 z-40 flex items-center justify-between bg-ink px-4 py-3">
+    <a href="{{ url_for('main.dashboard') }}" class="flex items-center">
+      {{ lockup(22, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
+    </a>
+    <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
+            aria-label="Open menu" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white">
+      {{ menu(22) }}
+    </button>
+  </header>
+
+  <!-- Mobile nav drawer: hidden by default, toggled by mobile-nav.js below -->
+  <div id="mobile-nav-drawer" class="md:hidden fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+    <div id="mobile-nav-backdrop" class="absolute inset-0 bg-black/50"></div>
+    <div class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-ink flex flex-col shadow-xl">
+      <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
+        {{ lockup(24, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
+        <button type="button" id="mobile-nav-close" aria-label="Close menu" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white">
+          {{ cross(18) }}
+        </button>
+      </div>
+      {{ nav_links() }}
+    </div>
+  </div>
+  <script>
+    (function () {
+      var drawer = document.getElementById('mobile-nav-drawer');
+      var toggle = document.getElementById('mobile-nav-toggle');
+      var closeBtn = document.getElementById('mobile-nav-close');
+      var backdrop = document.getElementById('mobile-nav-backdrop');
+
+      function openDrawer() {
+        drawer.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('overflow-hidden');
+        closeBtn.focus();
+        document.addEventListener('keydown', onKeydown);
+      }
+      function closeDrawer() {
+        drawer.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('overflow-hidden');
+        document.removeEventListener('keydown', onKeydown);
+        toggle.focus();
+      }
+      function onKeydown(e) {
+        if (e.key === 'Escape') closeDrawer();
+      }
+
+      toggle.addEventListener('click', openDrawer);
+      closeBtn.addEventListener('click', closeDrawer);
+      backdrop.addEventListener('click', closeDrawer);
+    })();
+  </script>
+
   <div class="flex min-h-screen">
     <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
       <div class="px-5 py-5 border-b border-white/10">
         <a href="{{ url_for('main.dashboard') }}" class="flex items-center">
-          {% from "_logo.html" import lockup %}
           {{ lockup(26, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
         </a>
       </div>
-      <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
-        {% set nav_items = [
-          ('main.dashboard', 'Dashboard'),
-          ('jobs.search', 'Find Ausbildung'),
-          ('jobs.saved', 'Saved Jobs'),
-          ('applications.list_applications', 'Applications'),
-          ('profile.view', 'Candidate Profile'),
-          ('documents.list_documents', 'Documents'),
-          ('integrations.gmail_status', 'Gmail'),
-        ] %}
-        {% for endpoint, label in nav_items %}
-        <a href="{{ url_for(endpoint) }}"
-           class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
-             {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
-          {{ label }}
-        </a>
-        {% endfor %}
-        {% if current_user.is_admin %}
-        <div class="pt-4 mt-4 border-t border-white/10">
-          <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
-          <a href="{{ url_for('admin.overview') }}"
-             class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
-            Admin Dashboard
-          </a>
-          <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Invitation Codes</a>
-          <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Users</a>
-          <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Job Sources</a>
-          <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">AI Usage</a>
-        </div>
-        {% endif %}
-      </nav>
-      <div class="px-3 py-4 border-t border-white/10 text-sm">
-        <p class="px-3 truncate text-slate-400">{{ current_user.email }}</p>
-        <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Log out</a>
-      </div>
+      {{ nav_links() }}
     </aside>
     <div class="flex-1 min-w-0">
       <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">

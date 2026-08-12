@@ -1,12 +1,28 @@
+{% from "_icons.html" import check, cross, info %}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
   <div class="space-y-2 mb-6">
     {% for category, message in messages %}
-    <div class="rounded-lg border px-4 py-3 text-sm
+    {# Phase 7 remediation (QA findings W5): category is no longer color-only
+       - each message carries an icon and a visually-hidden category word,
+       and is announced to assistive tech via role="alert"/"status". #}
+    <div
+      class="rounded-lg border px-4 py-3 text-sm flex items-start gap-2
       {% if category == 'error' %}border-red-200 bg-red-50 text-red-700
       {% elif category == 'success' %}border-green-200 bg-green-50 text-green-700
-      {% else %}border-blue-200 bg-blue-50 text-blue-700{% endif %}">
-      {{ message }}
+      {% else %}border-blue-200 bg-blue-50 text-blue-700{% endif %}"
+      role="{{ 'alert' if category == 'error' else 'status' }}"
+      {% if category != 'error' %}aria-live="polite"{% endif %}
+    >
+      <span class="mt-0.5 shrink-0">
+        {% if category == 'error' %}{{ cross(14) }}
+        {% elif category == 'success' %}{{ check(14) }}
+        {% else %}{{ info(14) }}{% endif %}
+      </span>
+      <span>
+        <span class="sr-only">{{ {"error": "Error", "success": "Success"}.get(category, "Notice") }}:</span>
+        {{ message }}
+      </span>
     </div>
     {% endfor %}
   </div>

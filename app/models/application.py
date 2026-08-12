@@ -127,7 +127,7 @@ class ApplicationDocument(db.Model):
     order_index = db.Column(db.Integer, nullable=False, default=0)
 
     application = db.relationship("Application", back_populates="selected_documents")
-    document = db.relationship("Document")
+    document = db.relationship("Document", back_populates="application_documents")
 
     __table_args__ = (
         db.UniqueConstraint("application_id", "document_id", name="uq_app_document_once"),

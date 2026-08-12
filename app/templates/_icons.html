@@ -34,3 +34,22 @@
   <circle cx="8.05" cy="11.4" r="0.2" fill="currentColor" stroke="none"/>
 </svg>
 {% endmacro %}
+
+{# Phase 7 remediation (QA finding W5): flash messages needed a non-color
+   way to convey category - this matches the existing circle-based
+   single-weight stroke language of warning()/unknown() above. #}
+{% macro info(size=14, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <circle cx="8" cy="8" r="6.3"/>
+  <path d="M8 7.3V11.4"/>
+  <circle cx="8" cy="4.9" r="0.15" fill="currentColor" stroke="none"/>
+</svg>
+{% endmacro %}
+
+{# Phase 7 remediation (QA finding B2): mobile nav trigger/close icons,
+   matching the same single-weight stroke language as the rest of the set. #}
+{% macro menu(size=20, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+  <path d="M2 4.5H14M2 8H14M2 11.5H14"/>
+</svg>
+{% endmacro %}

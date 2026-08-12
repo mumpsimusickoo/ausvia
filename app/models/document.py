@@ -40,6 +40,14 @@ class Document(db.Model):
     uploaded_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
     user = db.relationship("User", back_populates="documents")
+    # Phase 7 remediation (QA finding B1): an ApplicationDocument selection
+    # referencing this document must not outlive it - without this, deleting
+    # a document that's still selected on an application left a dangling FK
+    # that crashed "Generate email"/"Approve" with a raw 500 the next time
+    # either read sd.document.
+    application_documents = db.relationship(
+        "ApplicationDocument", back_populates="document", cascade="all, delete-orphan"
+    )
 
     def human_size(self):
         size = self.file_size
