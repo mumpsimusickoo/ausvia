@@ -42,6 +42,12 @@ class ProductionConfig(Config):
     DEBUG = False
     # SECRET_KEY MUST be set via environment in production; no insecure fallback here.
 
+    # Phase 8 security audit (2.1): don't rely on the SESSION_COOKIE_SECURE
+    # env var being remembered in production - force it here so a forgotten
+    # env var can't silently send session/remember-me cookies over plain HTTP.
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
+
 
 class TestingConfig(Config):
     TESTING = True

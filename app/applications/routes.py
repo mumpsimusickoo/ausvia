@@ -337,7 +337,10 @@ def create_gmail_draft(application_id):
     except gmail_oauth.GmailNotConfiguredError as e:
         flash(str(e), "error")
     except Exception as e:
-        flash(f"Could not create the Gmail draft: {e}", "error")
+        # Phase 8 security audit (2.6): was flashing str(e) - the same class
+        # of bug W3 fixed for background-task errors, in a spot that fix
+        # didn't reach. Raw detail stays server-side in the log only.
+        flash("Could not create the Gmail draft. Please try again.", "error")
         log_event("email", f"Gmail draft creation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))
 
@@ -467,6 +470,8 @@ def create_reply_draft(application_id, message_id):
     except gmail_oauth.GmailNotConnectedError:
         flash("Connect your Gmail account first.", "error")
     except Exception as e:
-        flash(f"Could not create the reply draft: {e}", "error")
+        # Phase 8 security audit (2.6): same reasoning as create_gmail_draft
+        # above - raw detail stays server-side in the log only.
+        flash("Could not create the reply draft. Please try again.", "error")
         log_event("gmail", f"Reply draft creation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))

@@ -140,3 +140,53 @@ def test_application_gmail_draft_requires_connection(client, db, make_user):
 
     resp = client.post(f"/applications/{application.id}/gmail-draft", follow_redirects=True)
     assert b"Connect your Gmail account first" in resp.data
+
+
+def test_gmail_draft_failure_does_not_leak_exception_text_to_user(client, db, make_user, monkeypatch):
+    """Phase 8 security audit (2.6): the generic except Exception branch here
+    used to flash str(e) straight to the user."""
+    user = make_user(email="gr7@example.com", password="Password123!")
+    login(client, "gr7@example.com", "Password123!")
+    application = start_application(client, db, user)
+    application.status = "ready"
+    application.package_storage_path = "/tmp/fake.pdf"
+    db.session.add(GeneratedEmail(application_id=application.id, subject="s", body="b", source="template"))
+    db.session.commit()
+
+    monkeypatch.setattr(app_routes.gmail_oauth, "get_gmail_service", lambda user: object())
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("draft creation failed, refresh_token=super-secret-value-123")
+
+    monkeypatch.setattr(app_routes.gmail_drafts, "create_draft", _boom)
+
+    resp = client.post(f"/applications/{application.id}/gmail-draft", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"super-secret-value-123" not in resp.data
+    assert b"Could not create the Gmail draft" in resp.data
+
+
+def test_reply_draft_failure_does_not_leak_exception_text_to_user(client, db, make_user, monkeypatch):
+    """Same as above, for the reply-draft route's generic except Exception branch."""
+    user = make_user(email="gr8@example.com", password="Password123!")
+    login(client, "gr8@example.com", "Password123!")
+    application = start_application(client, db, user)
+    message = GmailMessage(application_id=application.id, gmail_message_id="m1", from_address="hr@firma.de")
+    db.session.add(message)
+    db.session.commit()
+
+    monkeypatch.setattr(app_routes.gmail_oauth, "get_gmail_service", lambda user: object())
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("reply draft failed, refresh_token=super-secret-value-123")
+
+    monkeypatch.setattr(app_routes.gmail_drafts, "create_reply_draft", _boom)
+
+    resp = client.post(
+        f"/applications/{application.id}/messages/{message.id}/create-reply-draft",
+        data={"reply_text": "Gerne, hier ist meine Antwort."},
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert b"super-secret-value-123" not in resp.data
+    assert b"Could not create the reply draft" in resp.data

@@ -30,7 +30,13 @@ def gmail_connect():
     try:
         auth_url, state = gmail_oauth.get_authorization_url()
     except Exception as e:
-        flash(f"Could not start the Gmail connection: {e}", "error")
+        # Phase 8 security audit (2.6): this used to flash str(e) straight to
+        # the user - the same class of bug W3 fixed for background-task
+        # errors, just in a spot that fix didn't reach. get_authorization_url
+        # calls into google-auth-oauthlib, whose exceptions aren't ours to
+        # guarantee never echo request/response detail, so raw text stays
+        # server-side in the log only, same pattern as W3.
+        flash("Could not start the Gmail connection. Please try again.", "error")
         log_event("gmail", f"Failed to start OAuth flow: {e}", level="error", user_id=current_user.id)
         return redirect(url_for("integrations.gmail_status"))
 
@@ -59,7 +65,13 @@ def gmail_callback():
         credentials = gmail_oauth.exchange_code(expected_state, request.url)
         gmail_oauth.save_connection(current_user, credentials)
     except Exception as e:
-        flash(f"Could not complete the Gmail connection: {e}", "error")
+        # Phase 8 security audit (2.6): same reasoning as gmail_connect above
+        # - exchange_code() makes a real network call to Google's token
+        # endpoint carrying this app's own client_secret (from
+        # credentials.json), so an unsanitized exception here is a real,
+        # not just theoretical, place a secret could end up in a user-facing
+        # response. Raw detail stays server-side in the log only.
+        flash("Could not complete the Gmail connection. Please try again.", "error")
         log_event("gmail", f"OAuth token exchange failed: {e}", level="error", user_id=current_user.id)
         return redirect(url_for("integrations.gmail_status"))
 

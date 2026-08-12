@@ -1,4 +1,4 @@
-import random
+import secrets
 import string
 
 from app.extensions import db
@@ -17,9 +17,14 @@ PLAN_AI_LIMITS = {
 
 
 def generate_code():
-    """Generates a code like A7K9-XP42-QM8L. Excludes ambiguous chars (0/O, 1/I)."""
+    """Generates a code like A7K9-XP42-QM8L. Excludes ambiguous chars (0/O, 1/I).
+
+    Phase 8 security audit (D1): was stdlib `random` (not cryptographically
+    secure) despite SECURITY.md documenting `secrets`-backed generation -
+    a docs/code mismatch, now fixed to match what was already documented.
+    """
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-    groups = ["".join(random.choices(alphabet, k=4)) for _ in range(3)]
+    groups = ["".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(3)]
     return "-".join(groups)
 
 

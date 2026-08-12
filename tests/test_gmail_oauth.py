@@ -73,6 +73,51 @@ def test_is_configured_true_with_fake_credentials_file(app, fake_credentials_fil
     assert gmail_oauth.is_configured() is True
 
 
+def test_connect_failure_does_not_leak_exception_text_to_user(
+    client, db, make_user, fake_credentials_file, monkeypatch
+):
+    """Phase 8 security audit (2.6): get_authorization_url() calls into
+    google-auth-oauthlib, whose exceptions this app doesn't control the
+    content of - the route used to flash str(e) straight to the user."""
+    make_user(email="g4@example.com", password="Password123!")
+    login(client, "g4@example.com", "Password123!")
+
+    def _boom():
+        raise RuntimeError("token_uri unreachable, client_secret=super-secret-value-123")
+
+    monkeypatch.setattr(gmail_oauth, "get_authorization_url", _boom)
+
+    resp = client.get("/integrations/gmail/connect", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"super-secret-value-123" not in resp.data
+    assert b"Could not start the Gmail connection" in resp.data
+
+
+def test_callback_failure_does_not_leak_exception_text_to_user(
+    client, db, make_user, fake_credentials_file, monkeypatch
+):
+    """Same as above, for exchange_code() - the real network call to
+    Google's token endpoint carrying this app's own client_secret."""
+    user = make_user(email="g5@example.com", password="Password123!")
+    login(client, "g5@example.com", "Password123!")
+
+    with client.session_transaction() as sess:
+        sess["gmail_oauth_state"] = "expected-state-value"
+
+    def _boom(state, full_callback_url):
+        raise RuntimeError("token exchange failed, client_secret=super-secret-value-123")
+
+    monkeypatch.setattr(gmail_oauth, "exchange_code", _boom)
+
+    resp = client.get(
+        "/integrations/gmail/callback?state=expected-state-value&code=abc",
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert b"super-secret-value-123" not in resp.data
+    assert b"Could not complete the Gmail connection" in resp.data
+
+
 def test_save_and_retrieve_connection(app, db, make_user, fake_credentials_file, monkeypatch):
     user = make_user(email="g4@example.com")
     monkeypatch.setattr(gmail_oauth, "build", lambda *a, **kw: FakeProfileService())

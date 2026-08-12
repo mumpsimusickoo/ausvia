@@ -7,13 +7,41 @@ from app.extensions import db, migrate, login_manager, csrf, limiter
 
 
 def create_app(config_name=None):
-    config_name = config_name or os.environ.get("FLASK_ENV", "development")
+    # Phase 8 security audit (2.1): FLASK_ENV left unset is a normal, safe
+    # local-dev default - but FLASK_ENV *set to something unrecognized* (a
+    # typo like "produciton") used to silently fall back to development too,
+    # which means DEBUG=True (Werkzeug's interactive debugger - a known RCE
+    # vector) plus the insecure hardcoded SECRET_KEY fallback in a deployment
+    # someone believed was configured for production. Fail loudly instead.
+    if config_name is None:
+        config_name = os.environ.get("FLASK_ENV", "development")
+    if config_name not in config_by_name:
+        raise RuntimeError(
+            f"Unrecognized FLASK_ENV={config_name!r} - refusing to silently fall back to "
+            f"'development' config (DEBUG=True + an insecure fallback SECRET_KEY). "
+            f"Valid values: {', '.join(sorted(config_by_name))}."
+        )
     app = Flask(__name__)
-    app.config.from_object(config_by_name.get(config_name, config_by_name["development"]))
+    app.config.from_object(config_by_name[config_name])
+
+    # ProductionConfig deliberately has no insecure SECRET_KEY fallback (only
+    # DevelopmentConfig does), so an operator who forgets to set it in a real
+    # deployment would otherwise only find out when Flask raises deep inside
+    # the first request that touches the session - surface it at startup
+    # instead, before the app ever accepts traffic.
+    if config_name == "production" and not app.config.get("SECRET_KEY"):
+        raise RuntimeError(
+            "SECRET_KEY is not set. Production requires it to be set via the "
+            "environment - there is no insecure fallback for this config."
+        )
 
     os.makedirs(os.path.join(app.root_path, "..", "instance"), exist_ok=True)
     os.makedirs(app.config["UPLOAD_DIR"], exist_ok=True)
     os.makedirs(app.config["GENERATED_DIR"], exist_ok=True)
+
+    from app.security_headers import init_security_headers
+
+    init_security_headers(app)
 
     db.init_app(app)
     migrate.init_app(app, db)
