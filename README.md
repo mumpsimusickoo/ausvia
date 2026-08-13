@@ -15,7 +15,7 @@ missing, and `ROADMAP.md` for what's next.
 - **Auth:** Flask-Login sessions, Werkzeug password hashing, access-code-gated registration, CSRF via Flask-WTF, rate limiting via Flask-Limiter
 - **Database:** SQLite by default (`instance/app.db`), swappable to PostgreSQL via `DATABASE_URL` with zero code changes
 - **Storage:** local filesystem behind a `StorageProvider` abstraction (`app/documents/storage.py`) — swappable for cloud object storage later
-- **AI:** provider-agnostic abstraction (`app/ai/provider.py`) with a mock implementation (default) and a real Anthropic implementation — set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to enable it, otherwise the app runs fully rule-based with no credentials
+- **AI:** provider-agnostic abstraction (`app/ai/provider.py`) with a mock implementation (default) plus real Anthropic and Gemini implementations — set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`, or `AI_PROVIDER=gemini` + `GEMINI_API_KEY`, to enable one; otherwise the app runs fully rule-based with no credentials
 - **Frontend:** server-rendered Jinja2 + Tailwind (CDN)
 
 The legacy prototype scripts are now wrapped rather than replaced:

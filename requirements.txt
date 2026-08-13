@@ -9,12 +9,17 @@ python-dotenv==1.0.1
 requests==2.33.0
 beautifulsoup4==4.12.3
 anthropic==0.121.0
+google-genai==2.18.0
 cryptography==43.0.3
 pypdf==6.15.0
 reportlab
 Pillow==12.3.0
 google-auth-oauthlib==1.2.1
-google-auth==2.34.0
+# Bumped 2.34.0 -> 2.56.3 as a transitive dependency of google-genai above
+# (which requires a newer google-auth than the Gmail integration alone
+# needed) - re-ran the full Gmail OAuth/reply-tracking test suite after
+# this bump specifically to confirm nothing there broke.
+google-auth==2.56.3
 google-api-python-client==2.143.0
 pytest==8.3.3
 # dev-only: scripts/check_mobile_overflow.py (Phase 7 QA remediation) drives

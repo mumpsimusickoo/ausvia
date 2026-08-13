@@ -17,4 +17,17 @@ def get_provider():
             model=current_app.config.get("AI_MODEL"),
         )
 
+    if provider_name == "gemini" and current_app.config.get("GEMINI_API_KEY"):
+        from app.ai.providers.gemini_provider import GeminiProvider
+
+        # Deliberately NOT AI_MODEL here - that config var defaults to
+        # "claude-opus-5" (an Anthropic model name) and is shared with the
+        # Anthropic branch above. Reusing it for Gemini would silently ask
+        # Gemini's API for a model name from a different vendor's
+        # namespace. GEMINI_MODEL is its own var for exactly this reason.
+        return GeminiProvider(
+            api_key=current_app.config["GEMINI_API_KEY"],
+            model=current_app.config.get("GEMINI_MODEL"),
+        )
+
     return MockAIProvider()

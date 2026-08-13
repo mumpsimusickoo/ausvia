@@ -11,7 +11,7 @@ app is fully functional and honest with zero AI credentials configured.
 ## Provider abstraction
 
 `app/ai/provider.py` defines `AIProvider` (abstract: `complete(system,
-user, max_tokens)` → `AIResponse`) and `AIProviderError`. Two
+user, max_tokens)` → `AIResponse`) and `AIProviderError`. Three
 implementations:
 
 - **`MockAIProvider`** (`app/ai/providers/mock.py`) — default
@@ -26,6 +26,21 @@ implementations:
   connection errors explicitly. **Never exercised against a live API key in
   this development environment** - the code is real, its live behavior is
   unverified (see `PROJECT_AUDIT.md`).
+- **`GeminiProvider`** (`app/ai/providers/gemini_provider.py`) — active when
+  `AI_PROVIDER=gemini` and `GEMINI_API_KEY` are set. Uses the current
+  `google-genai` SDK (the older `google-generativeai` package is
+  deprecated) and `gemini-3.6-flash` by default - deliberately a **separate**
+  `GEMINI_MODEL` var, not `AI_MODEL`, since that var's default is an
+  Anthropic model name and would be meaningless in Gemini's own model
+  namespace if shared. Handles a `SAFETY`/`PROHIBITED` `finish_reason` as a
+  decline (Gemini's nearest equivalent to Anthropic's `stop_reason ==
+  "refusal"`) and auth/rate-limit/server errors explicitly, same shape as
+  `AnthropicProvider`.
+
+Only one provider is active at a time, selected by `AI_PROVIDER` -
+switching providers is a config change, not a code change, and every
+AI-assisted feature works identically regardless of which one (or neither)
+is configured, per the deterministic-first principle above.
 
 `app/ai/provider_factory.get_provider()` is the single place that decides
 which implementation to return; callers never branch on provider type
