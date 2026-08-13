@@ -9,9 +9,13 @@ Fonts from CDNs at runtime (base.html), or it breaks every page's styling.
 
 CSP specifics and why:
 - script-src allows the Tailwind CDN script by URL, plus a per-request nonce
-  for the app's own two inline <script> blocks (both in base.html - the
-  tailwind.config block and the mobile-nav drawer toggle). No other template
-  has an inline script (grepped for `<script` across app/templates/). This
+  for the app's inline <script> blocks: base.html's tailwind.config block
+  and mobile-nav drawer toggle, jobs/import.html's bookmarklet-drag hint,
+  and jobs/import_bookmarklet.html's client-side form-prefill script (see
+  app/jobs/routes.py's _bookmarklet_href()). Every inline <script> in
+  app/templates/ carries nonce="{{ csp_nonce }}" for exactly this reason -
+  grep for `<script` before adding a new one and forgetting it, or it'll be
+  silently blocked by this CSP with no visible error to the user. This
   keeps script-src meaningfully restrictive - an injected inline script
   elsewhere on the page still won't execute.
 - style-src needs 'unsafe-inline' unavoidably: the Tailwind CDN script

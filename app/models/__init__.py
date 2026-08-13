@@ -21,6 +21,7 @@ from app.models.application import (
 )
 from app.models.integration import GmailConnection, GmailMessage
 from app.models.task import BackgroundTask
+from app.models.manual_import import ManualImportBatch
 
 __all__ = [
     "User",
@@ -50,4 +51,5 @@ __all__ = [
     "GmailConnection",
     "GmailMessage",
     "BackgroundTask",
+    "ManualImportBatch",
 ]

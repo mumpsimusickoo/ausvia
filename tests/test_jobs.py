@@ -54,7 +54,7 @@ def test_import_fetch_handles_blocked_site_gracefully(client, db, make_user, mon
 
     monkeypatch.setattr("app.jobs.routes.fetch_and_extract_text", fake_fetch)
 
-    resp = client.post("/jobs/import/fetch", data={"url": "https://blocked-example.test/job/1"}, follow_redirects=True)
+    resp = client.post("/jobs/import/fetch", data={"urls": "https://blocked-example.test/job/1"}, follow_redirects=True)
     assert resp.status_code == 200
     assert b"declined the request" in resp.data
     # should still render the review form so the user can paste text manually

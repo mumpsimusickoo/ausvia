@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_field %}
+{% block title %}Import from bookmarklet — AUSVIA{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Review and save</h1>
+<p class="mt-1 text-sm text-slate-600 mb-6">
+  This form is filling in from the page you were just viewing in your own browser - AUSVIA didn't fetch anything.
+  Nothing is saved until you review it and press "Save opportunity" below.
+</p>
+
+<section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <form method="post" action="{{ url_for('jobs.import_save') }}">
+    {{ review_form.hidden_tag() }}
+    <div class="grid gap-4 sm:grid-cols-2">
+      {{ render_field(review_form.title) }}
+      {{ render_field(review_form.company_name) }}
+      {{ render_field(review_form.location) }}
+      {{ render_field(review_form.start_date) }}
+      {{ render_field(review_form.application_url) }}
+    </div>
+    {{ render_field(review_form.description) }}
+    <button type="submit" class="rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save opportunity</button>
+  </form>
+</section>
+
+<script nonce="{{ csp_nonce }}">
+  (function () {
+    // The bookmarklet hands data over as a URL *fragment* (never sent to
+    // any server) rather than a query string or a cross-origin POST - see
+    // _bookmarklet_href() in app/jobs/routes.py for why. This just reads
+    // that fragment and fills in the same form every other import path
+    // uses; nothing here saves anything on its own.
+    var hash = window.location.hash;
+    if (!hash || hash.length < 2) { return; }
+    var data;
+    try {
+      data = JSON.parse(decodeURIComponent(hash.slice(1)));
+    } catch (e) {
+      return;
+    }
+    var titleField = document.getElementById('title');
+    var urlField = document.getElementById('application_url');
+    var descField = document.getElementById('description');
+    if (data.t && titleField) { titleField.value = String(data.t).slice(0, 500); }
+    if (data.u && urlField) { urlField.value = data.u; }
+    if (data.x && descField) { descField.value = data.x; }
+    // Clear the fragment so a page refresh doesn't silently clobber
+    // whatever the user has already started editing.
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  })();
+</script>
+{% endblock %}

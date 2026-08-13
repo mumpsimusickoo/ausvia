@@ -41,6 +41,23 @@ end-to-end against real pages. This exists specifically so the product
 never depends on any single external source being available - explicitly
 required by the spec.
 
+Two convenience layers on top, both still one-URL-at-a-time-reviewed, still
+never bypassing a block:
+
+- **Bulk paste** (`app/models/manual_import.py`'s `ManualImportBatch`,
+  `app/jobs/routes.py`'s `/jobs/import/fetch`): up to 10 URLs pasted at
+  once, each fetched independently (one blocked URL doesn't stop the
+  others), then stepped through the same single-item review form one at a
+  time - never a bulk multi-save.
+- **Browser bookmarklet** (`_bookmarklet_href()` in `app/jobs/routes.py`,
+  `/jobs/import/bookmarklet`): reads `document.title`/`location.href`/
+  `document.body.innerText` directly out of the DOM of whatever page the
+  user is already looking at - no request of AUSVIA's own, so nothing for
+  a site to block in the first place. Hands the captured data to AUSVIA
+  only via a same-origin-safe URL fragment (never sent to any server),
+  landing on the same CSRF-protected review form as every other import
+  path; nothing saves until the user reviews and submits it.
+
 ## Before adding a new source
 
 Per the product directive: verify an official API exists and read its
