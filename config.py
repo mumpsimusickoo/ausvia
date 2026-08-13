@@ -22,13 +22,23 @@ class Config:
     # derived behavior when unset. See crypto.py's docstring for the full
     # backward-compatibility story.
     TOKEN_ENCRYPTION_KEY = os.environ.get("TOKEN_ENCRYPTION_KEY")
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'app.db')}"
+    # `or` rather than os.environ.get(key, default): .env.example ships
+    # DATABASE_URL= blank (there's no sensible literal default to write for
+    # it), and a *present-but-empty* env var isn't caught by get()'s default
+    # argument - only a fully-*absent* key is. Found via a real, reproduced
+    # failure: creating .env from the template left DATABASE_URL="" in the
+    # environment, which silently became SQLALCHEMY_DATABASE_URI="" instead
+    # of falling back to the sqlite default, breaking every non-testing
+    # create_app() call (TestingConfig overrides this var directly, which is
+    # why the test suite's own DB was unaffected - only DevelopmentConfig/
+    # ProductionConfig inherit this line unmodified).
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or (
+        f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'app.db')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    UPLOAD_DIR = os.environ.get("UPLOAD_DIR", os.path.join(BASE_DIR, "uploads"))
-    GENERATED_DIR = os.environ.get("GENERATED_DIR", os.path.join(BASE_DIR, "generated"))
+    UPLOAD_DIR = os.environ.get("UPLOAD_DIR") or os.path.join(BASE_DIR, "uploads")
+    GENERATED_DIR = os.environ.get("GENERATED_DIR") or os.path.join(BASE_DIR, "generated")
     MAX_CONTENT_LENGTH = 15 * 1024 * 1024  # 15 MB per request
 
     SESSION_COOKIE_HTTPONLY = True
@@ -41,12 +51,17 @@ class Config:
 
     # AI provider abstraction (see app/ai/provider.py). "mock" requires no credentials
     # and is used whenever a real key isn't configured, so the app is always usable.
-    AI_PROVIDER = os.environ.get("AI_PROVIDER", "mock")
+    AI_PROVIDER = os.environ.get("AI_PROVIDER") or "mock"
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-    AI_MODEL = os.environ.get("AI_MODEL", "claude-opus-5")
+    AI_MODEL = os.environ.get("AI_MODEL") or "claude-opus-5"
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+    # Separate from AI_MODEL on purpose - that var's default is an Anthropic
+    # model name, and Gemini has its own model namespace (see
+    # app/ai/provider_factory.py for why these can't share one var).
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-3.6-flash"
 
-    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI") or "memory://"
 
 
 class DevelopmentConfig(Config):
@@ -82,5 +97,5 @@ config_by_name = {
 
 
 def get_config():
-    env = os.environ.get("FLASK_ENV", "development")
+    env = os.environ.get("FLASK_ENV") or "development"
     return config_by_name.get(env, DevelopmentConfig)

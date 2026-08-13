@@ -14,7 +14,12 @@ def create_app(config_name=None):
     # vector) plus the insecure hardcoded SECRET_KEY fallback in a deployment
     # someone believed was configured for production. Fail loudly instead.
     if config_name is None:
-        config_name = os.environ.get("FLASK_ENV", "development")
+        # `or`, not get()'s default arg: FLASK_ENV present-but-blank in a
+        # real .env should mean the same thing as unset (use development),
+        # not get treated as an unrecognized value and rejected below -
+        # see config.py's matching fix for the same "blank isn't absent"
+        # class of bug.
+        config_name = os.environ.get("FLASK_ENV") or "development"
     if config_name not in config_by_name:
         raise RuntimeError(
             f"Unrecognized FLASK_ENV={config_name!r} - refusing to silently fall back to "
