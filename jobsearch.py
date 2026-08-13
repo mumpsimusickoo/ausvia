@@ -1,8 +1,21 @@
 """
-Client for the Bundesagentur fuer Arbeit ("Jobsuche") public job search API.
-This is the official, free, public API behind arbeitsagentur.de/jobsuche.
-No account/key needed beyond the well-known public API key used by their
-own web frontend.
+Client for the Bundesagentur fuer Arbeit ("Jobsuche") job search API.
+
+Correction: this is NOT an official API. Confirmed via bundesAPI/
+jobsuche-api (the current community documentation of this exact endpoint):
+Bundesagentur fuer Arbeit has never published a developer API for this
+data. What this client calls is the internal endpoint the
+arbeitsagentur.de website's own frontend uses - API_KEY below is that
+frontend's own static key, reverse-engineered and documented by the
+community, not a per-developer credential to register for. There's no
+more-official alternative; this is the one access method that exists, and
+it's implemented here exactly as currently documented.
+
+Confirmed blocked (HTTP 403) from every network this project has tried,
+including a real residential ISP connection, with identical responses
+regardless of API key validity or browser-header spoofing - see
+JOB_SOURCES.md for the full diagnosis. Manual import
+(app/jobs/manual_import.py) is the working path for this source.
 """
 import requests
 

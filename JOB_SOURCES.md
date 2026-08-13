@@ -17,20 +17,39 @@ code changes. Ingestion (`app/jobs/ingest.py`) isolates failures per source
 
 ### Bundesagentur für Arbeit (Jobsuche API) — `ArbeitsagenturAdapter`
 
-Official, free, public API (no account required) behind
-arbeitsagentur.de/jobsuche - the same one the site's own frontend uses.
-Wraps the pre-existing `jobsearch.py` client. **Known limitation:** this
-project's development sandbox gets HTTP 403 from that API - confirmed it's
-not a general connectivity issue (other sites reachable fine) and adding
-browser-like headers didn't help, so it's almost certainly bot-protection
-on datacenter/cloud egress IPs, not a broken key. Per the "never bypass
-anti-bot systems" rule, no further evasion was attempted. The adapter's
-field-name mapping is therefore a best-effort port of the previously-
+**Correction (confirmed via current community documentation of this exact
+endpoint, `bundesAPI/jobsuche-api`): this is not an official API.**
+Bundesagentur für Arbeit has never published a developer API for this data
+("...bietet die Bundesagentur für Arbeit dafür bis heute keine offizielle
+API an" - no official API exists to this day). What `jobsearch.py` calls
+is the internal endpoint the arbeitsagentur.de website's own frontend uses
+- the `X-API-Key: jobboerse-jobsuche` value isn't a registered per-
+developer credential to apply for, it's the same static key that frontend
+uses, reverse-engineered and documented by the community. There is no more
+official alternative to register for; this is the one access method that
+exists, and the adapter already implements it exactly as documented.
+
+**Known limitation, re-diagnosed:** confirmed HTTP 403 from this API,
+live-tested from two structurally different networks (this project's
+original development sandbox, and separately a residential/business ISP
+connection in Morocco) with identical results down to the response body -
+a genuine browser-header-spoofed request and a deliberately wrong API key
+both produce the exact same blank 403, which rules out the key being
+checked/rejected and rules out a simple "flag datacenter IPs" heuristic
+(a real residential IP got the same wall). The main arbeitsagentur.de site
+and even the actual jobsuche frontend page load completely normally from
+the same networks, so this isn't a general connectivity block either. The
+most consistent explanation is deliberate anti-automation hardening
+specific to this internal, never-intended-for-third-parties endpoint, not
+an IP-reputation issue a different host/network would sidestep. Per the
+"never bypass anti-bot systems" rule, no further evasion was attempted -
+manual import (see below) is the actual working path for this source,
+same as any other source that can't be reached programmatically. The
+adapter's field-name mapping remains a best-effort port of the previously-
 working prototype's field names, defensively coded (`.get()` fallbacks,
 full raw payload preserved in `JobListing.raw_snapshot` for reprocessing)
-but **unverified against a live response**. If results come back
-empty/wrong on a normal (non-sandboxed) network, check the raw response
-shape first.
+but still **unverified against a live response**, since none has ever
+been obtained.
 
 ### Manual import — universal fallback, not a "source" in the adapter sense
 

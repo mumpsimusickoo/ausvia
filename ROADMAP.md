@@ -110,19 +110,111 @@ template utility-class patterns rather than pausing to build a component
 library first, a scope trade-off worth revisiting before Phase 7 adds
 more surface area.
 
-## Phase 7 — QA
+## Phase 7 — QA (complete)
 
-Full workflow test per the product directive's "final quality bar" scenario
-(access code → account → profile → search → match → prepare → Gmail draft →
-send → reply → AI response → timeline). Expand test coverage into the Phase
-5/6 features as they land.
+Full workflow test per the product directive's "final quality bar" scenario,
+end to end against the live dev server with a real (non-`:memory:`)
+database. Found 3 Blocking + 9 Worth Fixing Now issues; see `QA_REPORT.md`.
 
-## Phase 8 — Security
+- [x] **Phase 7 Remediation** (`PHASE7_REMEDIATION.md`) - all 3 Blocking and
+      all 9 Worth Fixing Now findings fixed the same day: document-deletion
+      cascade + SQLite FK enforcement, mobile navigation (hamburger +
+      drawer), invitation-code redemption race, leaked exception detail,
+      color-only status/flash indicators, unlabeled form fields, unlinked
+      validation errors, AI-prompt delimiting. Full mobile-overflow audit
+      across every authenticated page, all clean; `scripts/
+      check_mobile_overflow.py` added as a reusable regression check.
+- [x] **B3 correction** - the landing-page mobile-overflow finding was
+      re-examined after its "fixed" claim didn't match the actual diff
+      (`landing.html` had zero changes). Live re-verification found no
+      overflow on the unmodified page; the original finding was most likely
+      a measurement artifact from an unreliable CLI screenshot method
+      discovered during this same pass, not a real defect. Corrected in
+      both `QA_REPORT.md` and `PHASE7_REMEDIATION.md` rather than left
+      standing - see either for the full writeup.
 
-Re-run the `SECURITY.md` gap list (Gmail OAuth redesign and AI-route rate
-limiting landed in Phase 5); review secrets management, including moving the
-Gmail token-encryption key off `SECRET_KEY` onto its own dedicated secret,
-for a real deployment target.
+## Phase 8 — Security (complete)
+
+Full audit-then-fix pass (classify every finding as Fix now / Needs a
+decision / Defer *before* touching code, same discipline as Phase 7's QA
+pass) - see `QA_REPORT.md`'s Defer table for where this started.
+
+- [x] **Fix now, implemented:** `InvitationCode.generate_code()` moved from
+      stdlib `random` to `secrets` (D1); `FLASK_ENV` set to an unrecognized
+      value now fails loudly at startup instead of silently running in dev
+      mode with `DEBUG=True`; `ProductionConfig` now forces
+      `SESSION_COOKIE_SECURE`/`REMEMBER_COOKIE_SECURE` rather than relying
+      on an env var that could be forgotten, and production with no
+      `SECRET_KEY` now fails at startup rather than deep inside the first
+      request; full CSP/`X-Content-Type-Options`/`X-Frame-Options`/
+      `Referrer-Policy`/HSTS response headers added
+      (`app/security_headers.py`, live-verified via DevTools that the CSP
+      doesn't break the Tailwind/Google Fonts CDN loading it has to
+      coexist with); 4 sites where a raw exception was flashed to the user
+      fixed in the Gmail integration surface (same class of bug as Phase
+      7's W3, which only reached background-task errors); `pypdf` upgraded
+      4.3.1 → 6.15.0 (the one dependency finding with an actually-reachable
+      attack surface - user-uploaded PDFs, parsed synchronously - not just
+      the one with the most CVEs), with dedicated new tests inspecting real
+      assembled-PDF output, not just "the suite is green."
+- [x] **D6(a) implemented:** optional dedicated `TOKEN_ENCRYPTION_KEY` env
+      var for Gmail token encryption, falling back to the original
+      `SECRET_KEY`-derived behavior when unset - opt-in, and proven
+      backward-compatible (a token encrypted before the key is introduced
+      keeps decrypting after, no forced reconnection). D6(b) - requiring it
+      in production with a forced-migration/reconnect path - stays
+      deliberately deferred; that's real migration-design scope, not
+      folded into the opt-in version.
+- [x] **Audited, confirmed clean, no fix needed:** privilege escalation
+      (the race-protected invitation-code flow is the only path to
+      `role=admin`); Gmail OAuth state-parameter CSRF protection and scope
+      minimality.
+- [x] **Needs a decision, presented, not implemented:** D3 (rate limiter
+      keys by IP not user) - deferred per the recommendation, since
+      AI-cost abuse is already bounded by the account-level plan-limit
+      system independent of the rate limiter. Stopping the Tailwind CDN
+      dependency at runtime - deferred, real build-step infrastructure
+      change, not a header tweak. `flask`/`cryptography`/`pytest`/
+      `python-dotenv` version bumps - deferred, none currently exploitable
+      in this app's actual configuration per the reachability analysis.
+
+## Post-Phase-8 small fixes (v1 cleanup, complete)
+
+Independent small passes closing out v1 - not a new phase, no new product
+surface.
+
+- [x] **Real company data in generation** - `format_job_facts()` only ever
+      read `Job` fields; a job's linked `Company` row's industry/website/
+      description (real, Phase-6-populated data) never reached cover-letter
+      or application-email generation. Now wired in via a new
+      `format_company_facts()`, gracefully absent when there's no linked
+      company or it has no populated fields. Mock-mode template output
+      confirmed unaffected.
+- [x] **Manual import strengthened** (`JOB_SOURCES.md`) - bulk paste (up to
+      10 URLs at once, each fetched independently, stepped through the same
+      single-item review one at a time) and a browser bookmarklet (reads
+      the current page's own title/URL/text directly from the DOM, hands
+      it to AUSVIA via a URL fragment - never a request of AUSVIA's own,
+      never sent to any server, never bypassing CSRF). Both live-verified
+      via Chrome DevTools Protocol against real pages, not just pytest.
+- [x] **Arbeitsagentur re-diagnosis** - tested live from a genuinely
+      different network (not just re-asserted the Phase 2 finding). Still
+      blocked, but the diagnosis changed: confirmed this was never an
+      official API, and the block looks like anti-automation hardening on
+      the endpoint itself, not IP reputation. `JOB_SOURCES.md` and
+      `jobsearch.py` corrected accordingly.
+- [x] **`.env` actually loads now** - nothing called `load_dotenv()` despite
+      `python-dotenv` being a dependency and the README instructing
+      `cp .env.example .env`; a fresh clone's `.env` was silently ignored,
+      only real OS environment variables were ever read. Fixed in
+      `config.py`, before any `Config` class reads `os.environ`. Verified
+      via a subprocess-based test (in-process re-import can't prove this,
+      since `config.py` is already loaded by the time any test runs) that a
+      value set only in `.env` is actually picked up, and that a real OS
+      environment variable still wins over one.
+- [x] **`requests` bumped** 2.32.4 → 2.33.0 - a newer advisory existed but
+      wasn't reachable in this app (the vulnerable function is never
+      called); patched anyway since it's a zero-risk one-line bump.
 
 ## Phase 9 — UX Polish
 
