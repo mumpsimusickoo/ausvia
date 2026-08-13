@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from app.models.document import Document
 from app.models.job import SavedJob
 from app.models.application import Application
+from app.priority_digest import compute_priority_digest
 
 bp = Blueprint("main", __name__)
 
@@ -52,3 +53,9 @@ def dashboard():
         interviews=interviews,
         completeness=profile.completeness_percent() if profile else 0,
     )
+
+
+@bp.route("/digest")
+@login_required
+def priority_digest():
+    return render_template("main/digest.html", items=compute_priority_digest(current_user))

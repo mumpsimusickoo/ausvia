@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Priority Digest — AUSVIA{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Priority digest</h1>
+<p class="mt-1.5 text-sm text-slate-600 mb-6">
+  Which saved jobs and active applications deserve attention this week - computed from real deadlines, interview
+  dates, follow-up dates, match scores, and how long it's been since anything moved. Nothing here is AI-written or
+  invented; it's the same data you already see elsewhere on the site, just sorted by what's time-sensitive.
+</p>
+
+{% if items %}
+<div class="space-y-3">
+  {% for item in items %}
+  <a href="{% if item.kind == 'application' %}{{ url_for('applications.detail', application_id=item.url_kwargs.application_id) }}{% else %}{{ url_for('jobs.detail', job_id=item.url_kwargs.job_id) }}{% endif %}"
+     class="block rounded-xl border border-slate-200 bg-white shadow-sm p-5 hover:border-brand-300">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="font-medium text-slate-900">{{ item.title }}</p>
+        <p class="text-sm text-slate-600">{{ item.company_name or "Unknown company" }}</p>
+      </div>
+      <span class="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+        {{ "Application" if item.kind == "application" else "Saved job" }}
+      </span>
+    </div>
+    <ul class="mt-3 space-y-1">
+      {% for reason in item.reasons %}
+      <li class="text-sm text-brand-700">{{ reason }}</li>
+      {% endfor %}
+    </ul>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <p class="text-sm text-slate-500">Nothing needs attention right now - no upcoming deadlines, interviews, or follow-ups due, and nothing has been sitting idle. Check back later or after you save/apply to more opportunities.</p>
+</div>
+{% endif %}
+{% endblock %}

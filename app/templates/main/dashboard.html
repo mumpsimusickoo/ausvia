@@ -34,7 +34,15 @@
 </div>
 <p class="mt-3 text-xs text-slate-400">Follow-up reminders and job-radar new-match counts arrive in a later phase.</p>
 
-<div class="mt-10 grid gap-5 md:grid-cols-3">
+<div class="mt-10 grid gap-5 md:grid-cols-2">
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-slate-900">Priority digest</h2>
+    <p class="mt-2 text-sm text-slate-600">Which saved jobs and active applications deserve attention this week - deadlines, interviews, follow-ups due, and stalled applications, computed from what's already on file.</p>
+    <a href="{{ url_for('main.priority_digest') }}" class="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">Show my priority digest &rarr;</a>
+  </div>
+</div>
+
+<div class="mt-5 grid gap-5 md:grid-cols-3">
   <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
     <h2 class="font-semibold text-slate-900">Job search</h2>
     <p class="mt-2 text-sm text-slate-600">{{ saved_job_count }} saved opportunit{{ 'y' if saved_job_count == 1 else 'ies' }}.</p>
