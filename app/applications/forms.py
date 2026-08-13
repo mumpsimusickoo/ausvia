@@ -14,6 +14,11 @@ class EmailForm(FlaskForm):
     body = TextAreaField("Body", validators=[DataRequired(), Length(max=10000)])
 
 
+class FollowUpEmailForm(FlaskForm):
+    subject = StringField("Subject", validators=[DataRequired(), Length(max=500)])
+    body = TextAreaField("Body", validators=[DataRequired(), Length(max=10000)])
+
+
 class StatusForm(FlaskForm):
     status = SelectField("Status", choices=[(s, s.replace("_", " ").title()) for s in APPLICATION_STATUSES])
     contact_person = StringField("Contact person", validators=[Optional(), Length(max=255)])

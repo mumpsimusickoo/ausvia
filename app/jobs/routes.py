@@ -13,6 +13,7 @@ from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
 from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
 from app.jobs.matching import get_or_compute_match, generate_narrative, generate_improvement_tips
+from app.ai.job_explainer import get_job_explainer, generate_job_explainer
 from app.ai.provider import AIProviderError
 from app.extensions import limiter
 from app.utils.logging import log_event
@@ -78,8 +79,23 @@ def detail(job_id):
     application = Application.query.filter_by(user_id=current_user.id, job_id=job.id).first()
 
     return render_template(
-        "jobs/detail.html", job=job, is_saved=is_saved, match=match, application=application
+        "jobs/detail.html", job=job, is_saved=is_saved, match=match, application=application,
+        explainer=get_job_explainer(current_user, job),
     )
+
+
+@bp.route("/<int:job_id>/explain", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def explain(job_id):
+    job = db.get_or_404(Job, job_id)
+    try:
+        generate_job_explainer(current_user, job)
+        flash("Plain-language summary generated.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Job explainer generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("jobs.detail", job_id=job.id))
 
 
 @bp.route("/<int:job_id>/narrative", methods=["POST"])

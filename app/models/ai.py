@@ -81,3 +81,108 @@ class CompanyInsight(db.Model):
     company = db.relationship("Company")
 
     __table_args__ = (db.UniqueConstraint("user_id", "company_id", name="uq_company_insight_user_company"),)
+
+
+class ProfileCoaching(db.Model):
+    """Cached AI review of the whole candidate profile (Phase 9), independent
+    of any one job posting - distinct from JobMatch's job-specific
+    improvement tips. Same staleness pattern as JobMatch/CompanyInsight:
+    recomputed only when the profile has changed since the last generation.
+    No deterministic core - reviewing a career narrative is inherently a
+    language task, so mock mode declines honestly (see
+    app/ai/profile_coaching.py), same pattern as CompanyInsight."""
+
+    __tablename__ = "profile_coachings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False, index=True)
+
+    summary_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")
+
+
+class InterviewPrep(db.Model):
+    """Cached AI-generated likely interview questions + talking points for
+    one application (Phase 9), grounded in the candidate's real profile and
+    the job/company's real stored facts. Per-application (not per-job) since
+    that's the natural lookup key on the page it's shown on, and an
+    Application is already unique per (user, job). Same staleness pattern as
+    JobMatch/CompanyInsight; no deterministic core (see
+    app/ai/interview_prep.py)."""
+
+    __tablename__ = "interview_preps"
+
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), unique=True, nullable=False, index=True)
+
+    prep_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    application = db.relationship("Application")
+
+
+class JobExplainer(db.Model):
+    """Cached AI plain-language summary of one job posting's original text
+    (Phase 9), calibrated to the candidate's own stated German level when
+    known - see app/ai/job_explainer.py for the reasoning. Personalized per
+    candidate (not shared across users the way Job's own fields are) because
+    of that calibration, so it's per-(user, job) like JobMatch/CompanyInsight,
+    with the same staleness rule and no deterministic core (plain-language
+    simplification is inherently a language task)."""
+
+    __tablename__ = "job_explainers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("jobs.id"), nullable=False, index=True)
+
+    explainer_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")
+    job = db.relationship("Job")
+
+    __table_args__ = (db.UniqueConstraint("user_id", "job_id", name="uq_job_explainer_user_job"),)
+
+
+PROCESS_QA_QUESTIONS = {
+    "ausbildungsverguetung": "What does Ausbildungsvergütung mean?",
+    "unrelated_experience": "Should I mention unrelated work experience?",
+    "response_time": "What's the normal response time for an application?",
+    "document_translation": "Do I need to translate my documents into German?",
+    "ausbildung_vs_duales_studium": "What's the difference between an Ausbildung and a Duales Studium?",
+}
+
+
+class ProcessQAAnswer(db.Model):
+    """Cached AI answer to one of a fixed set of common process/terminology
+    questions (Phase 9, PROCESS_QA_QUESTIONS above) - deliberately a typed
+    question picker, not open free-text chat (this app has no chat-style UI
+    anywhere else). Per-(user, question) since one question
+    ("Should I mention unrelated work experience?") is grounded in the
+    candidate's own profile, not just general domain knowledge, so answers
+    aren't safely shareable across users. Same staleness pattern as
+    JobMatch/CompanyInsight."""
+
+    __tablename__ = "process_qa_answers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    question_key = db.Column(db.String(50), nullable=False)
+
+    answer_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")
+
+    __table_args__ = (db.UniqueConstraint("user_id", "question_key", name="uq_process_qa_user_question"),)

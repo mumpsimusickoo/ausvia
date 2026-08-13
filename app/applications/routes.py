@@ -6,14 +6,16 @@ from flask_login import login_required, current_user
 from pypdf.errors import PdfReadError
 
 from app.extensions import db, limiter
-from app.models import Job, Document, Application, GeneratedDocument, GeneratedEmail, ApplicationDocument
+from app.models import Job, Document, Application, GeneratedDocument, GeneratedEmail, FollowUpEmail, ApplicationDocument
 from app.models.integration import GmailMessage
 from app.models.task import BackgroundTask
-from app.applications.forms import CoverLetterForm, EmailForm, StatusForm
+from app.applications.forms import CoverLetterForm, EmailForm, FollowUpEmailForm, StatusForm
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
 from app.applications.status_route import build_status_route
 from app.ai.cover_letter import generate_cover_letter, validate_cover_letter
 from app.ai.email_gen import generate_email
+from app.ai.followup_email import generate_followup_email
+from app.ai.interview_prep import get_interview_prep, generate_interview_prep
 from app.ai.provider import AIProviderError
 from app.ai.reply_ai import classify_reply, generate_reply_suggestion
 from app.documents.storage import LocalStorageProvider
@@ -112,8 +114,10 @@ def detail(application_id):
         reply_check_task=reply_check_task,
         cover_letter_form=CoverLetterForm(obj=application.cover_letter),
         email_form=EmailForm(obj=application.email),
+        followup_email_form=FollowUpEmailForm(obj=application.follow_up_email),
         status_form=StatusForm(obj=application),
         status_route=build_status_route(application),
+        interview_prep=get_interview_prep(application),
     )
 
 
@@ -208,6 +212,66 @@ def save_email(application_id):
         flash("Email saved.", "success")
     else:
         flash("Please fill in subject and body.", "error")
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/generate-followup-email", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def generate_followup_email_route(application_id):
+    application = _owned_application_or_404(application_id)
+    if application.status not in ("sent", "follow_up"):
+        flash("Follow-up emails are only available once an application has been sent.", "error")
+        return redirect(url_for("applications.detail", application_id=application.id))
+
+    try:
+        subject, body, source, provider = generate_followup_email(current_user, application)
+        followup = application.follow_up_email or FollowUpEmail(application_id=application.id)
+        followup.subject, followup.body, followup.source, followup.provider = subject, body, source, provider
+        if followup.id is None:
+            db.session.add(followup)
+        application.log_event("followup_email_generated", f"Follow-up email generated ({source}).")
+        db.session.commit()
+        flash("Follow-up email drafted.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Follow-up email generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/followup-email", methods=["POST"])
+@login_required
+def save_followup_email(application_id):
+    application = _owned_application_or_404(application_id)
+    form = FollowUpEmailForm()
+    if form.validate_on_submit():
+        followup = application.follow_up_email or FollowUpEmail(application_id=application.id, source="manual")
+        followup.subject, followup.body = form.subject.data, form.body.data
+        if followup.id is None:
+            db.session.add(followup)
+        else:
+            from app.models.user import utcnow
+
+            followup.edited_at = utcnow()
+        application.log_event("followup_email_edited", "Follow-up email edited manually.")
+        db.session.commit()
+        flash("Follow-up email saved.", "success")
+    else:
+        flash("Please fill in subject and body.", "error")
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/interview-prep", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def generate_interview_prep_route(application_id):
+    application = _owned_application_or_404(application_id)
+    try:
+        generate_interview_prep(current_user, application)
+        flash("Interview prep generated.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Interview prep generation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))
 
 

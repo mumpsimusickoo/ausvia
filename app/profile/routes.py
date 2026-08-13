@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models.profile import Education, Experience, Skill, Language, Preference
 from app.profile.forms import (
     PersonalInfoForm,
@@ -11,6 +11,11 @@ from app.profile.forms import (
     LanguageForm,
     PreferenceForm,
 )
+from app.models.ai import PROCESS_QA_QUESTIONS
+from app.ai.provider import AIProviderError
+from app.ai.profile_coaching import get_profile_coaching, generate_profile_coaching
+from app.ai.process_qa import get_process_qa_answer, generate_process_qa_answer
+from app.utils.logging import log_event
 
 bp = Blueprint("profile", __name__, url_prefix="/profile")
 
@@ -63,7 +68,40 @@ def view():
         experience_form=ExperienceForm(),
         skill_form=SkillForm(),
         language_form=LanguageForm(),
+        coaching=get_profile_coaching(current_user),
+        qa_questions=PROCESS_QA_QUESTIONS,
+        qa_answers={key: get_process_qa_answer(current_user, key) for key in PROCESS_QA_QUESTIONS},
     )
+
+
+@bp.route("/coaching", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def generate_coaching():
+    try:
+        generate_profile_coaching(current_user)
+        flash("Profile review generated.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Profile coaching generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("profile.view"))
+
+
+@bp.route("/qa/<question_key>", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def generate_qa_answer(question_key):
+    if question_key not in PROCESS_QA_QUESTIONS:
+        from flask import abort
+
+        abort(404)
+    try:
+        generate_process_qa_answer(current_user, question_key)
+        flash("Answer generated.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"Process Q&A generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("profile.view"))
 
 
 @bp.route("/personal", methods=["POST"])

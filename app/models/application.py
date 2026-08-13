@@ -50,6 +50,9 @@ class Application(db.Model):
     email = db.relationship(
         "GeneratedEmail", back_populates="application", uselist=False, cascade="all, delete-orphan"
     )
+    follow_up_email = db.relationship(
+        "FollowUpEmail", back_populates="application", uselist=False, cascade="all, delete-orphan"
+    )
     selected_documents = db.relationship(
         "ApplicationDocument", back_populates="application", cascade="all, delete-orphan",
         order_by="ApplicationDocument.order_index",
@@ -113,6 +116,30 @@ class GeneratedEmail(db.Model):
     edited_at = db.Column(db.DateTime, nullable=True)
 
     application = db.relationship("Application", back_populates="email")
+
+
+class FollowUpEmail(db.Model):
+    """A drafted follow-up email for an application sitting in Sent/Follow-up
+    status (Phase 9) - user-triggered, same shape as GeneratedEmail
+    (regenerating overwrites it, editable/saveable, "ai" or "template"
+    source). Deliberately its own table rather than reusing GeneratedEmail:
+    a follow-up is a distinct piece of content from the original application
+    email, and an application may reasonably want both preserved at once."""
+
+    __tablename__ = "follow_up_emails"
+
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), unique=True, nullable=False)
+
+    subject = db.Column(db.String(500), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    source = db.Column(db.String(20), nullable=False)  # "ai" | "template"
+    provider = db.Column(db.String(30), nullable=True)
+
+    generated_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    edited_at = db.Column(db.DateTime, nullable=True)
+
+    application = db.relationship("Application", back_populates="follow_up_email")
 
 
 class ApplicationDocument(db.Model):
