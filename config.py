@@ -1,6 +1,18 @@
 import os
 
+from dotenv import load_dotenv
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Must run before any os.environ.get() call below - the Config classes read
+# their values at class-definition time (i.e. the moment this module is
+# first imported, which happens as a side effect of `from app import
+# create_app` in app.py), so loading .env any later would be too late.
+# Explicit path (not the default cwd-relative search) so this works
+# regardless of the directory the process happens to be launched from.
+# Real OS environment variables still win - load_dotenv() never overwrites
+# a variable that's already set, only fills in ones that aren't.
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 class Config:
