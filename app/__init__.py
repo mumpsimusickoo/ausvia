@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import config_by_name
 from app.extensions import db, migrate, login_manager, csrf, limiter
@@ -28,6 +29,30 @@ def create_app(config_name=None):
         )
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+
+    # Gmail OAuth bug fix, deployment-specific: Railway (like Heroku/Render)
+    # terminates TLS at its edge proxy and forwards to this container over
+    # plain HTTP internally, so without help Flask sees every request as
+    # http:// even though the site is genuinely served over https:// -
+    # url_for(..., _external=True) (Gmail's OAuth redirect_uri, see
+    # app/integrations/gmail_oauth.py's _callback_url()) then generates an
+    # http:// URL, which Google's OAuth flow rejects outright
+    # (redirect_uri_mismatch). ProxyFix reads the X-Forwarded-Proto/-Host
+    # headers Railway's edge proxy sets on every request and corrects what
+    # Flask reports accordingly.
+    #
+    # Scoped to production only, not applied unconditionally: trusting
+    # X-Forwarded-* headers is only safe when a real proxy in front of the
+    # app is what sets them, overwriting/stripping any client-supplied copy
+    # before forwarding - true for Railway's edge (the only path into this
+    # container), not true for local dev, where there is no proxy and
+    # nothing should trust a client-supplied X-Forwarded-* header for
+    # anything (x_host=1 in particular also feeds url_for(_external=True)
+    # generally, not just this one callback URL). Development/testing have
+    # no proxy to trust in the first place, so scoping this out costs
+    # nothing there and keeps the trust boundary honest.
+    if config_name == "production":
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # ProductionConfig deliberately has no insecure SECRET_KEY fallback (only
     # DevelopmentConfig does), so an operator who forgets to set it in a real
