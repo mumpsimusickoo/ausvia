@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}CORS diagnostic — AUSVIA{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-slate-900">Arbeitsagentur CORS diagnostic (temporary)</h1>
+<p class="mt-1 text-sm text-slate-600 mb-2">
+  Not a real feature - a one-off test. Server-side calls to the Arbeitsagentur Jobsuche API are
+  confirmed blocked. This checks whether a browser request made <em>from this exact origin</em>
+  is allowed through by the API's CORS policy, or blocked the same way.
+</p>
+<p class="text-sm text-slate-600 mb-6">
+  Click the button, then check the result below. Open DevTools' Network/Console tab for the full
+  picture: a CORS block shows no response at all (a red, failed request with no status code) plus a
+  console error naming CORS explicitly; a 403 from the server itself means CORS let the request
+  through but Arbeitsagentur's anti-automation check still rejected it.
+</p>
+
+<button id="run-btn" type="button" class="rounded-lg bg-brand-600 px-4 py-2 text-white font-semibold hover:bg-brand-700">
+  Run test
+</button>
+
+<pre id="output" class="mt-4 whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800">Not run yet.</pre>
+
+<script nonce="{{ csp_nonce }}">
+document.getElementById("run-btn").addEventListener("click", async () => {
+  const output = document.getElementById("output");
+  output.textContent = "Running...";
+  const url = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs?was=elektroniker&angebotsart=4&page=1&size=10";
+  const startedAt = new Date().toISOString();
+  try {
+    const resp = await fetch(url, { headers: { "X-API-Key": "jobboerse-jobsuche" } });
+    const text = await resp.text();
+    output.textContent =
+      "RESPONSE RECEIVED - the request was NOT blocked by CORS.\n" +
+      "started: " + startedAt + "\n" +
+      "origin: " + window.location.origin + "\n" +
+      "status: " + resp.status + " " + resp.statusText + "\n" +
+      "ok: " + resp.ok + "\n\n" +
+      "body (first 4000 chars):\n" + text.slice(0, 4000);
+  } catch (err) {
+    output.textContent =
+      "FETCH THREW - almost certainly CORS-blocked before any response arrived " +
+      "(a network-level failure looks the same from JS; check the Network tab to be sure).\n" +
+      "started: " + startedAt + "\n" +
+      "origin: " + window.location.origin + "\n" +
+      "error.name: " + err.name + "\n" +
+      "error.message: " + err.message;
+  }
+});
+</script>
+{% endblock %}

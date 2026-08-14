@@ -37,6 +37,18 @@ def health():
     return "ok", 200
 
 
+@bp.route("/diagnostics/arbeitsagentur-cors-test")
+def arbeitsagentur_cors_test():
+    # Temporary diagnostic, not a feature - answers whether a browser
+    # request to the Arbeitsagentur Jobsuche API works from *our* deployed
+    # origin specifically (server-side calls are confirmed blocked; this
+    # checks the client-side path). No auth, deliberately unlinked from
+    # navigation. Remove this route + its template + the matching
+    # connect-src CSP carve-out (app/security_headers.py,
+    # DIAGNOSTIC_CORS_TEST_PATH) once the finding is confirmed either way.
+    return render_template("diagnostics/arbeitsagentur_cors_test.html")
+
+
 @bp.route("/dashboard")
 @login_required
 def dashboard():

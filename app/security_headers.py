@@ -29,11 +29,22 @@ CSP specifics and why:
   a real build-step infrastructure change, not a header tweak.
 - connect-src/form-action are 'self' only - grepped templates for fetch(),
   XMLHttpRequest, and external form actions; none exist, so nothing to
-  allowlist beyond same-origin.
+  allowlist beyond same-origin. One narrow, temporary exception: the
+  Arbeitsagentur CORS diagnostic route (app/main/routes.py,
+  DIAGNOSTIC_CORS_TEST_PATH below) needs connect-src to permit
+  rest.arbeitsagentur.de specifically, or the browser would block its
+  fetch() on our own CSP before ever testing Arbeitsagentur's CORS policy -
+  a false negative that would look identical to a real CORS block. Scoped
+  to that one path only; remove this carve-out along with the route once
+  the diagnostic is no longer needed.
 """
 import secrets
 
-from flask import g
+from flask import g, request
+
+# Kept as a constant (rather than hardcoded inline below) so the route and
+# this CSP carve-out can't drift out of sync if one changes without the other.
+DIAGNOSTIC_CORS_TEST_PATH = "/diagnostics/arbeitsagentur-cors-test"
 
 
 def init_security_headers(app):
@@ -48,13 +59,16 @@ def init_security_headers(app):
     @app.after_request
     def _set_security_headers(response):
         nonce = g.get("csp_nonce", "")
+        connect_src = "'self'"
+        if request.path == DIAGNOSTIC_CORS_TEST_PATH:
+            connect_src += " https://rest.arbeitsagentur.de"
         csp = (
             "default-src 'self'; "
             f"script-src 'self' https://cdn.tailwindcss.com 'nonce-{nonce}'; "
             "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data:; "
-            "connect-src 'self'; "
+            f"connect-src {connect_src}; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self'; "
