@@ -1,4 +1,5 @@
 Flask==3.0.3
+gunicorn==26.0.0
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.0.7
 Flask-Login==0.6.3
@@ -21,8 +22,18 @@ google-auth-oauthlib==1.2.1
 # this bump specifically to confirm nothing there broke.
 google-auth==2.56.3
 google-api-python-client==2.143.0
+# Postgres driver for production (DATABASE_URL=postgresql://...). SQLite
+# needs no driver (stdlib sqlite3), so this is inert in local dev.
+psycopg2-binary==2.9.12
+# S3-compatible object storage provider (app/documents/storage.py). Only
+# instantiated when STORAGE_PROVIDER=s3 - inert otherwise, same pattern as
+# the AI provider SDKs above.
+boto3==1.43.71
 pytest==8.3.3
 # dev-only: scripts/check_mobile_overflow.py (Phase 7 QA remediation) drives
 # a local Chromium/Edge install over the DevTools protocol - not imported
 # by the application itself.
 websocket-client==1.9.0
+# dev-only: mocks AWS S3 for tests/test_s3_storage_provider.py - no real
+# credentials or network calls involved.
+moto==5.2.2

@@ -67,6 +67,19 @@ def test_production_without_secret_key_raises_at_startup(monkeypatch):
         create_app()
 
 
+def test_production_without_database_url_raises_at_startup(monkeypatch):
+    # Deployment readiness pass: DATABASE_URL always has *some* resolved
+    # value (config.py falls back to local SQLite), so this has to check the
+    # raw env var directly rather than app.config - see app/__init__.py.
+    from config import ProductionConfig
+
+    monkeypatch.setattr(ProductionConfig, "SECRET_KEY", "test-only-production-secret")
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(RuntimeError, match="DATABASE_URL is not set"):
+        create_app()
+
+
 def test_production_config_forces_secure_cookies(monkeypatch):
     # config.py's Config.SECRET_KEY (and friends) are read from the environment
     # at *module import time*, not at create_app() call time - by the time this
@@ -77,6 +90,10 @@ def test_production_config_forces_secure_cookies(monkeypatch):
 
     monkeypatch.setattr(ProductionConfig, "SECRET_KEY", "test-only-production-secret")
     monkeypatch.setenv("FLASK_ENV", "production")
+    # Deployment readiness pass: production also now fails loudly without a
+    # real DATABASE_URL (see app/__init__.py) - set one here so this test
+    # keeps exercising the cookie/DEBUG assertions it's actually about.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost/test_db")
     app = create_app()
     assert app.config["SESSION_COOKIE_SECURE"] is True
     assert app.config["REMEMBER_COOKIE_SECURE"] is True

@@ -29,6 +29,14 @@ def landing():
     return render_template("landing.html")
 
 
+@bp.route("/health")
+def health():
+    # Used by the hosting platform to know the process is up - deliberately
+    # no auth, no DB/dependency check, no version info: just "the WSGI
+    # process is alive and answering requests."
+    return "ok", 200
+
+
 @bp.route("/dashboard")
 @login_required
 def dashboard():

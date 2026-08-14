@@ -18,7 +18,7 @@ from app.ai.followup_email import generate_followup_email
 from app.ai.interview_prep import get_interview_prep, generate_interview_prep
 from app.ai.provider import AIProviderError
 from app.ai.reply_ai import classify_reply, generate_reply_suggestion
-from app.documents.storage import LocalStorageProvider
+from app.documents.storage import get_storage_provider
 from app.integrations import gmail_oauth, gmail_drafts
 from app.integrations.gmail_reply_tracking import check_for_replies
 from app.tasks.runner import submit_task
@@ -308,11 +308,7 @@ def approve(application_id):
         flash("Select at least one document to include before approving.", "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
-    storage = LocalStorageProvider(current_app.config["UPLOAD_DIR"])
-    doc_paths = [
-        (storage.full_path(sd.document.storage_path), sd.document.mime_type) for sd in application.selected_documents
-    ]
-
+    storage = get_storage_provider(current_app.config)
     filename = safe_package_filename(
         current_user.profile.full_name if current_user.profile else current_user.email,
         application.job.company_name,
@@ -320,8 +316,12 @@ def approve(application_id):
     )
     output_path = os.path.join(current_app.config["GENERATED_DIR"], str(current_user.id), filename)
     try:
+        doc_paths = [
+            (storage.full_path(sd.document.storage_path), sd.document.mime_type)
+            for sd in application.selected_documents
+        ]
         build_application_pdf(application.cover_letter.content, doc_paths, output_path)
-    except (PdfReadError, OSError) as e:
+    except (PdfReadError, OSError) as e:  # FileNotFoundError is an OSError subclass
         flash(
             "Could not build the package - one of the selected documents appears to be "
             "corrupted or unreadable. Please re-upload it and try again.",

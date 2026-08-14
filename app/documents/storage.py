@@ -1,9 +1,13 @@
 """
-StorageProvider abstraction (spec section 42). LocalStorageProvider is the only
-implementation for now; a future cloud object-storage provider (S3-compatible)
-can implement the same interface without touching callers.
+StorageProvider abstraction (spec section 42). LocalStorageProvider writes to
+local disk (dev/test default); S3StorageProvider (deployment readiness pass)
+persists to any S3-compatible object store (AWS S3, a PaaS host's own object
+storage, MinIO, etc.) instead, so uploaded documents survive a redeploy on
+hosts that wipe local disk. Selected via get_storage_provider() / the
+STORAGE_PROVIDER config var - callers never instantiate a provider directly.
 """
 import os
+import tempfile
 import uuid
 from abc import ABC, abstractmethod
 
@@ -91,3 +95,99 @@ class LocalStorageProvider(StorageProvider):
         if not candidate.startswith(os.path.normpath(self.base_dir)):
             raise ValueError("Invalid storage path.")
         return candidate
+
+
+class S3StorageProvider(StorageProvider):
+    """Same interface and behavior contract as LocalStorageProvider, backed
+    by an S3-compatible bucket instead of local disk. `client` is injectable
+    for tests (moto) - production code always leaves it as None and lets
+    boto3 build a real client from the constructor args / its own default
+    credential chain (env vars, IAM role, etc. - access_key_id/secret_access_key
+    are optional for exactly this reason)."""
+
+    def __init__(
+        self, bucket, prefix="", region_name=None, endpoint_url=None,
+        access_key_id=None, secret_access_key=None, client=None,
+    ):
+        self.bucket = bucket
+        self.prefix = prefix.strip("/")
+        if client is not None:
+            self._client = client
+        else:
+            import boto3
+
+            self._client = boto3.client(
+                "s3",
+                region_name=region_name,
+                endpoint_url=endpoint_url or None,
+                aws_access_key_id=access_key_id or None,
+                aws_secret_access_key=secret_access_key or None,
+            )
+
+    def _key(self, storage_path):
+        # S3 keys always use "/", regardless of the host OS - storage_path
+        # itself is already built with "/" below, this just guards against
+        # a caller passing one through os.path.join on Windows (backslashes).
+        return "/".join([self.prefix, storage_path]).strip("/") if self.prefix else storage_path
+
+    def upload(self, file_storage, subdir):
+        ext, mime_type = _validate_and_sniff(file_storage)
+
+        data = file_storage.stream.read()
+        file_storage.stream.seek(0)
+        if len(data) > MAX_FILE_SIZE:
+            raise UnsupportedFileError("File exceeds the 15 MB size limit.")
+
+        stored_filename = f"{uuid.uuid4().hex}.{ext}"
+        storage_path = f"{subdir}/{stored_filename}"
+
+        self._client.put_object(
+            Bucket=self.bucket, Key=self._key(storage_path), Body=data, ContentType=mime_type,
+        )
+        return stored_filename, storage_path, len(data), mime_type
+
+    def delete(self, storage_path):
+        # delete_object doesn't error on a missing key, matching
+        # LocalStorageProvider.delete's silent-no-op-if-missing behavior.
+        self._client.delete_object(Bucket=self.bucket, Key=self._key(storage_path))
+
+    def full_path(self, storage_path):
+        """Downloads the object to a fresh local temp file and returns its
+        path - callers (pypdf, PIL, Flask's send_file) all need a real
+        filesystem path, not an S3 key. The temp file is left in the OS temp
+        dir rather than cleaned up immediately after use (callers read it
+        exactly once, right after calling this); acceptable for this app's
+        upload volume, and most PaaS hosts recycle the temp dir on
+        redeploy/restart regardless."""
+        from botocore.exceptions import ClientError
+
+        try:
+            response = self._client.get_object(Bucket=self.bucket, Key=self._key(storage_path))
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code in ("NoSuchKey", "404"):
+                raise FileNotFoundError(f"No such object: {storage_path}") from e
+            raise
+
+        suffix = os.path.splitext(storage_path)[1]
+        fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+        with os.fdopen(fd, "wb") as f:
+            f.write(response["Body"].read())
+        return tmp_path
+
+
+def get_storage_provider(config):
+    """Returns the configured StorageProvider. Mirrors
+    app/ai/provider_factory.py's pattern: callers read config, never
+    instantiate a provider class directly, so switching STORAGE_PROVIDER
+    never requires touching a route."""
+    if config.get("STORAGE_PROVIDER") == "s3":
+        return S3StorageProvider(
+            bucket=config["S3_BUCKET"],
+            prefix=config.get("S3_PREFIX") or "",
+            region_name=config.get("S3_REGION"),
+            endpoint_url=config.get("S3_ENDPOINT_URL"),
+            access_key_id=config.get("S3_ACCESS_KEY_ID"),
+            secret_access_key=config.get("S3_SECRET_ACCESS_KEY"),
+        )
+    return LocalStorageProvider(config["UPLOAD_DIR"])

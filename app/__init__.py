@@ -40,6 +40,21 @@ def create_app(config_name=None):
             "environment - there is no insecure fallback for this config."
         )
 
+    # Deployment readiness pass: unlike SECRET_KEY, SQLALCHEMY_DATABASE_URI
+    # always has *some* value - config.py falls back to a local SQLite file
+    # when DATABASE_URL is unset, which is the right dev/test default but a
+    # silent, easy-to-miss footgun in production: the app would start up
+    # fine and appear to work, then lose all data on the next
+    # deploy/restart on any host that wipes local disk (which is most of
+    # them). Checked against the raw env var, not app.config - the config
+    # value itself can never be falsy here, only the real cause can.
+    if config_name == "production" and not os.environ.get("DATABASE_URL"):
+        raise RuntimeError(
+            "DATABASE_URL is not set. Production requires a real Postgres URL - "
+            "without it, the app would silently fall back to a local SQLite "
+            "file that most hosts wipe on every deploy/restart."
+        )
+
     os.makedirs(os.path.join(app.root_path, "..", "instance"), exist_ok=True)
     os.makedirs(app.config["UPLOAD_DIR"], exist_ok=True)
     os.makedirs(app.config["GENERATED_DIR"], exist_ok=True)

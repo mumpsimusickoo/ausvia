@@ -63,6 +63,26 @@ class Config:
 
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI") or "memory://"
 
+    # Storage provider abstraction (see app/documents/storage.py). "local"
+    # writes to UPLOAD_DIR on disk and needs no credentials - the right
+    # default for dev/test, and wrong for most real hosts (local disk is
+    # wiped on every deploy/restart there). Set to "s3" plus S3_BUCKET to
+    # persist uploaded documents to an S3-compatible bucket instead (AWS S3,
+    # a PaaS host's own object storage, MinIO, etc.) - same
+    # config-selected-at-runtime pattern as AI_PROVIDER above.
+    STORAGE_PROVIDER = os.environ.get("STORAGE_PROVIDER") or "local"
+    S3_BUCKET = os.environ.get("S3_BUCKET")
+    # Optional: only needed for a non-AWS S3-compatible endpoint (MinIO, a
+    # PaaS host's own object storage) or a specific AWS region. Access
+    # key/secret are also optional - unset, boto3 falls back to its own
+    # default credential chain (env vars it reads itself, an IAM role, etc.),
+    # which is the preferred setup on any host that supports it.
+    S3_REGION = os.environ.get("S3_REGION")
+    S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL")
+    S3_ACCESS_KEY_ID = os.environ.get("S3_ACCESS_KEY_ID")
+    S3_SECRET_ACCESS_KEY = os.environ.get("S3_SECRET_ACCESS_KEY")
+    S3_PREFIX = os.environ.get("S3_PREFIX")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -99,6 +119,9 @@ class TestingConfig(Config):
     AI_PROVIDER = "mock"
     ANTHROPIC_API_KEY = None
     GEMINI_API_KEY = None
+    # Same class of bug, same fix: force local storage regardless of a
+    # developer's real .env, so the test suite never attempts a real S3 call.
+    STORAGE_PROVIDER = "local"
 
 
 config_by_name = {

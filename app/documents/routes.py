@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models.document import Document, DOCUMENT_TYPES
-from app.documents.storage import LocalStorageProvider, UnsupportedFileError
+from app.documents.storage import UnsupportedFileError, get_storage_provider
 from app.documents.extraction import suggest_doc_type
 from app.utils.logging import log_event
 
@@ -11,7 +11,7 @@ bp = Blueprint("documents", __name__, url_prefix="/documents")
 
 
 def _storage():
-    return LocalStorageProvider(current_app.config["UPLOAD_DIR"])
+    return get_storage_provider(current_app.config)
 
 
 def _owned_document_or_404(doc_id):
@@ -113,7 +113,16 @@ def dismiss_suggested_type(doc_id):
 @login_required
 def download(doc_id):
     doc = _owned_document_or_404(doc_id)
-    abs_path = _storage().full_path(doc.storage_path)
+    try:
+        abs_path = _storage().full_path(doc.storage_path)
+    except FileNotFoundError:
+        # Local storage's full_path() never raises here (it only validates
+        # the path shape, not that the file exists) - send_file below turns
+        # a missing local file into the same 404 on its own. A remote
+        # provider has to actually fetch the object to know it's missing,
+        # so it raises explicitly instead; this keeps the response identical
+        # either way.
+        abort(404)
     return send_file(abs_path, download_name=doc.original_filename, as_attachment=True)
 
 
