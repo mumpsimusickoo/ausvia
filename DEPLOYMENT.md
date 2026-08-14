@@ -93,12 +93,11 @@ and `app/__init__.py` - nothing here is reconstructed from memory.
 |---|---|---|---|
 | `RATELIMIT_STORAGE_URI` | No | `memory://` | **`memory://` is per-process.** With gunicorn's multiple workers, each worker has its own counter, so the effective limit becomes roughly `configured limit × worker count`, not the configured limit. Fine for a single-worker deployment; for multi-worker production where the exact limit matters, point this at a shared backend (e.g. `redis://...` - Flask-Limiter supports it, no code changes needed, just add a Redis add-on and set this var). |
 
-### Gmail draft creation (optional feature - not env-var configured)
+### Gmail draft creation (optional feature)
 
-Not read from an environment variable at all: `app/integrations/gmail_oauth.py`
-reads OAuth client config from a `credentials.json` file at a fixed path
-relative to the repo root. See "Known gaps" below - this needs an
-operational decision before Gmail features will work on most PaaS hosts.
+| Variable | Required? | Default | Notes |
+|---|---|---|---|
+| `GOOGLE_CREDENTIALS_JSON` | No | none (falls back to `credentials.json` on disk) | The **entire contents** of the OAuth client's `credentials.json` file, as a JSON string - not a file path. Get it from Google Cloud Console → APIs & Services → Credentials → your OAuth client → Download JSON, then paste the full file content as this var's value. Either this or a `credentials.json` file at the repo root works; if both are somehow present, the env var wins. This is what makes Gmail draft creation work on hosts where you can only set env vars (Railway, Render, etc.) and can't place an arbitrary file at a fixed repo-relative path. |
 
 ## Health check
 
@@ -138,17 +137,7 @@ once real hosting is set up.
 
 ## Known gaps / things to decide before going live
 
-1. **Gmail `credentials.json` has no env-var path.** It's read from a fixed
-   file path at the repo root, not from an environment variable - the
-   standard "set env vars in the host's dashboard" deployment model can't
-   supply it. Needs one of: (a) a small code change to also accept the
-   credentials JSON via an env var, (b) a build/deploy hook that writes the
-   file from a platform secret, or (c) accepting that Gmail draft creation
-   stays unavailable in production until this is addressed. Not fixed in
-   this pass - it's an existing feature's file-loading mechanism, out of
-   this pass's "infrastructure only" scope, but it will block Gmail
-   features specifically (nothing else) if left as-is.
-2. **Generated PDF application packages stay on local disk even when
+1. **Generated PDF application packages stay on local disk even when
    `STORAGE_PROVIDER=s3`.** Only uploaded documents (CVs, diplomas, IDs) -
    the irreplaceable data - were routed through the storage abstraction.
    Generated packages are 100% deterministically reconstructable from data
@@ -158,7 +147,7 @@ once real hosting is set up.
    losing an original upload. Worth a small follow-up if it matters, not
    done here to avoid a much larger refactor (it would also touch the
    Gmail-draft-attachment code path) for a low-severity, self-healing gap.
-3. **`RATELIMIT_STORAGE_URI` defaults to per-process memory.** See the
+2. **`RATELIMIT_STORAGE_URI` defaults to per-process memory.** See the
    table above - only matters if exact rate limits matter with multiple
    gunicorn workers.
-4. **No live Postgres test.** See "Postgres compatibility" above.
+3. **No live Postgres test.** See "Postgres compatibility" above.

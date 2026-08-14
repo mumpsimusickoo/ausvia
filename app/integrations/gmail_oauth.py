@@ -42,10 +42,16 @@ SCOPES = [
 ]
 
 CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "credentials.json")
+# Deployment readiness (DEPLOYMENT.md "Known gaps"): credentials.json being
+# file-only blocks Gmail on any host where you can only set env vars, not
+# place an arbitrary file at a fixed repo-relative path (Railway, Render,
+# etc.). This holds the *entire contents* of credentials.json as a JSON
+# string, not a path.
+GOOGLE_CREDENTIALS_JSON_ENV = "GOOGLE_CREDENTIALS_JSON"
 
 
 class GmailNotConfiguredError(Exception):
-    """No credentials.json - the app owner hasn't set up a Google Cloud OAuth client yet."""
+    """Neither GOOGLE_CREDENTIALS_JSON nor credentials.json is set - the app owner hasn't set up a Google Cloud OAuth client yet."""
 
 
 class GmailNotConnectedError(Exception):
@@ -53,12 +59,24 @@ class GmailNotConnectedError(Exception):
 
 
 def is_configured():
-    return os.path.exists(CREDENTIALS_FILE)
+    return bool(os.environ.get(GOOGLE_CREDENTIALS_JSON_ENV)) or os.path.exists(CREDENTIALS_FILE)
+
+
+def _raw_client_config():
+    """Returns the full parsed credentials.json structure (the {"web": {...}}
+    or {"installed": {...}} wrapper), from whichever source is configured.
+    The env var wins if both are somehow present - an operator moving to
+    env-var-based config on a real host shouldn't also have to remember to
+    delete a stale local credentials.json for the change to take effect."""
+    raw = os.environ.get(GOOGLE_CREDENTIALS_JSON_ENV)
+    if raw:
+        return json.loads(raw)
+    with open(CREDENTIALS_FILE) as f:
+        return json.load(f)
 
 
 def _client_config():
-    with open(CREDENTIALS_FILE) as f:
-        data = json.load(f)
+    data = _raw_client_config()
     key = "web" if "web" in data else "installed"
     return data[key]
 
@@ -70,7 +88,15 @@ def _callback_url():
 def _build_flow(state=None):
     if not is_configured():
         raise GmailNotConfiguredError(
-            "Gmail isn't configured yet. An admin needs to add credentials.json - see README.md."
+            "Gmail isn't configured yet. An admin needs to set GOOGLE_CREDENTIALS_JSON "
+            "or add credentials.json - see README.md."
+        )
+    if os.environ.get(GOOGLE_CREDENTIALS_JSON_ENV):
+        # from_client_config() takes an already-parsed dict - no need to
+        # write the env var back out to a temp file just to satisfy the
+        # file-based API below.
+        return Flow.from_client_config(
+            _raw_client_config(), scopes=SCOPES, state=state, redirect_uri=_callback_url()
         )
     return Flow.from_client_secrets_file(
         CREDENTIALS_FILE, scopes=SCOPES, state=state, redirect_uri=_callback_url()

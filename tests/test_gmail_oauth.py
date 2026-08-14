@@ -146,6 +146,64 @@ def test_disconnect_removes_connection(app, db, make_user, fake_credentials_file
     assert GmailConnection.query.filter_by(user_id=user.id).count() == 0
 
 
+FAKE_CLIENT_CONFIG = {
+    "web": {
+        "client_id": "env-fake-client-id",
+        "client_secret": "env-fake-client-secret",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    }
+}
+
+
+def test_is_configured_true_with_only_env_var_set(app, monkeypatch):
+    # No credentials.json on disk (test_not_configured_by_default already
+    # confirms that) - GOOGLE_CREDENTIALS_JSON alone must be enough.
+    monkeypatch.setenv(gmail_oauth.GOOGLE_CREDENTIALS_JSON_ENV, json.dumps(FAKE_CLIENT_CONFIG))
+    assert gmail_oauth.is_configured() is True
+
+
+def test_client_config_from_env_var_matches_shape_of_file_based_config(
+    app, fake_credentials_file, monkeypatch
+):
+    # File-based config for comparison (same _client_config() call the app
+    # already relies on for token refresh - app/integrations/gmail_oauth.py's
+    # get_credentials_for_user()).
+    from_file = gmail_oauth._client_config()
+
+    monkeypatch.setenv(gmail_oauth.GOOGLE_CREDENTIALS_JSON_ENV, json.dumps(FAKE_CLIENT_CONFIG))
+    from_env = gmail_oauth._client_config()
+
+    # Same shape: both are the unwrapped inner dict (no "web"/"installed"
+    # wrapper), with the same core fields get_credentials_for_user() reads.
+    for key in ("client_id", "client_secret", "token_uri"):
+        assert key in from_file
+        assert key in from_env
+    assert from_env["client_id"] == "env-fake-client-id"
+    assert from_env["client_secret"] == "env-fake-client-secret"
+
+
+def test_env_var_takes_precedence_when_both_are_present(app, fake_credentials_file, monkeypatch):
+    monkeypatch.setenv(gmail_oauth.GOOGLE_CREDENTIALS_JSON_ENV, json.dumps(FAKE_CLIENT_CONFIG))
+    cfg = gmail_oauth._client_config()
+    assert cfg["client_id"] == "env-fake-client-id"  # not the fake_credentials_file value
+
+
+def test_build_flow_uses_from_client_config_when_env_var_set(app, monkeypatch):
+    # CREDENTIALS_FILE deliberately left pointing at a real-but-nonexistent
+    # path - if _build_flow() fell back to file-based loading it would
+    # raise FileNotFoundError instead of succeeding, proving this exercised
+    # the env-var branch specifically.
+    monkeypatch.setattr(gmail_oauth, "CREDENTIALS_FILE", "/nonexistent/credentials.json")
+    monkeypatch.setenv(gmail_oauth.GOOGLE_CREDENTIALS_JSON_ENV, json.dumps(FAKE_CLIENT_CONFIG))
+
+    # url_for(..., _external=True) inside _build_flow() needs a request
+    # context, unlike the other tests above that only touch _client_config().
+    with app.test_request_context():
+        flow = gmail_oauth._build_flow()
+    assert flow.client_config["client_id"] == "env-fake-client-id"
+
+
 def test_connection_is_per_user_not_shared(app, db, make_user, fake_credentials_file, monkeypatch):
     user_a = make_user(email="g6a@example.com")
     user_b = make_user(email="g6b@example.com")

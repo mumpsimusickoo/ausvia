@@ -24,7 +24,11 @@ def gmail_status():
 @login_required
 def gmail_connect():
     if not gmail_oauth.is_configured():
-        flash("Gmail isn't configured yet - an admin needs to add credentials.json. See README.md.", "error")
+        flash(
+            "Gmail isn't configured yet - an admin needs to set GOOGLE_CREDENTIALS_JSON "
+            "or add credentials.json. See README.md.",
+            "error",
+        )
         return redirect(url_for("integrations.gmail_status"))
 
     try:

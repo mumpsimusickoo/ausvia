@@ -213,7 +213,11 @@ package and send however you like, and reply manually in Gmail.
 2. **APIs & Services → Library** → enable "Gmail API".
 3. **APIs & Services → OAuth consent screen** → External, add yourself as a test user.
 4. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → **Desktop app** → download the JSON.
-5. Rename it to `credentials.json` and put it in the project root.
+5. Locally: rename it to `credentials.json` and put it in the project root.
+   On a host where you can only set environment variables (Railway, Render,
+   etc.): paste the full JSON file content as the `GOOGLE_CREDENTIALS_JSON`
+   env var instead — see `DEPLOYMENT.md`. Either works; `is_configured()`
+   accepts whichever is present, and the env var wins if both are.
 6. Start the app, go to **Gmail** in the nav (`/integrations/gmail`), and
    click **Connect Gmail**. This is a real per-user OAuth flow — each user
    who wants Gmail features connects their own account; nothing is shared

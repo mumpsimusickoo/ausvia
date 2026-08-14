@@ -10,7 +10,8 @@
 <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
   {% if not configured %}
   <p class="text-sm text-amber-700">
-    Gmail isn't configured on this instance yet - an admin needs to add <code>credentials.json</code>. See README.md.
+    Gmail isn't configured on this instance yet - an admin needs to set <code>GOOGLE_CREDENTIALS_JSON</code>
+    or add <code>credentials.json</code>. See README.md.
   </p>
   {% elif connection %}
   <div class="flex items-center justify-between">
