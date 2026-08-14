@@ -66,9 +66,15 @@ def test_successful_completion_returns_real_response_fields(monkeypatch):
     assert result.input_tokens == 10
     assert result.output_tokens == 20
     # system prompt and token limit actually reached the SDK call
-    assert fake_client.models.last_call_kwargs["config"].system_instruction == "system prompt"
-    assert fake_client.models.last_call_kwargs["config"].max_output_tokens == 500
+    config = fake_client.models.last_call_kwargs["config"]
+    assert config.system_instruction == "system prompt"
+    assert config.max_output_tokens == 500
     assert fake_client.models.last_call_kwargs["contents"] == "user prompt"
+    # Regression check for the real bug this was live-tested against and
+    # fixed for (see the module docstring): without this, Gemini 3 models'
+    # default thinking silently ate almost the whole token budget and
+    # truncated every real response mid-sentence.
+    assert str(config.thinking_config.thinking_level.value).lower() == "minimal"
 
 
 def test_auth_error_maps_to_clear_message():

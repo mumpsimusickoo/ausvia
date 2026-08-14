@@ -87,6 +87,18 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
     RATELIMIT_ENABLED = False
+    # Found live, not theoretically: the moment a real .env with a real
+    # AI_PROVIDER + API key existed on this machine, 14 "mock mode is
+    # honest" tests across every AI feature started actually calling the
+    # real provider instead - this class never forced mock before, so
+    # AI_PROVIDER/ANTHROPIC_API_KEY/GEMINI_API_KEY were inherited straight
+    # from Config, i.e. from whatever a developer happens to have in their
+    # local .env. Tests must never depend on, or spend, real API credits
+    # regardless of local configuration - forced explicitly here rather
+    # than relying on every test to remember to monkeypatch it away.
+    AI_PROVIDER = "mock"
+    ANTHROPIC_API_KEY = None
+    GEMINI_API_KEY = None
 
 
 config_by_name = {

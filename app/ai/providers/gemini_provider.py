@@ -3,6 +3,20 @@ AI_PROVIDER=gemini and an API key is configured - see
 app/ai/provider_factory.py. Uses the current google-genai SDK
 (`pip install google-genai`) - the older `google-generativeai` package is
 deprecated and intentionally not used here.
+
+thinking_level="minimal" - live-verified against the real API, not assumed
+from docs alone: Gemini 3 models (DEFAULT_MODEL below) think by default,
+and with a caller-supplied max_tokens sized for a short factual answer
+(these are grounded narrative/generation tasks, same reasoning as
+AnthropicProvider's low-effort setting - no benefit to open-ended
+reasoning here), the invisible thinking tokens were eating almost the
+entire budget and truncating the actual answer mid-sentence
+(finish_reason MAX_TOKENS with thoughts_token_count near the limit and a
+few leftover visible tokens). Confirmed live: thinking_budget=0 (the
+Gemini 2.5-series parameter) is rejected outright by this model family
+with a 400 INVALID_ARGUMENT - thinking_level is the Gemini-3-series
+mechanism instead. If GEMINI_MODEL is ever pointed at an older 2.5-series
+model, this parameter will need to change back to thinking_budget=0.
 """
 from google import genai
 from google.genai import errors, types
@@ -27,6 +41,7 @@ class GeminiProvider(AIProvider):
                 config=types.GenerateContentConfig(
                     system_instruction=system_prompt,
                     max_output_tokens=max_tokens,
+                    thinking_config=types.ThinkingConfig(thinking_level="minimal"),
                 ),
             )
         except errors.ClientError as e:

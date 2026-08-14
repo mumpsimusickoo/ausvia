@@ -117,6 +117,28 @@ def test_blank_database_url_in_dotenv_falls_back_to_sqlite_default(isolated_dote
     assert "instance" in output and "app.db" in output
 
 
+def test_testing_config_forces_mock_provider_even_with_a_real_env_configured(isolated_dotenv):
+    """Found live, not theoretically: TestingConfig never explicitly forced
+    AI_PROVIDER to "mock" - it inherited straight from Config, i.e. from
+    whatever a developer's real .env happens to have. The moment a real
+    .env with AI_PROVIDER=gemini and a real key existed on this machine, 14
+    "mock mode is honest" tests across every AI feature started actually
+    calling the live provider instead. Tests must never depend on, or
+    spend, real API credits regardless of local configuration."""
+    isolated_dotenv(
+        "AI_PROVIDER=gemini\n"
+        "GEMINI_API_KEY=fake-but-present-looking-real-key\n"
+        "ANTHROPIC_API_KEY=fake-but-present-looking-real-key\n"
+    )
+    output = _run_subprocess(
+        {"AI_PROVIDER": "gemini", "GEMINI_API_KEY": "fake-but-present-looking-real-key",
+         "ANTHROPIC_API_KEY": "fake-but-present-looking-real-key"},
+        "import config; c = config.TestingConfig; "
+        "print(c.AI_PROVIDER, c.ANTHROPIC_API_KEY, c.GEMINI_API_KEY)",
+    )
+    assert output == "mock None None"
+
+
 def test_blank_ai_provider_and_model_vars_fall_back_to_their_real_defaults(isolated_dotenv):
     """Same class of bug, for the other config vars with a real non-empty
     default (AI_PROVIDER, AI_MODEL, GEMINI_MODEL, RATELIMIT_STORAGE_URI) -
