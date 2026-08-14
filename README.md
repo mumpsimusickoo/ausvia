@@ -29,28 +29,45 @@ itself is superseded by
 built against the actual `CandidateProfile`/`Job` models) and kept only as a
 standalone reference.
 
-## Job discovery (Phase 2)
+## Job discovery (Phase 2, expanded in the job-source integration pass)
 
 - **`JobSourceAdapter`** interface (`app/jobs/adapters/base.py`): `search()`,
-  `get_job()`, `normalize()`, `check_availability()`. The Bundesagentur für
-  Arbeit Jobsuche API is the first implementation; sources can be enabled or
-  disabled independently by an admin at `/admin/job-sources` with no code
-  changes, and one source failing never blocks the others (see `app/jobs/ingest.py`).
+  `get_job()`, `normalize()`, `check_availability()`. Three real providers
+  implement it - Bundesagentur für Arbeit (Jobsuche), Adzuna, and Jooble -
+  normalizing into the same `NormalizedJob`/`Job` shape regardless of source.
+  Sources can be enabled or disabled independently by an admin at
+  `/admin/job-sources` with no code changes, and one source failing never
+  blocks the others (see `app/jobs/ingest.py`). Adzuna/Jooble are only added
+  to the search rotation once their credentials are configured (see
+  `.env.example`) - absent otherwise, not an error.
 - **Manual import** (`/jobs/import`): paste a URL, get a best-effort readable-text
   extraction to review and correct — or paste job text directly if a site blocks
   automated access. Nothing here bypasses logins, paywalls, CAPTCHAs, or bot
   protection; a blocked/unreachable site just falls back to manual entry.
 - **Duplicate detection** (`app/jobs/dedupe.py`): the same posting from multiple
-  sources is grouped under one canonical `Job` (normalized company/title/
-  location/start-date match) rather than shown as duplicates or silently dropped.
-- **Known limitation:** the public Jobsuche API returned `403` from this
-  project's dev sandbox network (likely bot-protection on datacenter IPs, not
-  a broken key) — the adapter's field-name mapping is based on the shape used
-  by the previously-working prototype but is unverified against a live
-  response from this environment. If search results come back empty on a
-  normal network, check the raw response shape and adjust
-  `app/jobs/adapters/arbeitsagentur.py`. Manual import doesn't depend on this
-  and was verified working end-to-end.
+  sources is grouped under one canonical `Job` - matched either by an identical
+  canonical/original URL across sources, or by normalized company/title/
+  location/start-date - rather than shown as duplicates or silently dropped.
+- **Per-query caching** (`app/jobs/ingest.py`, `ProviderQueryCache`): a repeated
+  identical search doesn't re-hit a metered provider (Adzuna/Jooble) within a
+  15-minute window, since the search route calls providers synchronously on
+  every request - protects daily/monthly API quotas without needing a
+  scheduler or background rewrite.
+- **Known limitations - see `JOB_SOURCES.md` for full detail:**
+  - Bundesagentur's search endpoint (bumped v4→v6 this pass) returned real
+    data from this project's dev network at time of writing, after two
+    separate real bugs were found and fixed (a stale response-field mapping,
+    and a missing base64-encoding step for job detail lookups) - but the
+    same endpoint was confirmed *blocked* (403) from multiple networks in
+    earlier sessions, so this is not treated as durably fixed everywhere;
+    re-verify from your own production environment before relying on it.
+  - Adzuna's free API access is a **14-day trial only** per its Terms of
+    Service, not indefinite free use - see `JOB_SOURCES.md` before relying
+    on it in production past the trial window.
+  - Neither Adzuna nor Jooble guarantee apprenticeship-specific results for
+    German "Ausbildung"-style keyword searches the way Arbeitsagentur's
+    `angebotsart=4` filter does - see `JOB_SOURCES.md` for the live-tested
+    finding on real result quality.
 
 ## AI matching (Phase 3)
 

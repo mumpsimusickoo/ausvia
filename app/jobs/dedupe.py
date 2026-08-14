@@ -82,7 +82,26 @@ def find_or_create_canonical_job(normalized_job):
         normalized_job.company_name, normalized_job.title, normalized_job.location, normalized_job.start_date
     )
 
-    existing = Job.query.filter_by(dedup_key=dedup_key).first()
+    # Job-source integration pass: a second, independent dedup signal,
+    # checked first and purely additive - it only ever *widens* matching,
+    # never narrows it, so it can't regress the existing company+title+
+    # location behavior below. The same real vacancy can appear on multiple
+    # providers with slightly different company/title text (translation,
+    # punctuation, "(m/w/d)" placement) that still fails the exact-match
+    # heuristic, but an identical canonical/original URL across two
+    # listings is an unambiguous signal they're the same posting - a
+    # coincidental URL collision between two genuinely different real jobs
+    # is not a realistic concern.
+    existing = None
+    url = normalized_job.application_url or normalized_job.source_url
+    if url:
+        existing = (
+            Job.query.join(Job.listings).filter(JobListing.source_url == url).first()
+            or Job.query.filter(Job.application_url == url).first()
+        )
+
+    if existing is None:
+        existing = Job.query.filter_by(dedup_key=dedup_key).first()
 
     if existing:
         job = existing

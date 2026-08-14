@@ -8,48 +8,212 @@ common `NormalizedJob` dataclass every source maps into. The rest of the
 app (search, matching, application generation) only ever deals with
 `NormalizedJob`/`Job` - never a source's raw shape.
 
-Sources are registered in `app/jobs/adapters/manager.py` and can be
+Sources are registered in `app/jobs/adapters/manager.py`. Arbeitsagentur
+needs no configuration and is always present; Adzuna and Jooble are built
+lazily per-request from `current_app.config` and are only included in the
+adapter set once their credentials are actually set - an unconfigured
+provider is silently absent, not an error. All sources can be
 enabled/disabled independently by an admin at `/admin/job-sources` with no
 code changes. Ingestion (`app/jobs/ingest.py`) isolates failures per source
-- one source erroring never blocks the others or crashes a search.
+- one source erroring never blocks the others or crashes a search - and
+caches per (source, keyword, location) for 15 minutes so a repeated search
+doesn't re-hit a metered API on every page load.
 
 ## Current sources
 
 ### Bundesagentur für Arbeit (Jobsuche API) — `ArbeitsagenturAdapter`
 
-**Correction (confirmed via current community documentation of this exact
-endpoint, `bundesAPI/jobsuche-api`): this is not an official API.**
-Bundesagentur für Arbeit has never published a developer API for this data
-("...bietet die Bundesagentur für Arbeit dafür bis heute keine offizielle
-API an" - no official API exists to this day). What `jobsearch.py` calls
-is the internal endpoint the arbeitsagentur.de website's own frontend uses
-- the `X-API-Key: jobboerse-jobsuche` value isn't a registered per-
-developer credential to apply for, it's the same static key that frontend
-uses, reverse-engineered and documented by the community. There is no more
-official alternative to register for; this is the one access method that
-exists, and the adapter already implements it exactly as documented.
+**Still not an official API**, confirmed via `bundesAPI/jobsuche-api` (the
+current community documentation of this exact endpoint): Bundesagentur für
+Arbeit has never published a developer API for this data. What
+`jobsearch.py` calls is the internal endpoint the arbeitsagentur.de
+website's own frontend uses - `X-API-Key: jobboerse-jobsuche` is that
+frontend's own static key, reverse-engineered and documented by the
+community, not a per-developer credential to register for.
 
-**Known limitation, re-diagnosed:** confirmed HTTP 403 from this API,
-live-tested from two structurally different networks (this project's
-original development sandbox, and separately a residential/business ISP
-connection in Morocco) with identical results down to the response body -
-a genuine browser-header-spoofed request and a deliberately wrong API key
-both produce the exact same blank 403, which rules out the key being
-checked/rejected and rules out a simple "flag datacenter IPs" heuristic
-(a real residential IP got the same wall). The main arbeitsagentur.de site
-and even the actual jobsuche frontend page load completely normally from
-the same networks, so this isn't a general connectivity block either. The
-most consistent explanation is deliberate anti-automation hardening
-specific to this internal, never-intended-for-third-parties endpoint, not
-an IP-reputation issue a different host/network would sidestep. Per the
-"never bypass anti-bot systems" rule, no further evasion was attempted -
-manual import (see below) is the actual working path for this source,
-same as any other source that can't be reached programmatically. The
-adapter's field-name mapping remains a best-effort port of the previously-
-working prototype's field names, defensively coded (`.get()` fallbacks,
-full raw payload preserved in `JobListing.raw_snapshot` for reprocessing)
-but still **unverified against a live response**, since none has ever
-been obtained.
+**Major update this session, live-verified, not assumed.** Earlier
+sessions confirmed the v4 search endpoint (`/pc/v4/jobs`) returned a blank
+HTTP 403 from every network tried, including a real residential ISP
+connection, and concluded this was a durable, version-independent
+anti-automation block. While bumping the search endpoint to the
+currently-documented v6 (`/pc/v6/jobs`) for version currency, that
+assumption was re-tested live rather than just repeated - and **v6
+returned real HTTP 200 responses with genuine job data**, from the same
+network, with the same `X-API-Key` value, in the same test run where v4
+*still* 403'd three times in a row. A request to v6 with no key, or a
+deliberately wrong key, still 403'd - confirming the key is being
+validated normally on v6, not just ignored. Full job detail via
+`/pc/v4/jobdetails/{base64(referenznummer)}` also succeeded once the
+reference number was correctly base64-encoded, which `get_job_detail()`
+never did before - a second, separate real bug, independent of the v4/v6
+question, that silently 404'd every detail lookup even on a network where
+search worked.
+
+**What this does and doesn't prove.** This is one network, at one point in
+time, showing v6 open where v4 was (and, on this same network, still is)
+blocked. It does not prove the block is lifted everywhere or permanently -
+the original finding came from multiple networks including a residential
+ISP connection, and this new v6 result has only been observed from this
+project's dev sandbox so far. **Re-verify from the actual production
+environment before treating this as reliable** - if it holds up there too,
+this is a materially better outcome than previously documented; if it
+doesn't, the "deliberate anti-automation enforcement, not version-
+dependent" conclusion from earlier sessions may need to be narrowed to "not
+IP-dependent, but *is* version/endpoint-dependent" instead. Either way,
+manual import remains the guaranteed-working fallback for this source and
+should stay treated as the primary path until production behavior is
+confirmed.
+
+**v6's response schema is materially different from v4's**, not just the
+URL - a version bump alone (keeping the old field-name mapping) would have
+kept returning empty/garbage `NormalizedJob`s even though the HTTP call
+itself succeeded. `app/jobs/adapters/arbeitsagentur.py`'s `normalize()` was
+rewritten against a real captured v6 search response and a real captured
+v4/jobdetails response this session (old names → new, confirmed live):
+
+| Old (v4, assumed) | New (v6/jobdetails, observed) |
+|---|---|
+| `refnr` | `referenznummer` |
+| `titel` / `beruf` | `stellenangebotsTitel` / `hauptberuf` |
+| `arbeitgeber` | `firma` |
+| `arbeitsort.ort` (object) | `stellenlokationen[0].adresse.ort` (array) |
+| `externeUrl` | `externeURL` |
+| n/a | `stellenangebotsBeschreibung` (description - jobdetails only, not present in search results) |
+
+Enum "no information given" values (`KEINE_ANGABEN`, `KEINE_ANGABE`,
+`NICHT_RELEVANT`) are treated as `None`, not shown to a user as if they
+were real values. No contact-person/email field was observed in any of 6
+real sampled job details this session - `contact_person`/`contact_email`
+stay `None` for real listings rather than being fabricated, though the
+lookup logic is kept defensively in case a posting ever does carry one.
+
+**Known remaining gap:** the ingestion pipeline (`app/jobs/ingest.py`)
+normalizes directly from search results and never calls `get_job()` to
+merge in jobdetails - meaning `description` will be `None` for
+Arbeitsagentur listings ingested via a normal search, since that field
+only exists in the jobdetails response. This is a pre-existing gap (the
+merge mechanism in `normalize()` already exists for exactly this, it was
+just never wired up in the ingestion call site) that only became
+observable now that search itself returns real data - worth a small
+follow-up, not done in this pass to avoid adding an extra API call per
+search result to the generic ingestion pipeline without first confirming
+Arbeitsagentur's own rate limits (undocumented) can absorb that.
+
+### Adzuna — `AdzunaAdapter`
+
+Official API (`developer.adzuna.com`), instant self-serve `app_id`/
+`app_key` signup. Implemented against the documented `GET
+/v1/api/jobs/{country}/search/{page}` endpoint - `what`/`where`/
+`results_per_page` map to keyword/location/pagination, Germany via
+`ADZUNA_COUNTRY=de`.
+
+**Real trial-period restriction - read directly from Adzuna's Terms of
+Service, not assumed.** Free API access is a **14-day trial period**
+only, "strictly for the purpose of validating the general coverage and
+quality of the data... in addition to usability testing." Trial data "may
+not be used in its original format or in aggregation... to deliver any
+ongoing work or research" without written consent, and continued use past
+the trial requires "a licence agreement" directly with Adzuna. **This
+adapter being built and working is not the same thing as being cleared for
+ongoing production use** - that's a real business decision, not a code
+merge. No trial has been started as part of this implementation pass (no
+Adzuna account was created - see "What wasn't done" below); **the 14-day
+window starts whenever real `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` credentials
+are actually obtained and first used**, not from this document's date.
+Track that start date here once it happens.
+
+**Attribution requirement** (ToS, read directly): displaying Adzuna
+listings must show a "Jobs by Adzuna" credit, at least 116×23px, with
+"Jobs" hyperlinked to Adzuna and "Adzuna" as the Adzuna logo (also
+hyperlinked). Rendered in
+`app/templates/jobs/_source_attribution.html`, shown on the search results
+list and job detail page wherever a listing's sources include `adzuna`.
+No branded logo asset was available to embed (would need pulling from
+Adzuna's publisher dashboard) - the current implementation satisfies the
+substantive requirement (visible credit, correct links, minimum size)
+with styled text instead of the real logo; swap in the actual asset once
+real API access exists, for exact compliance.
+
+**Rate limits as currently documented** (re-confirm directly before
+relying on this - limits change): 25 hits/minute, 250/day, 1,000/week,
+2,500/month. `AdzunaAdapter.search()` makes at most one HTTP call per
+`search()` invocation under the default `results_size` (one Adzuna page);
+`app/jobs/ingest.py`'s per-query cache additionally prevents re-hitting
+Adzuna for a repeated identical search within 15 minutes.
+
+**Employment type is not defaulted to "Ausbildung"** the way
+Arbeitsagentur's is - Adzuna's `contract_type` field is generic
+(full_time/part_time/permanent), not an apprenticeship confirmation, and
+Adzuna keyword search doesn't guarantee apprenticeship-only results.
+Forcing that label would fabricate a fact Adzuna doesn't actually confirm.
+
+**Result-quality question - not answered by this pass.** The task this
+adapter was built under explicitly asked whether Adzuna's real result set
+for German Ausbildung-style keywords returns meaningful apprenticeship
+volume, or mostly general/unrelated listings. **This could not be tested
+live** - no real Adzuna credentials exist in this environment (creating a
+trial account wasn't done as part of this pass; see "What wasn't done"
+below). `tests/test_live_providers.py::test_adzuna_live_search_ausbildung_result_quality`
+is built and ready to answer this precisely (prints each result's title
+with an apprenticeship-keyword heuristic flag) - run it once real
+credentials exist:
+
+```
+RUN_LIVE_PROVIDER_TESTS=1 ADZUNA_APP_ID=... ADZUNA_APP_KEY=... \
+  pytest tests/test_live_providers.py::test_adzuna_live_search_ausbildung_result_quality -v -s
+```
+
+### Jooble — `JoobleAdapter`
+
+Official API (`jooble.org/api/about`). Implemented against the documented
+`POST /api/{api_key}` endpoint with `keywords`/`location`/`radius`/`page`/
+`ResultOnPage`/`salary`/`companysearch` request fields and the documented
+`jobs[]` response shape (`title`/`location`/`snippet`/`salary`/`type`/
+`link`/`company`/`id`).
+
+**Key is manually issued, not instant self-serve** - obtained by
+submitting a form (name, role, email, website, phone) at
+`jooble.org/api/about`; the page doesn't state an approval timeline, so
+budget real lead time before this adapter can be enabled. No key was
+requested as part of this pass (would need a real named human contact -
+not something to submit on your behalf; see "What wasn't done" below).
+
+**Terms-of-service ambiguity worth flagging.** `jooble.org/info/terms` (the
+public site ToS, read directly) prohibits bots/crawlers/automated access
+against the *website* and restricts republishing site content - it does
+not separately publish API-specific usage terms (attribution, retention,
+rate limits). The terms actually governing API use are most likely
+presented during the manual key-request process, which this pass couldn't
+complete. **Read whatever agreement is presented when the key is issued
+before relying on this in production** - don't assume the general
+site-scraping prohibitions are the whole story, but don't assume silence
+means unrestricted use either.
+
+Same reasoning as Adzuna on `employment_type`: not defaulted to
+"Ausbildung" (Jooble's `type` field is generic, and keyword search doesn't
+guarantee apprenticeship-only results).
+
+**Result-quality question - also not answered by this pass**, same reason
+(no real key). `tests/test_live_providers.py::test_jooble_live_search_ausbildung_result_quality`
+is built and ready:
+
+```
+RUN_LIVE_PROVIDER_TESTS=1 JOOBLE_API_KEY=... \
+  pytest tests/test_live_providers.py::test_jooble_live_search_ausbildung_result_quality -v -s
+```
+
+### What wasn't done, and why
+
+No Adzuna trial account and no Jooble API key request were created as part
+of this implementation pass. Both require a real named human (Adzuna's
+trial terms bind whoever signs up to the 14-day restriction; Jooble's form
+asks for a real name/role/contact) - creating either on your behalf
+without your knowledge would start a real, consequential clock (Adzuna) or
+submit your identity to a third party (Jooble) without your say. Both
+adapters are fully built, fully unit-tested against realistic mocked
+responses, and ready to use the moment real credentials are set in
+`.env`/your host's environment variables - see `DEPLOYMENT.md`'s env var
+table.
 
 ### Manual import — universal fallback, not a "source" in the adapter sense
 
@@ -58,7 +222,8 @@ readable-text extraction, with graceful fallback to manual text paste on
 any failure (blocked, unreachable, non-HTML, oversized). Verified working
 end-to-end against real pages. This exists specifically so the product
 never depends on any single external source being available - explicitly
-required by the spec.
+required by the spec, and still the most reliable path regardless of how
+the Arbeitsagentur v6 finding above holds up in production.
 
 Two convenience layers on top, both still one-URL-at-a-time-reviewed, still
 never bypassing a block:
@@ -72,30 +237,58 @@ never bypassing a block:
   `/jobs/import/bookmarklet`): reads `document.title`/`location.href`/
   `document.body.innerText` directly out of the DOM of whatever page the
   user is already looking at - no request of AUSVIA's own, so nothing for
-  a site to block in the first place. Hands the captured data to AUSVIA
-  only via a same-origin-safe URL fragment (never sent to any server),
-  landing on the same CSRF-protected review form as every other import
-  path; nothing saves until the user reviews and submits it.
+  a site to block in the first place.
 
 ## Before adding a new source
 
 Per the product directive: verify an official API exists and read its
-current documentation before integrating anything. Check auth requirements,
-rate limits, licensing/commercial-use restrictions, and whether automated
-collection is actually permitted. Use the official API where one exists.
-Never bypass CAPTCHAs, authentication, anti-bot protection, or paywalls -
-if there's no legitimate way to get a source's data, it doesn't get
-integrated; users fall back to manual import for that source.
+current documentation *and terms of service* before integrating anything.
+Check auth requirements, rate limits, licensing/commercial-use
+restrictions, and whether automated collection is actually permitted. Use
+the official API where one exists. Never bypass CAPTCHAs, authentication,
+anti-bot protection, or paywalls - if there's no legitimate way to get a
+source's data, it doesn't get integrated; users fall back to manual import
+for that source.
 
 ## Duplicate detection
 
-`app/jobs/dedupe.py` — v1 heuristic: normalized company name (legal-suffix-
-stripped, e.g. "Siemens GmbH" → "siemens"), normalized title (strips
-"(m/w/d)"-style noise), location, and start date must all match exactly for
-two listings to be grouped under one canonical `Job`. Deliberately not
-fuzzy/embedding-based yet (see `DECISIONS.md`) - sufficient for one real
-source today, upgradeable without touching callers when a second source
-makes near-duplicate-but-not-identical postings a real problem.
+`app/jobs/dedupe.py` — two signals, checked in order:
+
+1. **Canonical/original URL match** (added this session): if a new
+   listing's `application_url`/`source_url` exactly matches an existing
+   `Job`'s, it's treated as the same posting regardless of source - added
+   specifically for cross-provider matching (the same real vacancy often
+   has different company/title text across boards - translation,
+   punctuation, "(m/w/d)" placement - that fails signal #2 below). Purely
+   additive: it only widens matching, never narrows it, so it can't regress
+   single-provider behavior.
+2. **Normalized company + title + location + start date** (original v1
+   heuristic, unchanged): legal-suffix-stripped company name, "(m/w/d)"-
+   stripped title, location, and start date must all match exactly.
+
+Deliberately not fuzzy/embedding-based. **Known limitation, not fixed this
+pass:** Adzuna/Jooble listings normalize to an empty `start_date` (neither
+API has an Ausbildung-specific "start date" concept), so a real vacancy
+that appears on Arbeitsagentur (with a start date) *and* Adzuna/Jooble
+(without one) will under-merge via signal #2 unless signal #1's URL match
+happens to catch it. Loosening signal #2 to ignore start_date entirely was
+considered and deliberately not done - it would risk incorrectly merging
+two genuinely different real postings (e.g. the same role re-posted for a
+different intake year) into one canonical Job with a wrong/stale start
+date, which is a worse failure mode (silently wrong data) than the current
+one (occasional extra listing, no data loss).
+
+## Query-quota caching
+
+`app/jobs/ingest.py`'s `ProviderQueryCache` (new this session): a
+(source, normalized keyword+location) combination is skipped for 15
+minutes after being queried once - the search route
+(`app/jobs/routes.py`) still calls every enabled provider synchronously on
+every request (existing behavior, unchanged), so without this, a popular
+keyword searched repeatedly by different users would burn through Adzuna's
+250/day limit in minutes. A cache hit just means the search shows whatever
+was already ingested last time (real `Job` rows already in the database),
+not a guaranteed-fresh live call every time.
 
 ## Normalized job schema
 
@@ -103,4 +296,11 @@ See `app/jobs/adapters/base.py`'s `NormalizedJob` dataclass and
 `app/models/job.py`'s `Job` model for the full field list (title, company,
 location, federal_state, postal_code, start_date, application_deadline,
 salary, requirements, language_requirements, skills, education_requirements,
-contact info, application_url, source metadata).
+contact info, application_url, source metadata). `Job.discovered_at`/
+`last_checked_at` (and the equivalent per-listing fields on `JobListing`)
+already serve as first-seen/last-seen tracking - no schema change was
+needed for that. `Job.status` (`active`/`expired`/`closed`/`unknown`)
+exists but nothing currently drives automatic transitions into
+`expired`/`closed` - that would need a scheduled sweep, and AUSVIA has no
+scheduler yet (see `ROADMAP.md`); not built as part of this pass to avoid
+introducing new infrastructure for a single provider integration task.

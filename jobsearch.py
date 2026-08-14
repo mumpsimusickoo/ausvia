@@ -11,15 +11,41 @@ community, not a per-developer credential to register for. There's no
 more-official alternative; this is the one access method that exists, and
 it's implemented here exactly as currently documented.
 
-Confirmed blocked (HTTP 403) from every network this project has tried,
-including a real residential ISP connection, with identical responses
-regardless of API key validity or browser-header spoofing - see
-JOB_SOURCES.md for the full diagnosis. Manual import
-(app/jobs/manual_import.py) is the working path for this source.
+MAJOR UPDATE (job-source integration pass), live-verified, not assumed:
+earlier sessions confirmed v4 (/pc/v4/jobs) returns a blank HTTP 403 from
+every network tried, and treated that as a settled, version-independent
+anti-automation block. Re-tested this session while bumping to the
+currently-documented v6 search endpoint for version currency - and v6
+(/pc/v6/jobs) returned real HTTP 200 responses with genuine job data, from
+the same network, same X-API-Key value, in the same test run where v4
+*still* 403'd 3/3 times back-to-back. A request to v6 with no key or a
+deliberately wrong key still 403'd, confirming the key is being validated
+normally on v6, not just ignored. Full job detail via
+/pc/v4/jobdetails/{base64(refnr)} also succeeded once the reference number
+was correctly base64-encoded (get_job_detail() below never did this
+before - a separate, real bug, independent of the v4/v6 question, that
+silently 404'd every detail lookup even on a network where search worked).
+
+This does not prove the endpoint is reliably open everywhere or forever -
+only that from this specific network, at this specific time, v6 (unlike
+v4) was not blocked. The original 403 finding came from multiple networks
+including a residential ISP connection; this new v6 result has only been
+seen from one network so far and needs re-verification from the actual
+production environment before being treated as durably fixed. See
+JOB_SOURCES.md for the full, current state of this finding.
+
+v6's response schema is meaningfully different from v4's, not just the
+URL - field names below (ergebnisliste, stellenangebotsTitel, firma,
+referenznummer, stellenlokationen, externeURL, etc.) come from real
+observed v6/v4-jobdetails responses this session, not the old v4 field
+names (stellenangebote, titel, arbeitgeber, arbeitsort, externeUrl) a
+naive URL-only bump would have kept silently using.
 """
+import base64
+
 import requests
 
-BASE_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobs"
+BASE_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v6/jobs"
 API_KEY = "jobboerse-jobsuche"  # public key used by the official web frontend
 
 HEADERS = {"X-API-Key": API_KEY}
@@ -53,36 +79,39 @@ def search_ausbildung(keywords, location=None, radius=200, results_size=50):
         resp.raise_for_status()
         data = resp.json()
 
-        stellen = data.get("stellenangebote", [])
-        if not stellen:
+        # v6's result array is "ergebnisliste" - v4 used "stellenangebote".
+        # Confirmed via a real live v6 response this session, not assumed.
+        postings = data.get("ergebnisliste", [])
+        if not postings:
             break
 
-        all_results.extend(stellen)
+        all_results.extend(postings)
         page += 1
 
-        # stop if we've fetched all pages the API reports
+        # stop once we've fetched all results the API reports exist.
+        # (Pre-existing bug fixed this session: the old check here compared
+        # page * page_size - the *next* page's cumulative slice - against
+        # max_results, which stops one full page too early whenever
+        # max_results isn't an exact multiple of page_size, e.g. 30 total
+        # at page_size=25 stopped after page 1's 25 and never fetched the
+        # remaining 5. Never noticed before since this endpoint was always
+        # 403ing before v6.)
         max_results = data.get("maxErgebnisse", 0)
-        if page * page_size > max_results:
+        if len(all_results) >= max_results:
             break
 
     return all_results[:results_size]
 
 
 def get_job_detail(refnr):
-    """Fetch full detail (incl. description, contact info) for one posting by reference number."""
-    url = f"https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/{refnr}"
+    """Fetch full detail (incl. description) for one posting by reference
+    number. The API requires the reference number base64-encoded in the
+    URL path (per jobsuche.api.bund.dev's documented workflow) - passing it
+    raw silently 404s ("STELLENANGEBOT_NICHT_GEFUNDEN") rather than
+    erroring loudly, which is why this went unnoticed until live-verified
+    this session."""
+    encoded_refnr = base64.b64encode(refnr.encode()).decode()
+    url = f"https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/jobdetails/{encoded_refnr}"
     resp = requests.get(url, headers=HEADERS, timeout=20)
     resp.raise_for_status()
     return resp.json()
-
-
-def simplify_posting(raw):
-    """Extract the fields we actually need from a raw search-result posting."""
-    return {
-        "refnr": raw.get("refnr"),
-        "title": raw.get("titel"),
-        "company": raw.get("arbeitgeber"),
-        "location": (raw.get("arbeitsort") or {}).get("ort"),
-        "publish_date": raw.get("aktuelleVeroeffentlichungsdatum"),
-        "external_url": raw.get("externeUrl"),  # present if it's hosted on employer's own site
-    }

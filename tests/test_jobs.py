@@ -4,12 +4,15 @@ from app.models.job import Job, SavedJob, JobSourceSetting
 from tests.conftest import login
 
 SAMPLE_RAW_JOB = {
-    "refnr": "AA-TEST-1",
-    "titel": "Elektroniker für Automatisierungstechnik (m/w/d)",
-    "arbeitgeber": "TestFirma GmbH",
-    "arbeitsort": {"ort": "Stuttgart"},
-    "aktuelleVeroeffentlichungsdatum": "2026-01-01",
-    "externeUrl": "https://example.com/job/1",
+    # Real v6 field names (job-source integration pass) - v4's shape
+    # (refnr/titel/arbeitgeber/arbeitsort/externeUrl) no longer matches
+    # what ArbeitsagenturAdapter.normalize() reads.
+    "referenznummer": "AA-TEST-1",
+    "stellenangebotsTitel": "Elektroniker für Automatisierungstechnik (m/w/d)",
+    "firma": "TestFirma GmbH",
+    "stellenlokationen": [{"adresse": {"ort": "Stuttgart"}}],
+    "datumErsteVeroeffentlichung": "2026-01-01",
+    "externeURL": "https://example.com/job/1",
 }
 
 

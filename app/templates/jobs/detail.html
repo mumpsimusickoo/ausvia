@@ -1,5 +1,6 @@
 ﻿{% extends "base.html" %}
 {% from "_icons.html" import check, cross, warning, unknown %}
+{% from "jobs/_source_attribution.html" import adzuna_attribution %}
 {% block title %}{{ job.title }} — AUSVIA{% endblock %}
 {% block content %}
 {# Phase 7 remediation (QA finding B3/W9): flex-wrap so the action buttons
@@ -48,6 +49,7 @@
   <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
     <p class="text-xs uppercase tracking-wide text-slate-500">Sources</p>
     <p class="mt-1 font-medium text-slate-900">{{ job.sources|join(", ") }}</p>
+    {% if "adzuna" in job.sources %}<div class="mt-2">{{ adzuna_attribution() }}</div>{% endif %}
   </div>
 </div>
 

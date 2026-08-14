@@ -93,6 +93,18 @@ and `app/__init__.py` - nothing here is reconstructed from memory.
 |---|---|---|---|
 | `RATELIMIT_STORAGE_URI` | No | `memory://` | **`memory://` is per-process.** With gunicorn's multiple workers, each worker has its own counter, so the effective limit becomes roughly `configured limit × worker count`, not the configured limit. Fine for a single-worker deployment; for multi-worker production where the exact limit matters, point this at a shared backend (e.g. `redis://...` - Flask-Limiter supports it, no code changes needed, just add a Redis add-on and set this var). |
 
+### Job source adapters (`app/jobs/adapters/`, job-source integration pass)
+
+| Variable | Required? | Default | Notes |
+|---|---|---|---|
+| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | No | none | Both required together to enable Adzuna - absent otherwise, not an error. Self-serve signup at developer.adzuna.com. **Free access is a 14-day trial only per Adzuna's Terms of Service** - see `JOB_SOURCES.md` before relying on this past the trial window in production. |
+| `ADZUNA_COUNTRY` | No | `de` | Adzuna's country-code path segment. |
+| `JOOBLE_API_KEY` | No | none | Enables Jooble. Manually issued after submitting a request form at jooble.org/api/about (name/role/email/website) - not instant, allow lead time. |
+
+Arbeitsagentur (Bundesagentur für Arbeit Jobsuche) needs no credentials -
+see `JOB_SOURCES.md` for its current reliability status, which is more
+nuanced than a simple working/broken flag.
+
 ### Gmail draft creation (optional feature)
 
 | Variable | Required? | Default | Notes |

@@ -121,6 +121,33 @@ class SavedJob(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "job_id", name="uq_saved_job_user_job"),)
 
 
+class ProviderQueryCache(db.Model):
+    """Per-(source, normalized query) cooldown (job-source integration
+    pass) so the same keyword+location search doesn't re-hit a metered
+    external API (Adzuna: 25/min, 250/day; Jooble: provider-issued limits)
+    on every single page load - app/jobs/routes.py's search route still
+    calls ingest_search() synchronously on every request (existing
+    behavior, unchanged), so without this, a popular keyword searched
+    repeatedly by different users would burn through a day's quota in
+    minutes. A repeated search within the TTL window (see
+    app/jobs/ingest.py) just reuses whatever was already ingested last
+    time - real Job rows already in the database - instead of guaranteeing
+    a fresh live call. Applies uniformly to every adapter (not just the
+    metered ones) to avoid source-specific logic in the ingestion
+    pipeline."""
+
+    __tablename__ = "provider_query_cache"
+
+    id = db.Column(db.Integer, primary_key=True)
+    source = db.Column(db.String(50), nullable=False)
+    query_key = db.Column(db.String(300), nullable=False)
+    last_queried_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("source", "query_key", name="uq_provider_query_cache_source_query"),
+    )
+
+
 class JobSourceSetting(db.Model):
     """Admin-controlled enable/disable + last-run diagnostics per job source
     (spec: admin can manage job sources independently). One row per adapter,

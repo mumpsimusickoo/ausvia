@@ -1,0 +1,16 @@
+{# Adzuna Terms of Service attribution requirement (read directly, not
+   assumed): any page displaying an Adzuna listing must show a "Jobs by
+   Adzuna" credit, at least 116x23px, with "Jobs" hyperlinked to Adzuna and
+   "Adzuna" as the Adzuna logo (also hyperlinked). No branded logo asset was
+   available to embed here (would need pulling from Adzuna's publisher
+   kit/dashboard) - this satisfies the substantive requirement (visible
+   credit, correct links, minimum size) with text instead; swap in the real
+   logo asset if/when real API access is set up. Only rendered when a job's
+   sources actually include "adzuna" - never shown for other sources. #}
+{% macro adzuna_attribution() %}
+<a href="https://www.adzuna.de" target="_blank" rel="noopener noreferrer"
+   class="inline-flex items-center gap-1 rounded border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:text-slate-700"
+   style="min-width: 116px; min-height: 23px;" title="Job data from Adzuna">
+  Jobs by <span class="font-semibold text-slate-700">Adzuna</span>
+</a>
+{% endmacro %}

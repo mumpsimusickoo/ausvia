@@ -3,21 +3,61 @@ Central registry of job source adapters (spec section 10). Sources can be
 enabled/disabled independently by an admin via JobSourceSetting without
 touching code - see app/admin/routes.py.
 """
+from flask import current_app
+
 from app.extensions import db
 from app.models.job import JobSourceSetting
 from app.jobs.adapters.arbeitsagentur import ArbeitsagenturAdapter
+from app.jobs.adapters.adzuna import AdzunaAdapter
+from app.jobs.adapters.jooble import JoobleAdapter
 
+# Adapters that need no configuration - built once at import time, exactly
+# like before. Adzuna/Jooble need credentials that only exist once a Flask
+# app/request context is active (current_app.config isn't readable at
+# plain module-import time), so they're built lazily by
+# _configured_adapters() below instead of living in this dict.
 ADAPTERS = {
     "arbeitsagentur": ArbeitsagenturAdapter(),
 }
 
 # "manual" isn't a searchable adapter (it's user-driven, one URL at a time -
 # see app/jobs/manual_import.py) but still gets a settings row so admins can
-# see/toggle it alongside real adapters for consistency.
+# see/toggle it alongside real adapters for consistency. Adzuna/Jooble get a
+# row too even before their credentials are configured, same reasoning.
 KNOWN_SOURCES = {
     "arbeitsagentur": "Bundesagentur für Arbeit (Jobsuche)",
+    "adzuna": "Adzuna",
+    "jooble": "Jooble",
     "manual": "Manual import",
 }
+
+
+def _configured_adapters():
+    """Adzuna/Jooble, built fresh per call from current_app.config - a
+    provider with no credentials configured is simply absent from the
+    returned dict (not an error, not a placeholder), so it's silently
+    skipped everywhere downstream (search, admin diagnostics) until real
+    credentials are set."""
+    adapters = {}
+
+    app_id = current_app.config.get("ADZUNA_APP_ID")
+    app_key = current_app.config.get("ADZUNA_APP_KEY")
+    if app_id and app_key:
+        adapters["adzuna"] = AdzunaAdapter(
+            app_id=app_id, app_key=app_key, country=current_app.config.get("ADZUNA_COUNTRY") or "de",
+        )
+
+    jooble_key = current_app.config.get("JOOBLE_API_KEY")
+    if jooble_key:
+        adapters["jooble"] = JoobleAdapter(api_key=jooble_key)
+
+    return adapters
+
+
+def all_adapters():
+    """The full adapter set for this request: the always-present ones plus
+    whichever configured ones are actually available right now."""
+    return {**ADAPTERS, **_configured_adapters()}
 
 
 def ensure_source_settings_seeded():
@@ -32,14 +72,14 @@ def get_enabled_adapter_names():
     settings = {s.source_name: s for s in JobSourceSetting.query.all()}
     return [
         name
-        for name in ADAPTERS
+        for name in all_adapters()
         if name not in settings or settings[name].is_enabled
     ]
 
 
 def get_enabled_adapters():
     enabled_names = set(get_enabled_adapter_names())
-    return [adapter for name, adapter in ADAPTERS.items() if name in enabled_names]
+    return [adapter for name, adapter in all_adapters().items() if name in enabled_names]
 
 
 def is_source_enabled(source_name):

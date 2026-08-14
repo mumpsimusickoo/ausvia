@@ -1,11 +1,12 @@
 ﻿{% extends "base.html" %}
 {% from "_macros.html" import render_field %}
 {% from "_icons.html" import check %}
+{% from "jobs/_source_attribution.html" import adzuna_attribution %}
 {% block title %}Job Search — AUSVIA{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold text-slate-900">Job Search</h1>
 <p class="mt-1 text-sm text-slate-600 mb-6">
-  Searches the Bundesagentur für Arbeit's public Jobsuche API. Can't find a posting? <a href="{{ url_for('jobs.import_start') }}" class="text-brand-700 hover:underline">Import it manually by URL</a>.
+  Searches every enabled job source (Bundesagentur für Arbeit, and Adzuna/Jooble where configured - see each listing's source tag). Can't find a posting? <a href="{{ url_for('jobs.import_start') }}" class="text-brand-700 hover:underline">Import it manually by URL</a>.
 </p>
 
 <form method="get" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 mb-6 flex flex-wrap items-end gap-4">
@@ -34,10 +35,11 @@
       <div>
         <a href="{{ url_for('jobs.detail', job_id=job.id) }}" class="font-semibold text-slate-900 hover:text-brand-700">{{ job.title }}</a>
         <p class="text-sm text-slate-600">{{ job.company_name or "Unknown company" }}{% if job.location %} · {{ job.location }}{% endif %}</p>
-        <div class="mt-2 flex flex-wrap gap-1">
+        <div class="mt-2 flex flex-wrap items-center gap-1">
           {% for source in job.sources %}
           <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ source }}</span>
           {% endfor %}
+          {% if "adzuna" in job.sources %}{{ adzuna_attribution() }}{% endif %}
         </div>
       </div>
       <div class="flex flex-col items-end gap-2">

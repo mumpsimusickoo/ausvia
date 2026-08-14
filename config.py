@@ -83,6 +83,29 @@ class Config:
     S3_SECRET_ACCESS_KEY = os.environ.get("S3_SECRET_ACCESS_KEY")
     S3_PREFIX = os.environ.get("S3_PREFIX")
 
+    # Job source adapters (see app/jobs/adapters/manager.py). Arbeitsagentur
+    # needs no config (public static key, see jobsearch.py) so it's always
+    # registered; Adzuna/Jooble are only added to the search rotation when
+    # their credentials are actually present - an unconfigured provider is
+    # silently skipped, not an error, same "absence is fine" pattern as the
+    # AI/storage providers above.
+    #
+    # Adzuna (developer.adzuna.com): free access is a 14-day trial only,
+    # per Adzuna's own Terms of Service ("strictly for the purpose of
+    # validating the general coverage and quality of the data... in
+    # addition to usability testing") - ongoing use past the trial needs a
+    # licence agreement directly with Adzuna. See JOB_SOURCES.md for the
+    # trial-window tracking. ADZUNA_COUNTRY defaults to "de" since AUSVIA
+    # is Germany-specific.
+    ADZUNA_APP_ID = os.environ.get("ADZUNA_APP_ID")
+    ADZUNA_APP_KEY = os.environ.get("ADZUNA_APP_KEY")
+    ADZUNA_COUNTRY = os.environ.get("ADZUNA_COUNTRY") or "de"
+
+    # Jooble (jooble.org/api/about): key is manually issued after
+    # submitting a request form (name/role/email/website) - not instant
+    # self-serve like Adzuna's, allow lead time.
+    JOOBLE_API_KEY = os.environ.get("JOOBLE_API_KEY")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -122,6 +145,12 @@ class TestingConfig(Config):
     # Same class of bug, same fix: force local storage regardless of a
     # developer's real .env, so the test suite never attempts a real S3 call.
     STORAGE_PROVIDER = "local"
+    # Same again: a real .env with Adzuna/Jooble credentials must never
+    # make the test suite call the live APIs. Tests that specifically want
+    # to exercise the "configured" path monkeypatch these back in.
+    ADZUNA_APP_ID = None
+    ADZUNA_APP_KEY = None
+    JOOBLE_API_KEY = None
 
 
 config_by_name = {
