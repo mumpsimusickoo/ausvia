@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}CORS diagnostic — AUSVIA{% endblock %}
-{% block content %}
+{% block public_content %}
+<div class="mx-auto max-w-5xl px-4 pb-8 md:px-8">
 <h1 class="text-2xl font-bold text-slate-900">Arbeitsagentur CORS diagnostic (temporary)</h1>
 <p class="mt-1 text-sm text-slate-600 mb-2">
   Not a real feature - a one-off test. Server-side calls to the Arbeitsagentur Jobsuche API are
@@ -47,4 +48,5 @@ document.getElementById("run-btn").addEventListener("click", async () => {
   }
 });
 </script>
+</div>
 {% endblock %}
