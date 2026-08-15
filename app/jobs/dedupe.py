@@ -107,7 +107,7 @@ def find_or_create_canonical_job(normalized_job):
         job = existing
         created = False
         job.last_checked_at = utcnow()
-        _merge_missing_fields(job, normalized_job)
+        merge_missing_fields(job, normalized_job)
     else:
         job = Job(
             company_id=company.id if company else None,
@@ -158,9 +158,14 @@ def find_or_create_canonical_job(normalized_job):
     return job, created
 
 
-def _merge_missing_fields(job, normalized_job):
+def merge_missing_fields(job, normalized_job):
     """Fills in canonical fields that are still empty using data from a newly
-    seen duplicate listing, without overwriting anything already known."""
+    seen duplicate listing, without overwriting anything already known.
+    Public (not underscore-prefixed): also reused by
+    app/jobs/ingest.py's enrich_job_detail() for the lazy detail-fetch-on-
+    open path, not just find_or_create_canonical_job() above - the "fill
+    only what's empty" behavior is exactly what a detail fetch enriching an
+    already-created Job needs too."""
     fillable = [
         "federal_state", "postal_code", "start_date", "application_deadline", "salary",
         "description", "requirements", "language_requirements", "skills",

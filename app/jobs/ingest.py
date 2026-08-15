@@ -7,8 +7,9 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 from app.extensions import db
-from app.jobs.adapters.manager import get_enabled_adapters, record_run
-from app.jobs.dedupe import find_or_create_canonical_job
+from app.jobs.adapters.manager import all_adapters, get_enabled_adapters, record_run
+from app.jobs.dedupe import find_or_create_canonical_job, merge_missing_fields
+from app.models.ai import JobMatch
 from app.models.job import ProviderQueryCache
 from app.models.user import utcnow
 from app.utils.logging import log_event
@@ -86,3 +87,76 @@ def ingest_search(keywords, location=None):
         _record_query(adapter.source_name, query_key)
 
     return result
+
+
+def enrich_job_detail(job):
+    """Lazily fetches full provider detail for a Job the first time it's
+    opened (app/jobs/routes.py's detail() route) - deliberately NOT done
+    during search/ingestion, where it would mean an extra API call per
+    result even for listings nobody ever opens. Gated on job.description
+    being empty, so this fetches at most once per canonical Job ever,
+    regardless of how many users open it or how many source listings it
+    has - subsequent opens (by the same or a different user) see the
+    already-enriched row with no further API call.
+
+    Only Arbeitsagentur has a genuinely separate detail step today (see
+    ArbeitsagenturAdapter.get_job()) - Adzuna/Jooble's get_job() always
+    returns None since their search results already carry everything they
+    expose, so this is naturally a no-op for those sources without
+    special-casing by name. Uses all_adapters() (not the enabled-only
+    subset) since opening a specific job the user already knows about
+    shouldn't depend on whether the source is still enabled for new
+    searches - matches check_availability()'s existing precedent of
+    calling get_job() directly.
+
+    A single fast (~0.5s, confirmed live) inline call on a page load
+    someone's already waiting on - no background-task executor needed for
+    this, unlike ingest_search()'s multi-provider search step.
+
+    Returns True if a detail fetch actually happened and enrichment was
+    applied (the caller uses this to know whether cached JobMatch rows for
+    this job need invalidating), False otherwise (already enriched, no
+    matching listing/adapter, or the fetch found nothing new).
+    """
+    if job.description:
+        return False
+
+    adapters = all_adapters()
+    enriched = False
+    for listing in job.listings:
+        adapter = adapters.get(listing.source)
+        if adapter is None or listing.external_id is None:
+            continue
+        try:
+            detail_raw = adapter.get_job(listing.external_id)
+        except Exception as e:
+            log_event(
+                "job_source",
+                f"Detail fetch failed for job {job.id} ({listing.source}): {e.__class__.__name__}: {e}",
+                level="warning",
+            )
+            continue
+        if not detail_raw:
+            continue
+
+        merged_raw = {**(listing.raw_snapshot or {}), "_detail": detail_raw}
+        normalized = adapter.normalize(merged_raw)
+        merge_missing_fields(job, normalized)
+        listing.last_checked_at = utcnow()
+        enriched = True
+        if job.description:
+            break  # got what we came for - no need to also fetch other listings' detail
+
+    if enriched:
+        # The wrinkle: get_or_compute_match() only checks *profile*
+        # staleness, not job staleness - a JobMatch already cached (e.g.
+        # from the eager per-result computation on the search results
+        # page, before detail existed) would otherwise keep showing the
+        # pre-enrichment score/education-category-skipped result
+        # indefinitely. Deleting every cached JobMatch for this job (not
+        # just the current viewer's) forces a fresh recompute for anyone
+        # who views it next, current viewer included.
+        JobMatch.query.filter_by(job_id=job.id).delete()
+        db.session.commit()
+
+    return enriched

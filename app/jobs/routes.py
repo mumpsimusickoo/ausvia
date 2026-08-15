@@ -8,7 +8,7 @@ from app.extensions import db
 from app.models.job import Job, SavedJob
 from app.models.manual_import import ManualImportBatch
 from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewForm
-from app.jobs.ingest import ingest_search
+from app.jobs.ingest import ingest_search, enrich_job_detail
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
 from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
@@ -71,6 +71,11 @@ def saved():
 @login_required
 def detail(job_id):
     job = db.get_or_404(Job, job_id)
+    # Lazy detail-fetch-on-open (job-source integration follow-up): before
+    # computing the match below, so a first-time enrichment's improved
+    # education_requirements - and the cache invalidation it triggers -
+    # are reflected in *this* view too, not just future ones.
+    enrich_job_detail(job)
     is_saved = SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first() is not None
     match = get_or_compute_match(current_user, job)
 
