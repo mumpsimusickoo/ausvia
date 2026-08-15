@@ -124,7 +124,7 @@ class InterviewPrep(db.Model):
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     generated_at = db.Column(db.DateTime, nullable=True)
 
-    application = db.relationship("Application")
+    application = db.relationship("Application", back_populates="interview_prep")
 
 
 class JobExplainer(db.Model):

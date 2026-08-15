@@ -327,4 +327,39 @@
   </div>
   {% endif %}
 </section>
+
+<section class="mt-6 rounded-xl border border-red-200 bg-white shadow-sm p-6">
+  <h2 class="font-semibold text-slate-900 mb-2">Delete this application</h2>
+  {% if application.status in ("preparing", "ready") %}
+  <p class="text-sm text-slate-600 mb-3">Nothing has been sent yet - this only removes draft work in progress.</p>
+  <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" id="delete-application-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Delete application</button>
+  </form>
+  {# CSP-safe: a real listener attached from a nonce'd script, not an
+     inline onsubmit="" attribute - this app's CSP has no 'unsafe-inline'
+     for script-src, and nonces only cover <script> tags, not inline
+     event-handler attributes. #}
+  <script nonce="{{ csp_nonce }}">
+    document.getElementById("delete-application-form").addEventListener("submit", function (e) {
+      if (!confirm("Delete this application? This cannot be undone.")) {
+        e.preventDefault();
+      }
+    });
+  </script>
+  {% else %}
+  <p class="text-sm text-slate-600 mb-3">
+    This application is past "preparing" and represents real history (dates, correspondence, notes) -
+    type <strong>DELETE</strong> below to permanently remove it.
+  </p>
+  <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" class="flex flex-wrap items-end gap-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label for="confirm-delete-text" class="block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Type DELETE to confirm</label>
+      <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+    </div>
+    <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Delete application</button>
+  </form>
+  {% endif %}
+</section>
 {% endblock %}

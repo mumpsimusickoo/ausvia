@@ -57,6 +57,20 @@ class Application(db.Model):
         "ApplicationDocument", back_populates="application", cascade="all, delete-orphan",
         order_by="ApplicationDocument.order_index",
     )
+    # Application deletion pass: both of these have a NOT NULL FK to
+    # applications.id but, unlike every relationship above, had no cascade
+    # declared here before now - with SQLite FK enforcement on
+    # (app/__init__.py), deleting an application with reply-tracking or
+    # interview-prep data would have raised an IntegrityError rather than
+    # silently orphaning anything, but it would still have made delete
+    # crash for exactly the applications a user is most likely to want to
+    # clean up (ones with real history). Same cascade as the rest.
+    gmail_messages = db.relationship(
+        "GmailMessage", back_populates="application", cascade="all, delete-orphan"
+    )
+    interview_prep = db.relationship(
+        "InterviewPrep", back_populates="application", uselist=False, cascade="all, delete-orphan"
+    )
 
     __table_args__ = (db.UniqueConstraint("user_id", "job_id", name="uq_application_user_job"),)
 

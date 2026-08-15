@@ -39,6 +39,18 @@ DOC_TYPE_LABEL_DE = {
 # suggested default package order (spec section 23): CV, then diploma/certs, then the rest
 DOC_TYPE_ORDER = ["cv", "diploma", "language_certificate", "training_certificate", "transcript", "recommendation_letter", "other"]
 
+# Application deletion: statuses where nothing has left AUSVIA yet - no
+# email has actually been sent (that's still a manual, user-driven action
+# even at "ready", which just means the package is built), no interview
+# has happened, nothing to lose but draft work. Deleting one of these
+# needs only the normal single confirm(). Anything past this point
+# represents something that actually happened in the real world - a
+# real correspondence timeline, dates, notes - and needs a typed
+# confirmation, enforced server-side, not just a JS dialog someone could
+# click through without reading.
+LOW_RISK_DELETE_STATUSES = ("preparing", "ready")
+DELETE_CONFIRMATION_PHRASE = "DELETE"
+
 
 def _owned_application_or_404(application_id):
     application = db.get_or_404(Application, application_id)
@@ -425,6 +437,52 @@ def update_status(application_id):
     else:
         flash("Please correct the errors in the form.", "error")
     return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/delete", methods=["POST"])
+@login_required
+def delete(application_id):
+    application = _owned_application_or_404(application_id)
+
+    if application.status not in LOW_RISK_DELETE_STATUSES:
+        # Real, server-side enforcement - not just a JS confirm() someone
+        # could bypass with a direct POST. Checked case-insensitively so a
+        # stray Caps Lock doesn't block a genuine attempt.
+        typed = (request.form.get("confirm_text") or "").strip().upper()
+        if typed != DELETE_CONFIRMATION_PHRASE:
+            flash(
+                f'This application is past "preparing" and represents real history - '
+                f'type {DELETE_CONFIRMATION_PHRASE} to confirm permanent deletion.',
+                "error",
+            )
+            return redirect(url_for("applications.detail", application_id=application.id))
+
+    # Generated PDF packages were deliberately kept local-disk-only, not
+    # routed through the storage abstraction (see DEPLOYMENT.md's "Known
+    # gaps") - clean up the file directly rather than leaving it orphaned
+    # on disk. Missing/already-gone is not an error.
+    if application.package_storage_path and os.path.exists(application.package_storage_path):
+        try:
+            os.remove(application.package_storage_path)
+        except OSError as e:
+            log_event(
+                "application", f"Could not remove package file on delete: {e}",
+                level="warning", user_id=current_user.id,
+            )
+
+    # JobMatch is deliberately NOT touched here - it's keyed by (user_id,
+    # job_id), not application_id, and represents the candidate's fit
+    # against the job itself, independent of whether/how they applied. It
+    # should survive this application being deleted (e.g. the user may
+    # reapply, or just still want to see their match score in search
+    # results) - cascading its deletion here would be deleting real,
+    # unrelated data.
+    job_title = application.job.title
+    db.session.delete(application)
+    db.session.commit()
+    log_event("application", f"Application deleted ({job_title}).", user_id=current_user.id)
+    flash("Application deleted.", "info")
+    return redirect(url_for("applications.list_applications"))
 
 
 def _owned_message_or_404(application, message_id):

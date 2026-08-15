@@ -64,4 +64,4 @@ class GmailMessage(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 
-    application = db.relationship("Application")
+    application = db.relationship("Application", back_populates="gmail_messages")
