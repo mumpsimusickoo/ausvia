@@ -28,6 +28,17 @@ RECOMMENDATION_THRESHOLDS = (
     (40, "significant_gaps"),
 )
 
+# Job attribute names that actually feed compute_match() below - distinct
+# from CATEGORY_WEIGHTS' category labels (e.g. "language"/"education" name
+# categories, not the job.language_requirements/job.education_requirements
+# attributes compute_match() actually reads). Used by callers that mutate a
+# Job outside the normal enrichment/extraction paths (e.g. dedupe's
+# merge_missing_fields()) to decide whether a change could have affected an
+# already-cached JobMatch, without hardcoding this list at each call site.
+SCORE_RELEVANT_JOB_FIELDS = frozenset({
+    "skills", "language_requirements", "education_requirements", "federal_state", "start_date",
+})
+
 
 @dataclass
 class GapItem:

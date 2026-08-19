@@ -4,7 +4,10 @@ from app.jobs.dedupe import (
     normalize_title,
     compute_dedup_key,
     find_or_create_canonical_job,
+    merge_missing_fields,
 )
+from app.jobs.matching import get_or_compute_match
+from app.models.ai import JobMatch
 from app.models.job import Job, JobListing, Company
 
 
@@ -121,3 +124,164 @@ def test_same_url_does_not_merge_genuinely_different_jobs_missing_url(app, db):
         make_normalized("jooble", "JB-2", title="Bäcker", company_name="Bäckerei Süd", application_url=None)
     )
     assert job1.id != job2.id
+
+
+# --- Conditional JobMatch invalidation on dedupe re-match ------------------
+# merge_missing_fields() only fills currently-empty fields, so a re-match can
+# genuinely be a no-op; unconditionally invalidating on every re-match would
+# wipe a perfectly valid cached JobMatch (and any AI narrative/improvement-
+# tips text on it) for no reason. See app/ai/matching.py's
+# SCORE_RELEVANT_JOB_FIELDS and app/jobs/dedupe.py's find_or_create_canonical_job().
+
+
+def make_job(db, **overrides):
+    kwargs = dict(title="Elektroniker", dedup_key="merge-test")
+    kwargs.update(overrides)
+    job = Job(**kwargs)
+    db.session.add(job)
+    db.session.commit()
+    return job
+
+
+def test_merge_missing_fields_returns_only_the_fields_actually_changed(app, db):
+    # start_date set to match make_normalized()'s own default below, so it's
+    # correctly excluded from "changed" too - only skills/description are
+    # actually empty going in.
+    job = make_job(db, skills=None, description=None, postal_code="10115", start_date="2027-09-01")
+    normalized = make_normalized(
+        "arbeitsagentur", "MERGE-1",
+        skills=["Löten"], description="Volle Beschreibung.", postal_code="99999",
+    )
+
+    changed = merge_missing_fields(job, normalized)
+
+    assert changed == {"skills", "description"}
+    assert job.skills == ["Löten"]
+    assert job.description == "Volle Beschreibung."
+    assert job.postal_code == "10115"  # already set - untouched, correctly not reported as changed
+
+
+def test_merge_missing_fields_returns_empty_set_on_genuine_noop(app, db):
+    job = make_job(
+        db, skills=["Löten"], description="Schon bekannt.", postal_code="10115",
+        federal_state="Berlin", start_date="2027-09-01", salary="1000",
+        application_deadline=None, requirements=None, language_requirements=None,
+        education_requirements=None, contact_person=None, contact_email=None, application_url=None,
+    )
+    normalized = make_normalized(
+        "arbeitsagentur", "MERGE-2",
+        skills=["Andere Skill"], description="Andere Beschreibung.", postal_code="00000",
+    )
+
+    changed = merge_missing_fields(job, normalized)
+
+    assert changed == set()
+    # Untouched, not just "not reported" - confirms the no-op is real, not a bug in the return value alone.
+    assert job.skills == ["Löten"]
+    assert job.description == "Schon bekannt."
+
+
+def test_merge_missing_fields_returns_every_field_filled_on_a_full_fill(app, db):
+    job = make_job(db)  # every fillable field starts empty
+    normalized = make_normalized(
+        "arbeitsagentur", "MERGE-3",
+        federal_state="Bayern", postal_code="80331", start_date="2027-09-01",
+        salary="1000", description="Text.", requirements="Text.",
+        language_requirements=[{"language": "German", "level": "B1"}], skills=["Löten"],
+        education_requirements="MITTLERER_BILDUNGSABSCHLUSS", contact_person="A B",
+        contact_email="a@b.de", application_url="https://example.com/x",
+    )
+
+    changed = merge_missing_fields(job, normalized)
+
+    assert changed == {
+        "federal_state", "postal_code", "start_date", "salary", "description", "requirements",
+        "language_requirements", "skills", "education_requirements", "contact_person",
+        "contact_email", "application_url",
+    }
+
+
+def test_dedupe_remerge_invalidates_cached_match_when_score_relevant_field_filled(app, db, make_user):
+    job, _ = find_or_create_canonical_job(make_normalized("arbeitsagentur", "AA-SCORE-1"))
+    assert job.education_requirements is None
+    user = make_user(email="dedupe-score1@example.com")
+    stale_match = get_or_compute_match(user, job)
+    assert "education" in (stale_match.skipped_categories or [])
+    stale_match_id = stale_match.id
+
+    # A second listing for the same job (matched via dedup_key, same
+    # company/title/location/start_date) that happens to carry
+    # education_requirements this time.
+    find_or_create_canonical_job(
+        make_normalized("manual", None, education_requirements="MITTLERER_BILDUNGSABSCHLUSS")
+    )
+
+    # .filter_by().first() not .get(): stale_match_id refers to an object
+    # still in this session's identity map - .get() would try to refresh it
+    # and raise ObjectDeletedError once the row is actually gone.
+    assert JobMatch.query.filter_by(id=stale_match_id).first() is None
+
+    # Not just "a row exists again" (SQLite can reuse a freed integer id) -
+    # the real proof is that education is now evaluable, reflecting the
+    # just-merged job.education_requirements.
+    fresh_match = get_or_compute_match(user, job)
+    assert "education" not in (fresh_match.skipped_categories or [])
+
+
+def test_dedupe_remerge_does_not_invalidate_when_only_non_score_fields_change(app, db, make_user):
+    job, _ = find_or_create_canonical_job(
+        make_normalized("arbeitsagentur", "AA-SCORE-2", description=None, salary=None)
+    )
+    user = make_user(email="dedupe-score2@example.com")
+    cached_match_id = get_or_compute_match(user, job).id
+
+    # A second listing filling only non-score fields (description, salary,
+    # postal_code) - a real merge happens, just not one that could have
+    # changed the score.
+    find_or_create_canonical_job(
+        make_normalized(
+            "manual", None, description="Volle Beschreibung.", salary="1200", postal_code="12345",
+        )
+    )
+
+    assert JobMatch.query.filter_by(id=cached_match_id).first() is not None
+
+
+def test_dedupe_remerge_does_not_invalidate_on_genuine_noop(app, db, make_user):
+    job, _ = find_or_create_canonical_job(
+        make_normalized("arbeitsagentur", "AA-SCORE-3", skills=["Löten"], education_requirements="ABITUR")
+    )
+    user = make_user(email="dedupe-score3@example.com")
+    cached_match_id = get_or_compute_match(user, job).id
+
+    # Same job re-matched again (e.g. the same search re-run) - every
+    # score-relevant field is already populated, so nothing can change.
+    find_or_create_canonical_job(
+        make_normalized("manual", None, skills=["Andere Skill"], education_requirements="ANDERE")
+    )
+
+    assert JobMatch.query.filter_by(id=cached_match_id).first() is not None
+
+
+def test_enrich_and_extraction_call_sites_unaffected_by_return_value_addition(app, db, monkeypatch):
+    # Regression check: both existing callers discard merge_missing_fields()'s
+    # return value entirely - confirms the signature addition changed
+    # nothing observable for either of them.
+    from app.jobs.adapters import manager as adapter_manager
+    from app.jobs.ingest import enrich_job_detail
+
+    job, _ = find_or_create_canonical_job(make_normalized("arbeitsagentur", "AA-REGRESSION-1"))
+    assert job.description is None
+
+    monkeypatch.setattr(
+        adapter_manager.ADAPTERS["arbeitsagentur"], "get_job",
+        lambda external_id: {
+            "stellenangebotsBeschreibung": "Volle Stellenbeschreibung hier.",
+            "geforderterBildungsabschluss": "MITTLERER_BILDUNGSABSCHLUSS",
+        },
+    )
+    enriched = enrich_job_detail(job)
+
+    assert enriched is True
+    assert job.description == "Volle Stellenbeschreibung hier."
+    assert job.education_requirements == "MITTLERER_BILDUNGSABSCHLUSS"

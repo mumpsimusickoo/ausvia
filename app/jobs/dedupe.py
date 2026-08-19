@@ -9,7 +9,9 @@ touching callers.
 """
 import re
 
+from app.ai.matching import SCORE_RELEVANT_JOB_FIELDS
 from app.extensions import db
+from app.models.ai import JobMatch
 from app.models.job import Company, Job, JobListing
 from app.models.user import utcnow
 
@@ -107,7 +109,18 @@ def find_or_create_canonical_job(normalized_job):
         job = existing
         created = False
         job.last_checked_at = utcnow()
-        merge_missing_fields(job, normalized_job)
+        changed_fields = merge_missing_fields(job, normalized_job)
+        if changed_fields & SCORE_RELEVANT_JOB_FIELDS:
+            # Mirrors the same invalidation get_or_compute_match()'s two
+            # other mutation points already do (app/jobs/ingest.py's
+            # enrich_job_detail(), app/ai/job_requirements_extraction.py) -
+            # a cached JobMatch computed before this fill would otherwise
+            # keep showing a stale score. Conditional (not unconditional
+            # like those two) because this branch runs on every re-matched
+            # search result, not once per job ever - going unconditional
+            # would routinely wipe cached AI narrative/improvement-tips
+            # text for no-op merges, not just recompute a cheap score.
+            JobMatch.query.filter_by(job_id=job.id).delete()
     else:
         job = Job(
             company_id=company.id if company else None,
@@ -165,14 +178,21 @@ def merge_missing_fields(job, normalized_job):
     app/jobs/ingest.py's enrich_job_detail() for the lazy detail-fetch-on-
     open path, not just find_or_create_canonical_job() above - the "fill
     only what's empty" behavior is exactly what a detail fetch enriching an
-    already-created Job needs too."""
+    already-created Job needs too.
+
+    Returns the set of attribute names actually changed (empty if this call
+    was a no-op) - existing callers ignore it, find_or_create_canonical_job()
+    uses it to decide whether cached JobMatch rows need invalidating."""
     fillable = [
         "federal_state", "postal_code", "start_date", "application_deadline", "salary",
         "description", "requirements", "language_requirements", "skills",
         "education_requirements", "contact_person", "contact_email", "application_url",
     ]
+    changed = set()
     for attr in fillable:
         if not getattr(job, attr, None):
             value = getattr(normalized_job, attr, None)
             if value:
                 setattr(job, attr, value)
+                changed.add(attr)
+    return changed
