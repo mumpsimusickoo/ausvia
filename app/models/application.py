@@ -71,6 +71,9 @@ class Application(db.Model):
     interview_prep = db.relationship(
         "InterviewPrep", back_populates="application", uselist=False, cascade="all, delete-orphan"
     )
+    cv_profile_statement = db.relationship(
+        "CvProfileStatement", back_populates="application", uselist=False, cascade="all, delete-orphan"
+    )
 
     __table_args__ = (db.UniqueConstraint("user_id", "job_id", name="uq_application_user_job"),)
 

@@ -127,6 +127,30 @@ class InterviewPrep(db.Model):
     application = db.relationship("Application", back_populates="interview_prep")
 
 
+class CvProfileStatement(db.Model):
+    """Cached AI-generated short CV profile statement ("Kurzprofil") for one
+    application - a job-specific summary paragraph in the spirit of a
+    standard German CV summary blurb, grounded in the candidate's real
+    profile and the job's real stored facts. Same staleness/caching pattern
+    as InterviewPrep (see app/ai/cv_profile_statement.py). Purely
+    informational: never inserted into app/applications/pdf_package.py or
+    the submitted package, and never modifies the user's uploaded CV
+    document - the user copies this text into their own separately
+    maintained CV, same as interview prep and the follow-up email."""
+
+    __tablename__ = "cv_profile_statements"
+
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("applications.id"), unique=True, nullable=False, index=True)
+
+    statement_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    application = db.relationship("Application", back_populates="cv_profile_statement")
+
+
 class JobExplainer(db.Model):
     """Cached AI plain-language summary of one job posting's original text
     (Phase 9), calibrated to the candidate's own stated German level when

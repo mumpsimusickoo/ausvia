@@ -13,6 +13,7 @@ from app.applications.forms import CoverLetterForm, EmailForm, FollowUpEmailForm
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
 from app.applications.status_route import build_status_route
 from app.ai.cover_letter import generate_cover_letter, validate_cover_letter
+from app.ai.cv_profile_statement import get_cv_profile_statement, generate_cv_profile_statement
 from app.ai.email_gen import generate_email
 from app.ai.followup_email import generate_followup_email
 from app.ai.interview_prep import get_interview_prep, generate_interview_prep
@@ -21,6 +22,7 @@ from app.ai.reply_ai import classify_reply, generate_reply_suggestion
 from app.documents.storage import get_storage_provider
 from app.integrations import gmail_oauth, gmail_drafts
 from app.integrations.gmail_reply_tracking import check_for_replies
+from app.jobs.matching import get_or_compute_match
 from app.tasks.runner import submit_task
 from app.utils.logging import log_event
 
@@ -130,6 +132,11 @@ def detail(application_id):
         status_form=StatusForm(obj=application),
         status_route=build_status_route(application),
         interview_prep=get_interview_prep(application),
+        cv_profile_statement=get_cv_profile_statement(application),
+        # Deterministic, already-computed elsewhere (no new AI call, no new
+        # model) - reused here to surface real matched strengths alongside
+        # the CV profile statement, per the CV-tailoring investigation.
+        match=get_or_compute_match(current_user, application.job),
     )
 
 
@@ -284,6 +291,20 @@ def generate_interview_prep_route(application_id):
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Interview prep generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/cv-profile-statement", methods=["POST"])
+@login_required
+@limiter.limit("30 per hour")
+def generate_cv_profile_statement_route(application_id):
+    application = _owned_application_or_404(application_id)
+    try:
+        generate_cv_profile_statement(current_user, application)
+        flash("CV profile statement generated.", "success")
+    except AIProviderError as e:
+        flash(str(e), "error")
+        log_event("ai", f"CV profile statement generation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
