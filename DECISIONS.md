@@ -6,6 +6,61 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-19 — "Approve & Send" (Gmail auto-send) investigated and rejected
+
+**Decision:** AUSVIA will not send the application email itself. The
+existing flow stands unchanged: `app/applications/routes.py`'s `approve()`
+builds the package, `create_gmail_draft()` creates a Gmail draft via the
+user's own connected account, and the user sends it manually from Gmail
+before returning to click `mark_sent()`. `gmail.compose`/`gmail.readonly`
+remain the only Gmail OAuth scopes; `gmail.send` is not added.
+
+**Reason:** A dedicated investigation (approve-and-send-as-one-action,
+gated behind explicit in-app confirmation) was run precisely to check
+whether this decision should be revisited now that Gmail draft creation,
+reply tracking, and AI reply suggestions all exist. It confirms the same
+conclusion the 2026-08-11 entry below already reached, independently: the
+current two-step flow (approve inside AUSVIA, then send from a separate,
+already-open Gmail tab) gives the user a genuine second checkpoint - a
+different application, a natural pause - before an irreversible action.
+Collapsing that into one in-app action, even behind a strong confirmation
+step, removes a structurally different kind of safety than a confirmation
+dialog can restore: a dialog is answered inside the same momentum that
+produced the initiating click; a second, separately-opened application is
+not. This is the second time this exact scope addition has been evaluated
+and turned down for the same underlying reason - see the 2026-08-11 entry
+below (which rejected requesting `gmail.send`/`gmail.modify` alongside
+this same "user always sends" rule) and `PRODUCT.md`'s non-negotiable
+rule: "No application, and no reply, is ever sent automatically. AI
+drafts; the user approves and sends."
+
+**Alternatives considered:** Adding `gmail.send`, reusing the already-
+present `googleapiclient` service object (no new dependency) to call
+`messages().send()` instead of `drafts().create()`, gated behind a strong
+"type the recipient to confirm" step comparable to application deletion's
+typed-`DELETE` gate - rejected. The technical path is real and
+straightforward (send-state/idempotency handling to avoid a duplicate
+real send on a retried request, storing the returned `messageId`/
+`threadId` as durable proof of a completed send, incremental OAuth
+re-authorization for already-connected users whose stored token predates
+the new scope) but doesn't change the core product-safety tradeoff above.
+
+**Consequences:** No code changes from this pass. The technical findings
+(idempotent send handling, `messageId`/`threadId` capture, incremental
+re-auth via `include_granted_scopes=true`) are kept on record here as
+useful background if this is ever genuinely reconsidered, not
+implemented now. One related, smaller idea surfaced during this
+investigation and worth keeping for later, independent of whether
+auto-send is ever revisited: `mark_sent()` today is a pure self-report
+with no verification a send actually happened. A lower-risk alternative
+than `gmail.send` would be searching the user's own Sent folder (via the
+`gmail.readonly` scope AUSVIA already has) for a message matching the
+draft, rather than trusting the manual "I sent this" click - no new
+scope, no irreversible-action risk, just better accuracy on an existing
+status field. Not built now.
+
+---
+
 ## 2026-08-13 — Phase 8 D6(a): optional dedicated Gmail token encryption key
 
 **Decision:** Added `TOKEN_ENCRYPTION_KEY` as an optional env var
