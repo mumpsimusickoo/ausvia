@@ -37,6 +37,22 @@ Was solltest du mitbringen?
 Bewerbungsart: Ausschließlich online über Continental.
 """
 
+# Contact info deliberately lives outside the requirements section (like
+# real postings) - proves contact extraction is grounded against its own
+# separately isolated contact/application section, not incorrectly
+# excluded the way curriculum content is kept out of skills.
+PFIZER_WITH_CONTACT = PFIZER_DESCRIPTION + """
+Interessiert?
+
+Dann bewirb dich direkt per E-Mail an bewerbung@pfizer-beispiel.de. Deine Ansprechpartnerin ist Frau Meier.
+"""
+
+PFIZER_WITH_NON_EMAIL_CONTACT_TEXT = PFIZER_DESCRIPTION + """
+Interessiert?
+
+Wende dich an unser Team unter office-berlin (interner Kürzel, keine Email).
+"""
+
 
 class FakeProvider(AIProvider):
     provider_name = "fake"
@@ -204,7 +220,7 @@ def test_stub_or_empty_description_produces_no_extraction_and_completes_successf
 
 def test_mock_provider_leaves_fields_untouched(app, db, make_user):
     user = make_user(email="ex10@example.com")
-    job = make_job(db, PFIZER_DESCRIPTION)
+    job = make_job(db, PFIZER_WITH_CONTACT)
 
     # TestingConfig forces AI_PROVIDER=mock regardless of any real .env -
     # get_provider() is deliberately NOT monkeypatched here, exercising
@@ -213,6 +229,8 @@ def test_mock_provider_leaves_fields_untouched(app, db, make_user):
 
     db.session.refresh(job)
     assert job.skills is None
+    assert job.contact_person is None
+    assert job.contact_email is None
     assert "Mock mode" in result
 
 
@@ -280,3 +298,164 @@ def test_failed_extraction_does_not_touch_existing_job_match(app, db, make_user,
     # A malformed/failed extraction must not corrupt or invalidate an
     # existing, still-accurate cached match.
     assert JobMatch.query.filter_by(id=match_id).first() is not None
+
+
+# --- Contact-info extraction (contact-extraction pass) ----------------------
+
+
+def test_response_without_contact_keys_is_not_malformed(app, db, make_user, monkeypatch):
+    """contact_person/contact_email are optional keys - their absence must
+    not make an otherwise-valid response malformed. This is what keeps
+    every pre-existing fixture in this file (none of which include these
+    keys) still passing unchanged."""
+    user = make_user(email="ex15@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+
+    fake = FakeProvider(text='{"skills": ["Deutschkenntnisse"], "languages": []}')
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    result = extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.skills == ["Deutschkenntnisse"]
+    assert job.contact_person is None
+    assert job.contact_email is None
+    assert "malformed" not in result
+
+
+def test_contact_person_and_email_extracted_and_grounded(app, db, make_user, monkeypatch):
+    user = make_user(email="ex16@example.com")
+    job = make_job(db, PFIZER_WITH_CONTACT)
+
+    fake = FakeProvider(
+        text='{"skills": ["Deutschkenntnisse"], "languages": [], '
+        '"contact_person": "Frau Meier", "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    result = extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person == "Frau Meier"
+    assert job.contact_email == "bewerbung@pfizer-beispiel.de"
+    assert "contact person" in result and "contact email" in result
+
+
+def test_contact_info_outside_requirements_section_still_extracted(app, db, make_user, monkeypatch):
+    """Contact details structurally live outside the isolated requirements
+    section here (confirmed directly: extract_requirements_section() on
+    this fixture does not include the email) - grounding contact fields
+    against a separately isolated contact/application section, rather
+    than the requirements one, is what makes this still work instead of
+    being incorrectly excluded the way curriculum content is for skills."""
+    from app.jobs.requirements_section import extract_requirements_section
+
+    user = make_user(email="ex17@example.com")
+    job = make_job(db, PFIZER_WITH_CONTACT)
+
+    requirements_only, _ = extract_requirements_section(PFIZER_WITH_CONTACT)
+    assert "bewerbung@pfizer-beispiel.de" not in requirements_only
+
+    fake = FakeProvider(
+        text='{"skills": [], "languages": [], '
+        '"contact_person": null, "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_email == "bewerbung@pfizer-beispiel.de"
+
+
+def test_invented_contact_person_and_email_rejected(app, db, make_user, monkeypatch):
+    user = make_user(email="ex18@example.com")
+    job = make_job(db, PFIZER_WITH_CONTACT)
+
+    fake = FakeProvider(
+        text='{"skills": [], "languages": [], '
+        '"contact_person": "Herr Schmidt", "contact_email": "fake@invented.example"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person is None
+    assert job.contact_email is None
+
+
+def test_malformed_email_shape_rejected_even_when_grounded(app, db, make_user, monkeypatch):
+    # "office-berlin" genuinely appears in the source text (grounds), but
+    # it isn't shaped like an email - the format check must reject it
+    # independently of grounding succeeding.
+    user = make_user(email="ex19@example.com")
+    job = make_job(db, PFIZER_WITH_NON_EMAIL_CONTACT_TEXT)
+
+    fake = FakeProvider(text='{"skills": [], "languages": [], "contact_person": null, "contact_email": "office-berlin"}')
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_email is None
+
+
+def test_existing_manual_contact_fields_never_overwritten(app, db, make_user, monkeypatch):
+    user = make_user(email="ex20@example.com")
+    job = make_job(db, PFIZER_WITH_CONTACT)
+    job.contact_person = "Manually Entered Person"
+    job.contact_email = "manual@example.com"
+    db.session.commit()
+
+    fake = FakeProvider(
+        text='{"skills": [], "languages": [], '
+        '"contact_person": "Frau Meier", "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person == "Manually Entered Person"
+    assert job.contact_email == "manual@example.com"
+
+
+def test_only_contact_person_prefilled_leaves_email_fillable(app, db, make_user, monkeypatch):
+    # "fill only if empty" applies per-field, not all-or-nothing.
+    user = make_user(email="ex21@example.com")
+    job = make_job(db, PFIZER_WITH_CONTACT)
+    job.contact_person = "Manually Entered Person"
+    db.session.commit()
+
+    fake = FakeProvider(
+        text='{"skills": [], "languages": [], '
+        '"contact_person": "Frau Meier", "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person == "Manually Entered Person"  # untouched
+    assert job.contact_email == "bewerbung@pfizer-beispiel.de"  # filled
+
+
+def test_no_contact_section_found_contact_fields_stay_none(app, db, make_user, monkeypatch):
+    # PFIZER_DESCRIPTION has no application/contact section at all -
+    # extract_contact_section() returns found=False, and the placeholder
+    # text used in its place can't ground anything.
+    user = make_user(email="ex22@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+
+    fake = FakeProvider(
+        text='{"skills": ["Deutschkenntnisse"], "languages": [], '
+        '"contact_person": "Frau Meier", "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person is None
+    assert job.contact_email is None

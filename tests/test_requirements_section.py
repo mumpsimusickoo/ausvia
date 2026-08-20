@@ -7,7 +7,7 @@ length in a couple of cases) specifically because the real formatting
 quirks (markdown headers, emoji, inline "Label: value" lines, bullet
 styles) are exactly what the isolator has to survive.
 """
-from app.jobs.requirements_section import extract_requirements_section
+from app.jobs.requirements_section import extract_contact_section, extract_requirements_section
 
 STUB_DESCRIPTION = """ZUKUNFT
 ANPACKEN. Starte deine Ausbildung bei Zoth! Elektroniker (m/w/d)
@@ -194,3 +194,51 @@ def test_isolator_is_case_and_whitespace_tolerant():
     assert found is True
     assert "Beispielskill" in section
     assert "unrelated" not in section
+
+
+# --- extract_contact_section() (contact-info extraction pass) ---------------
+
+
+def test_contact_section_found_zoth_stub():
+    section, found = extract_contact_section(STUB_DESCRIPTION)
+    assert found is True
+    assert "bewerbung@zoth.de" in section
+    assert "Zoth GmbH & Co. KG" in section  # company name is real content, not filtered here
+
+
+def test_contact_section_captures_inline_ansprechpartner_vergoelst():
+    section, found = extract_contact_section(VERGOELST_EINZELHANDEL)
+    assert found is True
+    assert "ausbildung@vergoelst.de" in section
+    assert "Ausbildungsabteilung" in section
+
+
+def test_contact_section_not_found_when_only_dense_prose_sorg():
+    # Known v1 limitation, documented in the module: a contact invitation
+    # stated as one dense run-on sentence with no heading at all isn't
+    # found - safe under-extraction, not a fabrication risk.
+    section, found = extract_contact_section(SORG_MECHATRONIKER)
+    assert found is False
+    assert section == ""
+
+
+def test_contact_section_not_found_when_absent_pfizer():
+    section, found = extract_contact_section(PFIZER_MECHATRONIKER)
+    assert found is False
+    assert section == ""
+
+
+def test_contact_section_excludes_requirements_content_pfizer_style():
+    # Reuses HARTUNG_BAU_KAUFMANN, which has no contact section at all -
+    # confirms the contact isolator doesn't accidentally pick up
+    # requirements/career-prospects content as if it were a contact match.
+    section, found = extract_contact_section(HARTUNG_BAU_KAUFMANN)
+    assert found is False
+
+
+def test_empty_description_finds_no_contact_section():
+    section, found = extract_contact_section("")
+    assert found is False
+    assert section == ""
+    section, found = extract_contact_section(None)
+    assert found is False

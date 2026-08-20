@@ -22,6 +22,14 @@ short "Schulische Voraussetzung:" line followed later by a separate
 "Schlüsselqualifikationen" block) - confirmed in real data - so this
 scans the whole description and concatenates every matching section,
 rather than stopping at the first one.
+
+extract_contact_section() (contact/email extraction pass) reuses the same
+scanning engine (_scan_sections()) with its own header list and its own,
+deliberately looser boundary rule - see that function's docstring for why
+a second, independent isolator exists rather than extending the
+requirements one: contact/application info structurally lives in a
+different part of a posting and needs different matching, not because
+the underlying algorithm needed to change.
 """
 import re
 
@@ -47,7 +55,9 @@ REQUIREMENTS_HEADERS = [
 # section boundary like any other heading) - never themselves a source of
 # extraction input. Not load-bearing on their own - the generic
 # "_looks_like_a_heading" check below already catches most of these; kept
-# as an explicit list mainly for documentation/readability.
+# as an explicit list mainly for documentation/readability. Also reused
+# by extract_contact_section() as one of its topic-boundary signals (see
+# _is_topic_boundary below).
 NON_REQUIREMENTS_HEADERS = [
     "das erwartet dich",
     "was dich erwartet",
@@ -60,6 +70,33 @@ NON_REQUIREMENTS_HEADERS = [
     "deine stärken",
     "deine perspektive",
     "dein weg zu uns",
+]
+
+# Contact/application-info section headers (contact-info extraction pass).
+# Deliberately looser matching than REQUIREMENTS_HEADERS' plain startswith
+# list - see _matches_contact_header below - since real postings phrase
+# this heading far more variably ("Interessiert?", "Postalische
+# Bewerbungen an:", "Digitale Bewerbungen...", "Ansprechpartner:").
+#
+# Deliberately NOT a bare "kontakt" stem: "kontaktfreudigkeit" (a generic
+# soft trait, already excluded from skills in the extraction prompt for
+# the same reason) is a real, common word in these postings and starts
+# with that exact prefix - found live via a false-positive test failure
+# against a real fixture. "kontaktperson"/"kontaktdaten" etc. are specific
+# enough not to collide with it the same way.
+CONTACT_HEADER_STEMS = [
+    "interessiert",
+    "interesse geweckt",
+    "kontaktperson",
+    "kontaktdaten",
+    "kontaktinformation",
+    "kontaktmöglichkeit",
+    "kontaktangaben",
+    "ansprechpartner",
+    "ansprechpartnerin",
+    "jetzt bewerben",
+    "so bewirbst du dich",
+    "wir freuen uns auf",
 ]
 
 
@@ -105,10 +142,46 @@ def _looks_like_a_heading(raw_line, normalized):
     return False
 
 
-def extract_requirements_section(description):
-    """Returns (section_text, found: bool). found=False means no
-    confident requirements section was located - the caller should fall
-    back to the full description rather than treat this as an error."""
+def _matches_requirements_header(raw_line, normalized):
+    return bool(normalized) and any(normalized.startswith(phrase) for phrase in REQUIREMENTS_HEADERS)
+
+
+def _matches_contact_header(raw_line, normalized):
+    """Opens a contact/application section on either an explicit stem
+    match, or - since real postings phrase this so variably ("Postalische
+    Bewerbungen an:", "Digitale Bewerbungen entweder unter:") - any
+    heading-shaped line that simply mentions "bewerbung". The
+    heading-shape requirement (short/colon-ending/bold/# line, via the
+    same _looks_like_a_heading already proven for the requirements
+    isolator) is what keeps this from firing on a random sentence deep in
+    running prose that happens to mention the word."""
+    if not normalized:
+        return False
+    if any(normalized.startswith(stem) for stem in CONTACT_HEADER_STEMS):
+        return True
+    return "bewerbung" in normalized and _looks_like_a_heading(raw_line, normalized)
+
+
+def _is_topic_boundary(raw_line, normalized):
+    """Where a CONTACT section ends. Deliberately narrower than
+    _looks_like_a_heading (which the requirements isolator uses to end a
+    section): a real application/contact block legitimately contains its
+    own short sub-lines ("oder an:", "unter:") that must stay *inside*
+    the collected section, not be mistaken for a new topic. Only a real,
+    substantive topic heading (a requirements header, or a known
+    non-requirements one) ends a contact section - not any short label."""
+    return (
+        any(normalized.startswith(phrase) for phrase in REQUIREMENTS_HEADERS)
+        or any(normalized.startswith(phrase) for phrase in NON_REQUIREMENTS_HEADERS)
+    )
+
+
+def _scan_sections(description, is_section_start, is_section_boundary):
+    """Shared engine behind extract_requirements_section() and
+    extract_contact_section(): scans line-by-line for is_section_start()
+    matches, then collects everything up to the next is_section_boundary()
+    match (or end of description) as that section's text - concatenating
+    every matching section found, not just the first."""
     if not description:
         return "", False
 
@@ -119,10 +192,7 @@ def extract_requirements_section(description):
     while i < n:
         stripped_line = lines[i].strip()
         normalized_full = _normalize(stripped_line)
-        matched = normalized_full and any(
-            normalized_full.startswith(phrase) for phrase in REQUIREMENTS_HEADERS
-        )
-        if not matched:
+        if not is_section_start(stripped_line, normalized_full):
             i += 1
             continue
 
@@ -139,7 +209,7 @@ def extract_requirements_section(description):
         j = i + 1
         while j < n:
             normalized = _normalize(lines[j])
-            if normalized and _looks_like_a_heading(lines[j], normalized):
+            if normalized and is_section_boundary(lines[j], normalized):
                 break
             collected.append(lines[j])
             j += 1
@@ -152,3 +222,37 @@ def extract_requirements_section(description):
     if not sections:
         return "", False
     return "\n\n".join(sections), True
+
+
+def extract_requirements_section(description):
+    """Returns (section_text, found: bool). found=False means no
+    confident requirements section was located - the caller should fall
+    back to the full description rather than treat this as an error."""
+    return _scan_sections(description, _matches_requirements_header, _looks_like_a_heading)
+
+
+def extract_contact_section(description):
+    """Returns (section_text, found: bool) - same shape as
+    extract_requirements_section(). Isolates a posting's application/
+    contact-instructions section (e.g. "Interessiert?", "Postalische
+    Bewerbungen an:", "Ansprechpartner:") so app/ai/job_requirements_
+    extraction.py's contact-person/contact-email extraction can be
+    grounded against just that text, without ever showing the AI the
+    full description (which could contain curriculum/marketing text) the
+    same way the requirements isolator already avoids that for skills.
+
+    A separate isolator rather than reusing extract_requirements_section()
+    with a merged header list: contact/application headers are phrased far
+    more variably in practice, and - critically - contact blocks routinely
+    contain their own short "Label:" sub-lines ("oder an:", "unter:") as
+    *continuation* content, which the requirements isolator's boundary
+    rule (any short "Label:" line ends the section) would incorrectly cut
+    off before reaching the actual email. See _is_topic_boundary above.
+
+    Known v1 limitation, same character as the requirements isolator's own
+    (documented there): a posting that states contact info as a single
+    dense run-on sentence with no heading at all (observed live, e.g. a
+    SORG-Gruppe posting: "Bitte sende deine Bewerbung per E-Mail an:
+    CAREER@SORG.DE") won't be found - found=False, safe under-extraction,
+    not a fabrication risk."""
+    return _scan_sections(description, _matches_contact_header, _is_topic_boundary)
