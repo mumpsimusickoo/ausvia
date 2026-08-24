@@ -148,6 +148,24 @@ class ProviderQueryCache(db.Model):
     )
 
 
+class JobRadarStatus(db.Model):
+    """On-demand "Jetzt prüfen" job radar (design-audit follow-up,
+    2026-08-24 decision): one row per user, overwritten each time they
+    trigger a check via app/jobs/radar.py's run_job_radar(). Deliberately
+    request-triggered only - see that module's docstring for why no
+    scheduler/cron ever writes this table."""
+
+    __tablename__ = "job_radar_status"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False)
+    checked_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    new_job_count = db.Column(db.Integer, nullable=False, default=0)
+    new_job_ids = db.Column(db.JSON, nullable=True, default=list)
+
+    user = db.relationship("User")
+
+
 class JobSourceSetting(db.Model):
     """Admin-controlled enable/disable + last-run diagnostics per job source
     (spec: admin can manage job sources independently). One row per adapter,

@@ -3,7 +3,8 @@
 {% block title %}Candidate Profile — AUSVIA{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold text-slate-900">Candidate Profile</h1>
-<p class="mt-1 text-sm text-slate-600 mb-6">This is the single source of truth the AI will use when generating anything on your behalf. Nothing is invented beyond what's here.</p>
+<p class="mt-1 text-sm text-slate-600">This is the single source of truth the AI will use when generating anything on your behalf. Nothing is invented beyond what's here.</p>
+<a href="{{ url_for('profile.download_cv') }}" class="mt-3 mb-6 inline-block rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Download CV (PDF)</a>
 
 <div class="space-y-6">
 

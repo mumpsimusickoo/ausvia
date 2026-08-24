@@ -9,6 +9,7 @@ from app.models.job import Job, SavedJob
 from app.models.manual_import import ManualImportBatch
 from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewForm
 from app.jobs.ingest import ingest_search, enrich_job_detail
+from app.jobs.radar import run_job_radar
 from app.ai.job_requirements_extraction import extract_job_requirements
 from app.tasks.runner import submit_task
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
@@ -58,6 +59,27 @@ def search():
         match_by_job_id=match_by_job_id,
         searched=bool(form.keywords.data),
     )
+
+
+@bp.route("/check-now", methods=["POST"])
+@login_required
+@limiter.limit("10 per hour")
+def check_now():
+    """On-demand job radar (design-audit decision, 2026-08-24) - triggered
+    only by this request, never by a scheduler. See app/jobs/radar.py."""
+    try:
+        new_jobs, errors = run_job_radar(current_user)
+    except ValueError as e:
+        flash(str(e), "error")
+        return redirect(url_for("main.dashboard"))
+
+    if new_jobs:
+        flash(f"{len(new_jobs)} new listing{'s' if len(new_jobs) != 1 else ''} found.", "success")
+    else:
+        flash("No new listings found for your preferences right now.", "info")
+    for source, message in errors:
+        flash(f"{source}: {message}", "error")
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/saved")

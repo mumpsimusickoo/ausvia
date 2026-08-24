@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+import io
+
+from flask import Blueprint, render_template, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
@@ -15,6 +17,7 @@ from app.models.ai import PROCESS_QA_QUESTIONS
 from app.ai.provider import AIProviderError
 from app.ai.profile_coaching import get_profile_coaching, generate_profile_coaching
 from app.ai.process_qa import get_process_qa_answer, generate_process_qa_answer
+from app.profile.cv_export import build_cv_pdf, safe_cv_filename
 from app.utils.logging import log_event
 
 bp = Blueprint("profile", __name__, url_prefix="/profile")
@@ -71,6 +74,22 @@ def view():
         coaching=get_profile_coaching(current_user),
         qa_questions=PROCESS_QA_QUESTIONS,
         qa_answers={key: get_process_qa_answer(current_user, key) for key in PROCESS_QA_QUESTIONS},
+    )
+
+
+@bp.route("/cv.pdf", methods=["GET"])
+@login_required
+def download_cv():
+    """Real, deterministic PDF export of the candidate's own profile data
+    (design-audit decision, 2026-08-24) - no AI call, see
+    app/profile/cv_export.py's module docstring."""
+    profile = _get_or_create_profile()
+    pdf_bytes = build_cv_pdf(profile)
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        download_name=safe_cv_filename(profile.full_name),
+        as_attachment=True,
+        mimetype="application/pdf",
     )
 
 

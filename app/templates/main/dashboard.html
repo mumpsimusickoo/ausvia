@@ -32,13 +32,46 @@
   </div>
   {% endfor %}
 </div>
-<p class="mt-3 text-xs text-slate-400">Follow-up reminders and job-radar new-match counts arrive in a later phase.</p>
+<p class="mt-3 text-xs text-slate-400">Follow-up reminders arrive in a later phase.</p>
 
 <div class="mt-10 grid gap-5 md:grid-cols-2">
   <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
     <h2 class="font-semibold text-slate-900">Priority digest</h2>
     <p class="mt-2 text-sm text-slate-600">Which saved jobs and active applications deserve attention this week - deadlines, interviews, follow-ups due, and stalled applications, computed from what's already on file.</p>
     <a href="{{ url_for('main.priority_digest') }}" class="mt-4 inline-block text-sm font-medium text-brand-700 hover:underline">Show my priority digest &rarr;</a>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="font-semibold text-slate-900">Job radar</h2>
+        <p class="mt-2 text-sm text-slate-600">
+          Search your enabled job sources right now for new postings matching your Ausbildung preferences.
+          {% if radar_status %}
+            Last checked manually on {{ radar_status.checked_at.strftime('%d.%m.%Y %H:%M') }} - found {{ radar_status.new_job_count }} new listing{{ 's' if radar_status.new_job_count != 1 else '' }}.
+          {% else %}
+            You haven't run a check yet.
+          {% endif %}
+        </p>
+      </div>
+      <form method="post" action="{{ url_for('jobs.check_now') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 whitespace-nowrap">Check now</button>
+      </form>
+    </div>
+    {% if radar_jobs %}
+    <div class="mt-4 divide-y divide-slate-100 border-t border-slate-100">
+      {% for job in radar_jobs %}
+      <div class="flex items-center justify-between gap-3 py-3">
+        <div>
+          <a href="{{ url_for('jobs.detail', job_id=job.id) }}" class="font-medium text-slate-900 hover:underline">{{ job.title }}</a>
+          <p class="text-sm text-slate-500">{{ job.company_name or "—" }}{% if job.location %} · {{ job.location }}{% endif %}</p>
+        </div>
+        <span class="text-sm font-semibold text-brand-700 tabular-nums whitespace-nowrap">{{ radar_matches[job.id].score if radar_matches[job.id].score is not none else "—" }}/100</span>
+      </div>
+      {% endfor %}
+    </div>
+    <a href="{{ url_for('jobs.search') }}" class="mt-3 inline-block text-sm font-medium text-brand-700 hover:underline">Open Find Ausbildung &rarr;</a>
+    {% endif %}
   </div>
 </div>
 

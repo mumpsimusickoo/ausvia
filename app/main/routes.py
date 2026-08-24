@@ -4,9 +4,10 @@ from flask import Blueprint, render_template, redirect, url_for
 from flask_login import login_required, current_user
 
 from app.models.document import Document
-from app.models.job import SavedJob
+from app.models.job import SavedJob, Job, JobRadarStatus
 from app.models.application import Application
 from app.priority_digest import compute_priority_digest
+from app.jobs.matching import get_or_compute_match
 
 bp = Blueprint("main", __name__)
 
@@ -61,6 +62,14 @@ def dashboard():
     applications_sent = sum(1 for a in applications if a.status not in ("preparing", "ready"))
     interviews = sum(1 for a in applications if a.status == "interview")
 
+    radar_status = JobRadarStatus.query.filter_by(user_id=current_user.id).first()
+    radar_jobs = []
+    if radar_status and radar_status.new_job_ids:
+        jobs_by_id = {j.id: j for j in Job.query.filter(Job.id.in_(radar_status.new_job_ids)).all()}
+        radar_jobs = [jobs_by_id[jid] for jid in radar_status.new_job_ids if jid in jobs_by_id]
+    # deterministic, no AI call - same cheap per-result computation search() already does
+    radar_matches = {job.id: get_or_compute_match(current_user, job) for job in radar_jobs}
+
     return render_template(
         "main/dashboard.html",
         greeting=_time_of_day_greeting(),
@@ -72,6 +81,9 @@ def dashboard():
         applications_sent=applications_sent,
         interviews=interviews,
         completeness=profile.completeness_percent() if profile else 0,
+        radar_status=radar_status,
+        radar_jobs=radar_jobs,
+        radar_matches=radar_matches,
     )
 
 
