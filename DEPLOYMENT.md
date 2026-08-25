@@ -147,6 +147,43 @@ static/compile-time verification, not a substitute for actually running
 before the first production deploy - recommended as the actual final check
 once real hosting is set up.
 
+## Post-deploy checklist
+
+**Every push that includes a migration must be followed by these three
+steps before the deploy is considered done — not just "code pushed":**
+
+1. Run `flask db upgrade` against the production database (Railway's
+   console/shell, or `railway run flask db upgrade` if using the CLI).
+2. Confirm the migration actually applied: `flask db current` should show
+   the new head revision, not the one before it.
+3. Load the app's main authenticated screen (`/dashboard`) as a real
+   logged-in user and confirm it renders - not just `GET /health` (which
+   deliberately does no DB check, by design, so it stays green even when
+   a table is missing) and not just a green CI run (the test suite runs
+   against its own throwaway SQLite DB, created fresh via the *current*
+   models on every run - it can never observe a stale *production*
+   database missing a migration, because there's no such thing as a stale
+   test database).
+
+**Why this is a checklist and not a one-off note:** on 2026-08-25, the Job
+Radar feature shipped with a migration (`job_radar_status` table) that
+was never run against Railway's Postgres - the code was correct, tests
+passed, the push succeeded, and the dashboard 500'd in production for an
+unknown period because every dashboard load queried a table that didn't
+exist. Nothing in the deploy path would have caught this automatically:
+`/health` doesn't touch the DB, the test suite's DB is always fresh, and
+the failure mode looked exactly like a code bug from the outside (a
+generic 500, logged server-side, no user-facing detail) - it took
+comparing Railway's Postgres revision against the repo's migration head
+to actually find it. Full incident writeup: `DECISIONS.md`'s 2026-08-25
+"Deploy gap" entry.
+
+This matters more than it might look like from one incident: the planned
+AUSVIA 2.0 reliability-field work adds a column to seven existing models,
+which is seven more chances to repeat this exact failure - a migration
+that's correct, tested, and pushed, but never actually run against the
+real database.
+
 ## Known gaps / things to decide before going live
 
 1. **Generated PDF application packages stay on local disk even when

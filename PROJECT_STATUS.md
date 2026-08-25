@@ -274,14 +274,15 @@ for a redesign pass. Status:
   rasterizer available in this environment) at 8x supersampling from the
   exact path coordinates - visually confirmed, not just asserted; no
   `.ico`/apple-touch-icon/manifest exists in this repo, so none were
-  invented. The wordmark (Sora SemiBold, lowercase, -4% tracking) is
-  completely untouched - only the symbol changed. One pre-existing
-  inconsistency flagged, not fixed (out of this pass's explicit
-  "symbol only" scope): the wordmark's light-surface text color still
-  hardcodes the pre-tokens-pass `ink` hex (`#0B1220`), not the current
-  `#0C1013`. Full detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces
-  Aperture", `DECISIONS.md`'s 2026-08-25 entry. Full pytest suite: 442
-  passed / 3 skipped, unchanged.
+  invented. The wordmark's shape/spec (Sora SemiBold, lowercase, -4%
+  tracking) is completely untouched - only the symbol changed. One drift
+  bug caught and fixed within this pass: the wordmark's light-surface
+  text color was still hardcoding the pre-tokens-pass `ink` hex
+  (`#0B1220`), corrected to the current `#0C1013` - initially flagged as
+  out-of-scope, folded in on review as a one-line, zero-risk fix. Full
+  detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces Aperture",
+  `DECISIONS.md`'s 2026-08-25 entries. Full pytest suite: 442 passed / 3
+  skipped, unchanged.
 - **Next actual step:** the screens/components pass, dark mode, and
   everything else in the AUSVIA 2.0 mockup beyond the tokens and the now-
   resolved logo decision - **not yet scoped or started.** The token layer
@@ -321,6 +322,26 @@ for a redesign pass. Status:
 
 Full detail: `SECURITY.md`.
 
+## Deployment reliability
+
+**2026-08-25 incident:** the dashboard 500'd in production for an unknown
+period because the Job Radar migration (`job_radar_status` table) was
+never run against Railway's Postgres after that feature shipped - code,
+migration, and tests were all correct; the operational step of actually
+running `flask db upgrade` against production was the gap. Nothing in the
+existing deploy path would have caught it: `/health` deliberately does no
+DB check, and the test suite runs against its own always-fresh SQLite DB,
+so it can never observe a stale production database. Fixed (migration
+applied, production confirmed at head) and closed with a real process
+change, not just a note: `DEPLOYMENT.md` now has a **"Post-deploy
+checklist"** - after any push containing a migration, run
+`flask db upgrade` against production, confirm `flask db current` shows
+the new head, and load `/dashboard` as a real user before calling the
+deploy done. Full incident writeup: `DECISIONS.md`'s 2026-08-25 "Deploy
+gap" entry. This isn't a one-off concern - the planned reliability-field
+work adds a column to seven existing models, each one a fresh chance to
+repeat this exact failure without the checklist.
+
 ## Current UI/design status
 
 Functionally complete and internally consistent - the same handful of
@@ -333,11 +354,11 @@ hex values, a Porzellan page background and neutral text/border scale
 (replacing Tailwind `slate` app-wide), green/amber semantics unchanged
 - see `DESIGN_SYSTEM.md` for the full token table and role mapping. **The
 symbol is now Wegmarke** (two offset tracks, 48-grid), implemented
-2026-08-25 - Aperture rev 1.0 is retired. The wordmark (Sora SemiBold,
-lowercase, -4% tracking) needed no rework and wasn't touched. See
-`DESIGN_SYSTEM.md`'s "Logo - Wegmarke replaces Aperture" for construction,
-color roles, and the one flagged-but-unfixed wordmark-color leftover
-(out of that pass's explicit symbol-only scope).
+2026-08-25 - Aperture rev 1.0 is retired. The wordmark's shape/spec (Sora
+SemiBold, lowercase, -4% tracking) needed no rework and wasn't touched;
+its text color had one drift bug (a leftover pre-tokens-pass `ink` hex),
+caught and fixed the same day. See `DESIGN_SYSTEM.md`'s "Logo - Wegmarke
+replaces Aperture" for construction and color roles.
 
 There is still no shared component library beyond a couple of form-
 rendering macros - every card/button/badge/pill is a repeated (but

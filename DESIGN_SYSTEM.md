@@ -400,17 +400,27 @@ rework.** The bundle's own type section documents the wordmark exactly as
 path baked into `_logo.html` (extracted from the real licensed Sora
 SemiBold font via `fontTools`) stays exactly valid and was not touched —
 only the symbol half of every lockup changed this pass. The wordmark's
-own text color (`#0B1220` on light, `#FFFFFF` on dark, set via each
-lockup call site's `wordmark_color` param) is likewise untouched — out of
-this pass's explicit scope ("only the symbol beside it changes"). One
-pre-existing inconsistency noticed but deliberately not fixed here: the
-light-surface default (`#0B1220`, "Ink Navy") is the *old*, pre-tokens-pass
-`ink` surface hex — the tokens pass renamed the surface token to
-`#0C1013` without updating this same hex's other historical use as
-light-surface wordmark text (see the 2026-08-11 "Ink Navy as a real
-foundation element" note). Real, but a wordmark-color question, and this
-pass's scope is the symbol only — flagged for a future pass, not silently
-folded in here.
+own text color is `#0C1013` on light, `#FFFFFF` on dark, set via each
+lockup call site's `wordmark_color` param.
+
+**One real drift bug, caught and fixed, not just flagged:** the
+light-surface default had been hardcoded as `#0B1220` — the *old*,
+pre-tokens-pass `ink` surface hex. The tokens pass renamed the surface
+token to `#0C1013` without updating this same hex's other historical use
+as light-surface wordmark text (see the 2026-08-11 "Ink Navy as a real
+foundation element" note), leaving a genuine leftover of the retired
+value live in production. This pass initially flagged it as
+out-of-scope ("symbol only") and left it; on review that was too
+conservative for a one-line, zero-risk correction of an already-retired
+literal — fixed in `_logo.html`'s `wordmark()`/`lockup()` macro defaults
+and the four static SVGs that hardcoded it
+(`ausvia-lockup-primary-light.svg`, `ausvia-lockup-stacked.svg`,
+`ausvia-lockup-tagline.svg`, `ausvia-wordmark-ink.svg`). Confirmed zero
+remaining live references via grep (the only two `#0B1220` occurrences
+left in the codebase are accurate historical comments noting what the
+value used to be, not live color). Live-verified against the running
+dev server: the landing page's served HTML now renders the wordmark in
+`#0C1013`.
 
 **Clear space and minimum sizes**, transcribed from the bundle's
 "FREIRAUM & MINDESTGRÖSSE" note: clear space is half the mark's height, on

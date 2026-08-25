@@ -517,13 +517,16 @@ for a redesign pass, started 2026-08-24.
       static brand assets and the favicon (PNG raster regenerated via
       Pillow - no SVG rasterizer available in this environment) were
       regenerated to match; no `.ico`/apple-touch-icon/manifest exists in
-      this repo, so none were invented. The wordmark (Sora SemiBold,
-      lowercase, -4% tracking) is completely untouched - only the symbol
-      changed. One pre-existing inconsistency flagged, not fixed (out of
-      this pass's "symbol only" scope): the wordmark's light-surface text
-      color still hardcodes the pre-tokens-pass `ink` hex. Full detail:
-      `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces Aperture",
-      `DECISIONS.md`'s 2026-08-25 entry.
+      this repo, so none were invented. The wordmark's shape/spec (Sora
+      SemiBold, lowercase, -4% tracking) is completely untouched - only
+      the symbol changed. One drift bug caught and fixed within this
+      pass: the wordmark's light-surface text color was still hardcoding
+      the pre-tokens-pass `ink` hex (`#0B1220`), corrected to the current
+      `#0C1013` in `_logo.html`'s macro defaults and the four static SVGs
+      that hardcoded it - initially flagged as out-of-scope, folded in on
+      review as a one-line, zero-risk fix rather than left for its own
+      pass. Full detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces
+      Aperture", `DECISIONS.md`'s 2026-08-25 entries.
 - [ ] **Screens/components pass, dark mode, and everything else** in the
       AUSVIA 2.0 mockup beyond the tokens and the now-resolved logo
       decision above - not yet scoped or started. The named token layer

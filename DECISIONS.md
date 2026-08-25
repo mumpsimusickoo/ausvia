@@ -6,6 +6,72 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-25 — Deploy gap: Job Radar's migration was never run against production; added a post-deploy checklist
+
+**Decision:** Not a code decision - a process one. The dashboard 500'd in
+production (Railway) for an unknown period because the `job_radar_status`
+table migration, shipped as part of the Job Radar feature, was never
+applied to Railway's Postgres database. Every `/dashboard` load queries
+that table (`app/main/routes.py`); on production it didn't exist, so
+every load 500'd. Confirmed root cause: Railway's Postgres was at
+migration head `f3653f96d36d` while the repo (and every environment that
+had run `flask db upgrade` since) was at `5405dd108168`. Fixed by running
+`flask db upgrade` in Railway's console - production is now at head and
+the dashboard renders. Added a "Post-deploy checklist" to
+`DEPLOYMENT.md`: after any push containing a migration, run
+`flask db upgrade` against production, confirm `flask db current` shows
+the new head, and load `/dashboard` as a real user before calling the
+deploy done.
+
+**Reason:** This wasn't a code bug and no amount of code review would
+have caught it - the code, migration, and tests were all correct. It was
+a missing operational step: the migration file existed and was correct,
+but nobody ran it against the actual production database after the push
+that shipped it. Three separate signals that should have caught this
+didn't, each for a specific reason worth naming rather than glossing
+over: `GET /health` returns `200` with no DB check at all, by deliberate
+design (documented in `app/main/routes.py`'s own comment) - so it stayed
+green through the entire incident. The pytest suite passed (442/3) both
+before and after this incident because it runs against its own
+fresh-per-run SQLite database, created from the *current* models on every
+invocation - it can never observe a stale *production* database missing
+a migration, because "a stale test database" isn't a state that exists.
+And the failure itself was indistinguishable from a real code bug from
+the outside: a generic, already-logged 500 page, no user-facing detail -
+which is why the first two rounds of investigating this (see the
+foundation-tokens-pass and logo-pass conversation history) chased code-
+level theories (a collapsed Jinja conditional, a template auto-reload
+race) that were reasonable given the evidence available at the time, but
+wrong. Both were falsified by direct testing before being reported as
+fact, not assumed - but neither found the real cause, because the real
+cause wasn't observable from inside the app at all, only by comparing the
+repo's migration head against Railway's actual applied revision.
+
+**Alternatives considered:** Treating this as sufficiently explained by
+"someone forgot a step" and not documenting it further - rejected,
+because the actual finding is that *nothing in the deploy path makes
+forgetting that step visible*, which is a real, fixable gap, not just
+this one instance of human error. Making `/health` check the database -
+considered and rejected for this fix: `/health` is deliberately minimal
+(no DB/dependency check) so the *process* being alive is distinguishable
+from the *app* being healthy, which matters for host-level restart
+decisions; conflating the two would make a slow DB query able to fail a
+liveness probe and cause unnecessary restarts. The right fix is a
+checklist step that actually loads the app, not a heavier health check.
+
+**Consequences:** `DEPLOYMENT.md` now has a "Post-deploy checklist"
+section - not previously documented anywhere in the repo (checked: no
+`DEPLOY.md`, `DEPLOYMENT.md` existed but only had a one-line "run
+`flask db upgrade` before first traffic" note scoped to *initial* setup,
+not an ongoing post-push step). This matters beyond this one incident:
+the planned AUSVIA 2.0 reliability-field work adds a column to seven
+existing models - seven more chances to ship a correct, tested,
+migration-bearing pass and have it silently not take effect in
+production the same way. No code changed as part of this entry; the
+dashboard 500 is already resolved by the migration having been run.
+
+---
+
 ## 2026-08-25 — Retire Aperture (rev 1.0), implement Wegmarke as the AUSVIA symbol
 
 **Decision:** Replaced the Aperture symbol (a route-climbing-to-a-point
@@ -73,14 +139,18 @@ supersampling from the exact path coordinates, since no SVG rasterizer
 (cairosvg/Inkscape/ImageMagick) is available in this environment — visibly
 confirmed correct, not just asserted. No `.ico`, `apple-touch-icon`, or
 web manifest exists in this repo to regenerate; none were invented. One
-pre-existing inconsistency was found and deliberately left alone, not
-folded into this pass: the wordmark's light-surface text color still
-hardcodes the *pre-tokens-pass* `ink` hex (`#0B1220`), not the current
-`#0C1013` — a wordmark-color question, out of this pass's explicit
-"symbol only" scope, flagged in `DESIGN_SYSTEM.md` for a future pass.
-`LOGO.md` was not rewritten (it's now a historical record of Aperture,
-which didn't change) but got a superseded-notice pointing here. Full
-pytest suite: 442 passed / 3 skipped, unchanged.
+pre-existing inconsistency was found: the wordmark's light-surface text
+color still hardcoded the *pre-tokens-pass* `ink` hex (`#0B1220`), not the
+current `#0C1013`. Initially flagged as out-of-scope ("symbol only") and
+left for a future pass; on the same-day follow-up review that was judged
+too conservative for a one-line, zero-risk correction of an
+already-retired literal, and fixed the same day in a small follow-up
+commit (see `DESIGN_SYSTEM.md`'s "Logo — Wegmarke replaces Aperture" for
+the current, corrected state). `LOGO.md` was not rewritten (it's now a
+historical
+record of
+Aperture, which didn't change) but got a superseded-notice pointing here.
+Full pytest suite: 442 passed / 3 skipped, unchanged.
 
 ---
 
