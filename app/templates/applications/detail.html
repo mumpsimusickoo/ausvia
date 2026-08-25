@@ -17,7 +17,7 @@
   <a href="{{ url_for('jobs.detail', job_id=application.job.id) }}" class="text-brand hover:underline">View job posting &rarr;</a>
 </p>
 
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-t1">Cover letter (Anschreiben)</h2>
     <form method="post" action="{{ url_for('applications.generate_cover_letter_route', application_id=application.id) }}">
@@ -28,21 +28,21 @@
   {% if application.cover_letter %}
   <p class="text-xs text-t2 mb-2">
     Source: {{ application.cover_letter.source }}{% if application.cover_letter.provider %} ({{ application.cover_letter.provider }}){% endif %} ·
-    {% if application.cover_letter.validated %}<span class="text-green-700">Validated</span>{% else %}<span class="text-amber-700">Needs review</span>{% endif %}
+    {% if application.cover_letter.validated %}<span class="text-ok">Validated</span>{% else %}<span class="text-warn">Needs review</span>{% endif %}
     {% if application.cover_letter.validation_notes %} — {{ application.cover_letter.validation_notes }}{% endif %}
   </p>
   <form method="post" action="{{ url_for('applications.save_cover_letter', application_id=application.id) }}">
     {{ cover_letter_form.hidden_tag() }}
     <label for="cover-letter-content" class="sr-only">Cover letter text</label>
     <textarea id="cover-letter-content" name="content" rows="16" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm font-mono">{{ application.cover_letter.content }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save edits</button>
+    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
   <p class="text-sm text-t2">No cover letter yet.</p>
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-t1">Application email</h2>
     <form method="post" action="{{ url_for('applications.generate_email_route', application_id=application.id) }}">
@@ -56,7 +56,7 @@
     {{ render_field(email_form.subject) }}
     <label for="email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
     <textarea id="email-body" name="body" rows="8" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ application.email.body }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save edits</button>
+    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
   <p class="text-sm text-t2">No email drafted yet.</p>
@@ -64,7 +64,7 @@
 </section>
 
 {% if application.status in ("sent", "follow_up") or application.follow_up_email %}
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-3">
     <h2 class="font-semibold text-t1">Follow-up email</h2>
     {% if application.status in ("sent", "follow_up") %}
@@ -83,7 +83,7 @@
     {{ render_field(followup_email_form.subject) }}
     <label for="followup-email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
     <textarea id="followup-email-body" name="body" rows="6" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ application.follow_up_email.body }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save edits</button>
+    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
   <p class="text-sm text-t2">No follow-up drafted yet.</p>
@@ -91,7 +91,7 @@
 </section>
 {% endif %}
 
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-1">
     <h2 class="font-semibold text-t1">Interview prep</h2>
   </div>
@@ -111,7 +111,7 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-1">
     <h2 class="font-semibold text-t1">CV profile statement</h2>
   </div>
@@ -141,7 +141,7 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <h2 class="font-semibold text-t1 mb-3">Documents to include</h2>
   <form method="post" action="{{ url_for('applications.select_documents', application_id=application.id) }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -165,19 +165,19 @@
   <div class="flex flex-wrap gap-3">
     <form method="post" action="{{ url_for('applications.approve', application_id=application.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Approve application</button>
+      <button class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Approve application</button>
     </form>
     {% if application.package_storage_path %}
-    <a href="{{ url_for('applications.download_package', application_id=application.id) }}" class="rounded-lg border border-tint2 bg-white px-4 py-2 text-sm font-semibold text-brand hover:bg-tint">Download PDF package</a>
+    <a href="{{ url_for('applications.download_package', application_id=application.id) }}" class="rounded-lg border border-tint2 bg-card px-4 py-2 text-sm font-semibold text-brand hover:bg-tint">Download PDF package</a>
     {% endif %}
     {% if application.status == "ready" %}
     <form method="post" action="{{ url_for('applications.mark_sent', application_id=application.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg border border-line2 bg-white px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">I sent this myself — mark as sent</button>
+      <button class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">I sent this myself — mark as sent</button>
     </form>
     <form method="post" action="{{ url_for('applications.create_gmail_draft', application_id=application.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg border border-line2 bg-white px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">Create Gmail draft (optional)</button>
+      <button class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">Create Gmail draft (optional)</button>
     </form>
     {% endif %}
   </div>
@@ -214,7 +214,7 @@
   tall that row's description text actually is, rather than a hand-tuned
   absolute-positioned guess.
 #}
-<section class="mt-6 rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-center justify-between mb-1">
     <h2 class="font-semibold text-t1">Application status</h2>
     {% if status_route.terminal_label %}
@@ -225,15 +225,15 @@
     {% for s in status_route.stations %}
     <div class="flex flex-col items-center">
       {% if s.current %}
-      <span class="w-6 h-6 rounded-full bg-white border-4 border-ink box-border shrink-0 flex items-center justify-center" aria-hidden="true">
+      <span class="w-6 h-6 rounded-full bg-card border-4 border-ink box-border shrink-0 flex items-center justify-center" aria-hidden="true">
         <span class="w-2.5 h-2.5 rounded-full bg-brand"></span>
       </span>
       {% elif s.skipped %}
-      <span class="w-3.5 h-3.5 rounded-full bg-white border-2 border-dashed border-brand box-border shrink-0" aria-hidden="true"></span>
+      <span class="w-3.5 h-3.5 rounded-full bg-card border-2 border-dashed border-brand box-border shrink-0" aria-hidden="true"></span>
       {% elif s.reached %}
       <span class="w-3.5 h-3.5 rounded-full bg-brand shrink-0" aria-hidden="true"></span>
       {% else %}
-      <span class="w-3.5 h-3.5 rounded-full bg-white border-2 border-solid border-ink/20 box-border shrink-0" aria-hidden="true"></span>
+      <span class="w-3.5 h-3.5 rounded-full bg-card border-2 border-solid border-ink/20 box-border shrink-0" aria-hidden="true"></span>
       {% endif %}
       {% if not loop.last %}
       <span class="w-0.5 flex-1 {% if status_route.stations[loop.index0 + 1].reached %}bg-brand{% else %}bg-ink/20{% endif %}" style="min-height: 8px"></span>
@@ -286,7 +286,7 @@
         {{ render_field(status_form.status) }}
       </div>
     </details>
-    <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Update</button>
+    <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Update</button>
   </form>
 </section>
 
@@ -304,7 +304,7 @@
   {% if reply_check_task and reply_check_task.is_active %}
   <p class="mb-3 text-xs text-brand">Checking for replies in the background — refresh to see results.</p>
   {% elif reply_check_task and reply_check_task.status == "error" %}
-  <p class="mb-3 text-xs text-red-600">Last check failed: {{ reply_check_task.error_message }}</p>
+  <p class="mb-3 text-xs text-err">Last check failed: {{ reply_check_task.error_message }}</p>
   {% endif %}
 
   {% if not gmail_connected %}
@@ -319,7 +319,7 @@
   {% else %}
   <div class="space-y-4">
     {% for msg in gmail_messages %}
-    <div class="rounded-lg border border-line bg-white p-4">
+    <div class="rounded-lg border border-line bg-card p-4">
       <div class="flex items-start justify-between">
         <div>
           <p class="text-sm font-semibold text-t1">{{ msg.subject or "(no subject)" }}</p>
@@ -356,7 +356,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="reply-text-{{ msg.id }}" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Suggested reply ({{ msg.ai_suggested_reply_provider }}) - edit before sending</label>
         <textarea id="reply-text-{{ msg.id }}" name="reply_text" rows="5" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
-        <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Create reply draft in Gmail</button>
+        <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Create reply draft in Gmail</button>
       </form>
       {% endif %}
     </div>
@@ -365,13 +365,13 @@
   {% endif %}
 </section>
 
-<section class="mt-6 rounded-xl border border-red-200 bg-white shadow-sm p-6">
+<section class="mt-6 rounded-xl border border-err/40 bg-card shadow-sm p-6">
   <h2 class="font-semibold text-t1 mb-2">Delete this application</h2>
   {% if application.status in ("preparing", "ready") %}
   <p class="text-sm text-t2 mb-3">Nothing has been sent yet - this only removes draft work in progress.</p>
   <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" id="delete-application-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Delete application</button>
+    <button type="submit" class="rounded-lg border border-err/50 px-4 py-2 text-sm font-semibold text-err hover:bg-err-tint">Delete application</button>
   </form>
   {# CSP-safe: a real listener attached from a nonce'd script, not an
      inline onsubmit="" attribute - this app's CSP has no 'unsafe-inline'
@@ -395,7 +395,7 @@
       <label for="confirm-delete-text" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Type DELETE to confirm</label>
       <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-line2 px-3 py-2 text-sm">
     </div>
-    <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Delete application</button>
+    <button type="submit" class="rounded-lg border border-err/50 px-4 py-2 text-sm font-semibold text-err hover:bg-err-tint">Delete application</button>
   </form>
   {% endif %}
 </section>

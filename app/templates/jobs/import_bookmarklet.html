@@ -8,7 +8,7 @@
   Nothing is saved until you review it and press "Save opportunity" below.
 </p>
 
-<section class="rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="rounded-xl border border-line bg-card shadow-sm p-6">
   <form method="post" action="{{ url_for('jobs.import_save') }}">
     {{ review_form.hidden_tag() }}
     <div class="grid gap-4 sm:grid-cols-2">
@@ -19,7 +19,7 @@
       {{ render_field(review_form.application_url) }}
     </div>
     {{ render_field(review_form.description) }}
-    <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save opportunity</button>
+    <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save opportunity</button>
   </form>
 </section>
 

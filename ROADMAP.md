@@ -527,13 +527,50 @@ for a redesign pass, started 2026-08-24.
       review as a one-line, zero-risk fix rather than left for its own
       pass. Full detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces
       Aperture", `DECISIONS.md`'s 2026-08-25 entries.
-- [ ] **Screens/components pass, dark mode, and everything else** in the
-      AUSVIA 2.0 mockup beyond the tokens and the now-resolved logo
-      decision above - not yet scoped or started. The named token layer
-      (`text-display`/`text-title`/`text-section`/etc., `rounded-panel`,
-      `shadow-hairline`/`shadow-overlay`) is now available for it; adopting
-      those tokens on existing headings/cards site-wide is itself part of
-      this not-yet-started work, not something the tokens pass did.
+- [x] **Screen inventory, verified against the repo** - an element-by-
+      element read of all 10 bundle screens plus the theme/component-layer
+      addendum, bucketed A (restyle)/B (new UI, existing data)/C (new
+      backend)/D (prototype-only). Every bucket call checked against the
+      live repo, not the project docs the inventory was originally read
+      against - corrections filed alongside the original, not silently
+      overwritten. Full detail: `AUSVIA_2_0_SCREEN_INVENTORY.md`.
+- [x] **Theme pass** - real Porzellan/Tinte light/dark toggle, 2026-08-25,
+      reversing the foundation-tokens pass's "ink is fixed, no toggle"
+      decision. CSS custom properties under `[data-theme="dark"]` on
+      `<html>`, not Tailwind `dark:` variants - no class name in any
+      template changed, only the token values swap. Bundle verified
+      directly (unpacked its self-extracting artifact payload, not
+      inferred from screenshots): the sidebar follows the theme (was
+      fixed-ink, now `bg-card`); the mobile topbar/drawer and the landing
+      hero stay fixed-ink, confirmed against the bundle rather than
+      assumed. Icon-only toggle (sun/moon), `localStorage` persistence,
+      `prefers-color-scheme` on first visit, no flash of the wrong theme
+      (nonce'd synchronous script ahead of first paint). Two real
+      accessibility bugs caught by measuring before migrating, not after:
+      a fixed white button-label text fails AA on several dark-mode fills
+      at rest (not just on hover) - fixed with one new derived token
+      (`on-fill`); Tailwind's stock semantic colors (never migrated when
+      `ok`/`warn`/`err`/`info` were first defined) fail AA against the new
+      dark card - migrated 62 occurrences across 18 templates, plus 68
+      `bg-white`→`bg-card` card-panel sites and 27 `text-white`→
+      `text-on-fill` button-label sites. Full detail: `DESIGN_SYSTEM.md`
+      "Theme architecture - 2026-08-25 pass", `DECISIONS.md`'s 2026-08-25
+      entry. One disclosed gap: no browser-automation tool was available
+      to do a live rendered-in-both-themes visual pass this session -
+      verified via CSS values, contrast math, and confirmed template
+      rendering instead.
+- [ ] **i18n pass** - English default with a language switcher (reserved
+      space for it already sits beside the new theme toggle), German body
+      copy for AI-generated prose per the bundle's own bilingual rule -
+      not yet scoped or started.
+- [ ] **Component layer and remaining screen re-layouts** - buttons,
+      inputs, status pills, chips, the Intelligence surface, and the
+      per-screen redesigns beyond tokens/logo/theme - not yet scoped or
+      started. The named token layer (`text-display`/`text-title`/
+      `text-section`/etc., `rounded-panel`, `shadow-hairline`/
+      `shadow-overlay`) is now available for it; adopting those tokens on
+      existing headings/cards site-wide is itself part of this
+      not-yet-started work.
 
 ## Explicitly not scheduled
 

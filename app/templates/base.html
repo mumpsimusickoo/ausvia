@@ -7,18 +7,91 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/favicon.svg') }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/favicon-32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='brand/favicon-16.png') }}">
+  {#
+    Theme pass, 2026-08-25: must run before first paint, synchronously,
+    ahead of the Tailwind CDN script below - it sets data-theme on <html>
+    so the :root[data-theme="dark"] variable block (in the <style> further
+    down) matches immediately. A deferred or late script here would produce
+    exactly the flash-of-wrong-theme this exists to prevent. script-src has
+    no 'unsafe-inline' (see app/security_headers.py) so this MUST carry the
+    nonce or it's silently blocked - which would also produce a flash, just
+    a different one (stuck on the CSS default until the click handler ever
+    fires). Order of preference: explicit stored choice, then the OS
+    preference, then the CSS default (light) if neither is available.
+  #}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      try {
+        var stored = localStorage.getItem('ausvia-theme');
+        var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) { /* localStorage unavailable (private mode, etc.) - fall through to the light default */ }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  {#
+    Theme pass, 2026-08-25: the light/dark values themselves are unchanged
+    from the foundation-tokens pass below - this block only restructures
+    HOW they're referenced. Bundle-verified: the bundle's own light :root
+    and [data-theme="dark"] blocks are byte-identical to this file's
+    existing light set and ink-*/bright-* set respectively (see
+    DESIGN_SYSTEM.md "Theme architecture" for the full comparison). Real
+    custom properties, not Tailwind's dark: variant - swapping :root values
+    means every existing class name (bg-paper, text-t1, border-line, ...)
+    keeps working unchanged in both themes; dark: would have required a
+    second class at ~500 call sites instead.
+  #}
+  <style>
+    :root {
+      --page:#F2F5F6; --card:#FFFFFF; --raised:#FAFBFB; --line:#E3E8EA; --line2:#CFD4D6;
+      --t1:#101619; --t2:#55636D; --t3:#8A96A0;
+      --brand:#0B767D; --brand-hover:#075A61;
+      --tint:#EDF6F6; --tint2:#D3EAEB;
+      --ok:#14713F; --ok-tint:#E9F2ED;
+      --warn:#8A6008; --warn-tint:#FAF3E4;
+      --err:#AE3227; --err-tint:#FAEDEB;
+      --info:#2C6E9B; --info-tint:#EAF1F7;
+      /* Text/icon color for anything sitting on a FILLED brand/semantic
+         surface (primary buttons today; filled status pills once the
+         component pass builds them). Not a bundle value - derived and
+         measured for this pass because the naive answer (white in both
+         themes) fails AA at rest in dark mode for every one of these
+         fills, not just on hover: white on dark brand #12949B measures
+         3.66:1, on dark ok #4BBE7E 2.34:1, on dark warn #D9A22B 2.29:1,
+         on dark err #E4665A 3.31:1, on dark info #5FA6D6 2.65:1 - all
+         fail AA (4.5:1). Ink text passes comfortably on every one of
+         those (5.22-8.33:1), and still passes on all five LIGHT fills
+         (5.38-6.39:1) even though white is also fine there - so one
+         shared variable that flips with the theme, not five separate
+         on-brand/on-ok/on-warn/... tokens. Full table in DESIGN_SYSTEM.md.
+      */
+      --on-fill:#FFFFFF;
+    }
+    :root[data-theme="dark"] {
+      --page:#0C1013; --card:#12171B; --raised:#171E23; --line:#222A30; --line2:#303B42;
+      --t1:#E9EFF1; --t2:#9DABB3; --t3:#6E7C85;
+      --brand:#12949B; --brand-hover:#3FBFC4;
+      --tint:#0E2327; --tint2:#123337;
+      --ok:#4BBE7E; --ok-tint:#0F2419;
+      --warn:#D9A22B; --warn-tint:#241C0B;
+      --err:#E4665A; --err-tint:#251311;
+      --info:#5FA6D6; --info-tint:#0E1D26;
+      --on-fill:#0C1013;
+    }
+  </style>
   <script nonce="{{ csp_nonce }}">
-    // AUSVIA 2.0 foundation tokens, 2026-08-25 pass - values extracted
-    // verbatim from the approved 2.0 mockup bundle's Foundations screen
-    // (light :root block + fixed dark [data-theme="dark"] block; no
-    // toggle exists or was built - the dark values are a second, fixed
-    // surface, same as the old `ink`/`bright` pair, just re-sourced).
+    // AUSVIA 2.0 foundation tokens, 2026-08-25 pass, restructured for the
+    // theme pass (2026-08-25, same day): every role below now resolves to
+    // a CSS custom property (defined in the <style> block just above) that
+    // swaps under :root[data-theme="dark"], instead of a static hex
+    // literal. Values are unchanged from the original pass - verified
+    // against the bundle directly this time (see DESIGN_SYSTEM.md).
     // Full role table, mapping rationale, and measured contrast numbers:
-    // DESIGN_SYSTEM.md "Foundation tokens - 2026-08-25 pass".
+    // DESIGN_SYSTEM.md "Foundation tokens - 2026-08-25 pass" and
+    // "Theme architecture - 2026-08-25 pass".
     tailwind.config = {
       theme: {
         extend: {
@@ -61,62 +134,75 @@
             'ink-overlay': '0 16px 40px -12px rgba(0,0,0,.6)',
           },
           colors: {
-            // Light-surface neutrals (Porzellan) - the bundle's card token
-            // (#FFFFFF) is already exactly Tailwind's `white`, already used
-            // everywhere; no new token needed for it. These four are real
-            // additions, replacing Tailwind `slate` app-wide (see
-            // DESIGN_SYSTEM.md for the measured deltas and the full
-            // shade-to-role mapping table, same method as `brand`).
-            raised: '#FAFBFB',
-            line: '#E3E8EA',
-            line2: '#CFD4D6',
-            t1: '#101619',
-            t2: '#55636D',
-            t3: '#8A96A0',
-            // Tiefsee-Teal - the single accent, light surfaces.
-            brand: '#0B767D',
-            'brand-hover': '#075A61',
-            // Light wash pair - info-card/badge fill+border, not a shade
-            // ramp (the 2.0 system doesn't have one - see DESIGN_SYSTEM.md).
-            tint: '#EDF6F6',
-            tint2: '#D3EAEB',
-            // Page background (Porzellan) - was the warm #FAF8F5.
-            paper: '#F2F5F6',
-            // Semantic tokens - defined from the bundle, not yet wired into
-            // the app's existing green-600/amber-600/red-600 usage. See
-            // DESIGN_SYSTEM.md.
-            ok: '#14713F', 'ok-tint': '#E9F2ED',
-            warn: '#8A6008', 'warn-tint': '#FAF3E4',
-            err: '#AE3227', 'err-tint': '#FAEDEB',
-            info: '#2C6E9B', 'info-tint': '#EAF1F7',
-            // Fixed dark surface (sidebar, hero) - not a toggleable dark
-            // mode. Complete palette defined per explicit instruction even
-            // though only a subset has a live consumer today (noted below).
+            // Theme-following roles - each resolves to a CSS custom
+            // property that swaps under :root[data-theme="dark"] (defined
+            // above). Class names are unchanged from the original
+            // foundation-tokens pass; only the value source changed, from
+            // a static hex literal to var(--x). See DESIGN_SYSTEM.md
+            // "Theme architecture - 2026-08-25 pass" for which surfaces
+            // this applies to and which stay fixed (below).
+            card: 'var(--card)',       // new this pass - see note below
+            raised: 'var(--raised)',
+            line: 'var(--line)',
+            line2: 'var(--line2)',
+            t1: 'var(--t1)',
+            t2: 'var(--t2)',
+            t3: 'var(--t3)',
+            brand: 'var(--brand)',
+            'brand-hover': 'var(--brand-hover)',
+            tint: 'var(--tint)',
+            tint2: 'var(--tint2)',
+            paper: 'var(--page)',      // page background (Porzellan/Tinte)
+            ok: 'var(--ok)', 'ok-tint': 'var(--ok-tint)',
+            warn: 'var(--warn)', 'warn-tint': 'var(--warn-tint)',
+            err: 'var(--err)', 'err-tint': 'var(--err-tint)',
+            info: 'var(--info)', 'info-tint': 'var(--info-tint)',
+            // Text/icon color for content sitting on a filled brand or
+            // semantic surface (see the --on-fill definition above for
+            // the measured reasoning). New this pass.
+            'on-fill': 'var(--on-fill)',
+            // `card` didn't exist before this pass - the light value
+            // (#FFFFFF) was just Tailwind's built-in `white`, used
+            // directly everywhere a panel needed a light background. That
+            // stops working once dark mode exists: `white` itself must
+            // stay a literal, fixed color (it's also used for on-ink text
+            // and white/NN overlays on the surfaces that stay fixed below,
+            // and redirecting the built-in would have silently broken
+            // those). `card` is the new theme-aware name for "elevated
+            // panel background" - the old literal `bg-white` class was
+            // swapped to `bg-card` at every card/section/panel call site
+            // (not at the on-ink
+            // text-white / border-white / white/NN sites, which are
+            // correct as literal white and untouched).
+
+            // Fixed palette - deliberately NOT var()-based, unaffected by
+            // the theme toggle. Used only by surfaces confirmed (against
+            // the bundle directly, not assumed) to stay ink regardless of
+            // theme: the mobile topbar/drawer, the landing hero (no
+            // bundle equivalent exists to model a themed version on - see
+            // DESIGN_SYSTEM.md), and the bg-ink/20 divider trick in the
+            // application-detail station tracker (a fixed-black-at-opacity
+            // effect, not a themed surface - it would invert into a
+            // near-invisible light-gray-on-light-gray in light mode if
+            // this were var-based).
             ink: '#0C1013',
-            'ink-card': '#12171B',   // no current consumer
-            'ink-raised': '#171E23', // no current consumer
-            'ink-line': '#222A30',   // no current consumer (still border-white/10)
-            'ink-line2': '#303B42',  // no current consumer
-            'ink-t1': '#E9EFF1',     // no current consumer (white used instead)
-            'ink-t2': '#9DABB3',     // sidebar nav/secondary text
+            'ink-card': '#12171B',
+            'ink-raised': '#171E23',
+            'ink-line': '#222A30',
+            'ink-line2': '#303B42',
+            'ink-t1': '#E9EFF1',
+            'ink-t2': '#9DABB3',     // mobile topbar/drawer nav text
             'ink-t3': '#6E7C85',     // NOT used anywhere - fails AA at normal text size, see DESIGN_SYSTEM.md
-            // Dark-surface light-wash pair - the ink analogue of tint/tint2
-            // above (info-card/badge fill+border, on ink). No current
-            // consumer - nothing on ink needs a tinted panel yet.
             'ink-tint': '#0E2327', 'ink-tint2': '#123337',
-            // Dark-surface semantic set - the ink analogue of
-            // ok/warn/err/info above. No current consumer - no semantic
-            // status UI exists on ink yet, same reasoning as the light set.
             'ink-ok': '#4BBE7E', 'ink-ok-tint': '#0F2419',
             'ink-warn': '#D9A22B', 'ink-warn-tint': '#241C0B',
             'ink-err': '#E4665A', 'ink-err-tint': '#251311',
             'ink-info': '#5FA6D6', 'ink-info-tint': '#0E1D26',
-            // Accent text/icon on ink (nav-active, hero badge, logo symbol
-            // on dark) - was #3B82F6.
+            // Accent text/icon on ink (mobile topbar/drawer nav-active,
+            // landing hero badge, logo symbol on the surfaces above).
             bright: '#4FC3C9',
-            // Primary action FILL specifically on ink surfaces - distinct
-            // from `bright` (a text/icon accent). New this pass; see the
-            // landing-hero-CTA fix in DESIGN_SYSTEM.md's role-mapping table.
+            // Primary action FILL specifically on the fixed-ink landing
+            // hero. Distinct from `bright` (a text/icon accent).
             'bright-action': '#12949B',
             'bright-action-hover': '#3FBFC4',
           },
@@ -175,60 +261,108 @@
     ('integrations.gmail_status', 'Gmail'),
   ] %}
   {#
-    Foundation-tokens pass, 2026-08-25: sidebar/drawer text switched from
-    text-slate-300/400/500 to ink-t2 uniformly (not the bundle's three-tier
-    t1/t2/t3 - ink-t3 fails AA at this surface's actual text sizes, see
-    DESIGN_SYSTEM.md). Every interactive element here also gained a real
-    focus outline (focus:outline-bright) for the first time - previously
-    none of them had any custom focus style, relying on the unverified
-    browser default against the dark sidebar.
+    Theme pass, 2026-08-25: nav_links() is now shared between two surfaces
+    that render it differently - the desktop sidebar (theme-following,
+    reversing the old always-ink sidebar per bundle section 11: "every
+    surface follows the theme") and the mobile drawer (stays fixed-ink,
+    confirmed against the bundle's own Mobile screen - see
+    DESIGN_SYSTEM.md). The nav ITEM LIST stays single-sourced (the Phase 7
+    "never drift" reason this is a shared macro at all); only the color
+    classes branch on `surface`. Active-item treatment on the themed
+    surface (tint fill, t1/t2 text split, brand inset border) matches the
+    bundle's own nav-item rendering, read directly from its controller
+    logic - not invented.
   #}
-  {% macro nav_links() %}
+  {% macro nav_links(surface='fixed-ink') %}
+  {% set themed = surface == 'themed' %}
   <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
     {% for endpoint, label in nav_items %}
+    {% set active = request.endpoint == endpoint %}
     <a href="{{ url_for(endpoint) }}"
-       class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
-         {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}">
+       class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
+         {% if themed %}
+           focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand
+           {% if active %}bg-tint text-t1 shadow-[inset_2px_0_0_var(--brand)]{% else %}text-t2 hover:bg-tint hover:text-t1{% endif %}
+         {% else %}
+           focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+           {% if active %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}
+         {% endif %}">
       {{ label }}
     </a>
     {% endfor %}
     {% if current_user.is_admin %}
-    <div class="pt-4 mt-4 border-t border-white/10">
-      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-t2">Admin</p>
-      <a href="{{ url_for('admin.overview') }}"
-         class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}">
-        Admin Dashboard
+    <div class="pt-4 mt-4 border-t {% if themed %}border-line{% else %}border-white/10{% endif %}">
+      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide {% if themed %}text-t2{% else %}text-ink-t2{% endif %}">Admin</p>
+      {% for endpoint, label in [('admin.overview', 'Admin Dashboard'), ('admin.codes', 'Invitation Codes'), ('admin.users', 'Users'), ('admin.job_sources', 'Job Sources'), ('admin.ai_usage', 'AI Usage')] %}
+      {# Original behavior, preserved: only "Admin Dashboard" ever shows
+         active, and it does so for the whole admin blueprint (not just the
+         exact overview page) - the other four links never highlight. #}
+      {% set active = endpoint == 'admin.overview' and request.blueprint == 'admin' %}
+      <a href="{{ url_for(endpoint) }}"
+         class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
+           {% if themed %}
+             focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand
+             {% if active %}bg-tint text-t1 shadow-[inset_2px_0_0_var(--brand)]{% else %}text-t2 hover:bg-tint hover:text-t1{% endif %}
+           {% else %}
+             focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+             {% if active %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}
+           {% endif %}">
+        {{ label }}
       </a>
-      <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Invitation Codes</a>
-      <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Users</a>
-      <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Job Sources</a>
-      <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">AI Usage</a>
+      {% endfor %}
     </div>
     {% endif %}
   </nav>
-  <div class="px-3 py-4 border-t border-white/10 text-sm">
-    <p class="px-3 truncate text-ink-t2">{{ current_user.email }}</p>
-    <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Log out</a>
+  <div class="px-3 py-4 border-t {% if themed %}border-line{% else %}border-white/10{% endif %} text-sm">
+    <p class="px-3 truncate {% if themed %}text-t2{% else %}text-ink-t2{% endif %}">{{ current_user.email }}</p>
+    <a href="{{ url_for('auth.logout') }}"
+       class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
+         {% if themed %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand
+         {% else %}text-ink-t2 hover:bg-white/5 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright{% endif %}">Log out</a>
   </div>
   {% endmacro %}
   {% from "_logo.html" import lockup %}
-  {% from "_icons.html" import menu, cross %}
+  {% from "_icons.html" import menu, cross, sun, moon %}
 
   {#
-    Logo-replacement pass, 2026-08-25: all three lockups below sit on the
-    bg-ink shell, so symbol_color is `bright` (#4FC3C9), not `brand` - the
-    same ink/light split the sidebar's other accent uses already followed.
-    wordmark_color stays #FFFFFF, untouched by this pass (symbol only).
+    Theme pass, 2026-08-25: icon-only toggle, shared markup for both the
+    mobile topbar and the new desktop top bar (see below) - each instance
+    gets its own id since a page can render both (desktop bar hidden below
+    md, mobile header hidden at/above md) and ids must be unique. moon
+    shows in light mode (click goes dark), sun shows in dark mode (click
+    goes light); base.html's script toggles [hidden] on whichever icon
+    doesn't match the current theme rather than swapping markup.
+  #}
+  {% macro theme_toggle(id, fixed_ink=false) %}
+  <button type="button" id="{{ id }}" class="theme-toggle-btn rounded-lg p-2 transition-colors duration-150
+      {% if fixed_ink %}text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+      {% else %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand{% endif %}"
+      aria-label="Switch to dark theme">
+    <span class="theme-toggle-icon-moon">{{ moon(18) }}</span>
+    <span class="theme-toggle-icon-sun" hidden>{{ sun(18) }}</span>
+  </button>
+  {% endmacro %}
+
+  {#
+    Logo-replacement pass, 2026-08-25: the mobile topbar/drawer lockups
+    below sit on the fixed bg-ink shell, so symbol_color stays the literal
+    `bright` (#4FC3C9) and wordmark_color stays literal #FFFFFF - neither
+    surface follows the theme (confirmed against the bundle's own Mobile
+    screen, see DESIGN_SYSTEM.md). The desktop sidebar lockup further down
+    is different: that surface now follows the theme, so its colors do too.
   #}
   <!-- Mobile top bar: only the entry point below md, where the sidebar is hidden -->
   <header class="md:hidden sticky top-0 z-40 flex items-center justify-between bg-ink px-4 py-3">
     <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
       {{ lockup(22, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
     </a>
-    <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
-            aria-label="Open menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
-      {{ menu(22) }}
-    </button>
+    <div class="flex items-center gap-1">
+      {{ theme_toggle('theme-toggle-mobile', fixed_ink=true) }}
+      <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
+              aria-label="Open menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
+        {{ menu(22) }}
+      </button>
+    </div>
   </header>
 
   <!-- Mobile nav drawer: hidden by default, toggled by mobile-nav.js below -->
@@ -275,16 +409,74 @@
     })();
   </script>
 
+  {#
+    Theme pass, 2026-08-25: click handler shared by both toggle instances
+    (mobile topbar + desktop top bar) - toggling one flips the actual
+    theme, so both buttons' icon/label state are kept in sync together
+    rather than each tracking its own local state.
+  #}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var buttons = document.querySelectorAll('.theme-toggle-btn');
+      function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      }
+      function sync() {
+        var dark = currentTheme() === 'dark';
+        buttons.forEach(function (btn) {
+          btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+          btn.querySelector('.theme-toggle-icon-moon').hidden = dark;
+          btn.querySelector('.theme-toggle-icon-sun').hidden = !dark;
+        });
+      }
+      function toggleTheme() {
+        var next = currentTheme() === 'dark' ? 'light' : 'dark';
+        if (next === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        try { localStorage.setItem('ausvia-theme', next); } catch (e) { /* private mode, etc. - theme still applies this session */ }
+        sync();
+      }
+      buttons.forEach(function (btn) { btn.addEventListener('click', toggleTheme); });
+      sync();
+    })();
+  </script>
+
   <div class="flex min-h-screen">
-    <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
-      <div class="px-5 py-5 border-b border-white/10">
-        <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
-          {{ lockup(26, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
+    {#
+      Theme pass, 2026-08-25: bg-card (was bg-ink) - the sidebar now
+      follows the theme, per the bundle's own section 11 ("every surface
+      follows the theme") and confirmed directly against its markup
+      (background: var(--card)) rather than assumed. wordmark_color uses
+      t1 (theme-aware) to match; symbol_color uses brand for the same
+      reason - both were literal fixed colors before this pass, correct
+      only because the surface itself was fixed.
+    #}
+    <aside class="hidden md:flex w-60 shrink-0 flex-col bg-card border-r border-line">
+      <div class="px-5 py-5 border-b border-line">
+        <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand">
+          {{ lockup(26, symbol_color="var(--brand)", wordmark_color="var(--t1)") }}
         </a>
       </div>
-      {{ nav_links() }}
+      {{ nav_links(surface='themed') }}
     </aside>
     <div class="flex-1 min-w-0">
+      {#
+        Theme pass, 2026-08-25: new - desktop had no persistent chrome
+        above the content before this. Deliberately minimal (a control
+        strip, not a header): just the theme toggle and reserved space for
+        the language switcher the next pass adds beside it. No bundle
+        equivalent exists for this specific bar (checked directly - the
+        bundle's own top bar with tabs is its screen-switcher demo chrome,
+        not product UI; none of the real screens render one), so this is
+        an original minimal treatment using theme tokens only, not a
+        bundle-sourced pattern. See DESIGN_SYSTEM.md.
+      #}
+      <header class="hidden md:flex items-center justify-end gap-2 h-14 px-6 bg-card border-b border-line">
+        {{ theme_toggle('theme-toggle-desktop') }}
+      </header>
       <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">
         {% include "_flashes.html" %}
         {% block content %}{% endblock %}

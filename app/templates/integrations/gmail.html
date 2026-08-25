@@ -7,9 +7,9 @@
   what's needed to detect replies to your own applications. You always review and send yourself.
 </p>
 
-<section class="rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="rounded-xl border border-line bg-card shadow-sm p-6">
   {% if not configured %}
-  <p class="text-sm text-amber-700">
+  <p class="text-sm text-warn">
     Gmail isn't configured on this instance yet - an admin needs to set <code>GOOGLE_CREDENTIALS_JSON</code>
     or add <code>credentials.json</code>. See README.md.
   </p>
@@ -26,7 +26,7 @@
   </div>
   {% else %}
   <p class="text-sm text-t2 mb-4">Connect your Gmail account to create application drafts and detect replies.</p>
-  <a href="{{ url_for('integrations.gmail_connect') }}" class="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">
+  <a href="{{ url_for('integrations.gmail_connect') }}" class="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">
     Connect Gmail
   </a>
   {% endif %}

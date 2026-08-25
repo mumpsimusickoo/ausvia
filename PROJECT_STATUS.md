@@ -283,14 +283,63 @@ for a redesign pass. Status:
   detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces Aperture",
   `DECISIONS.md`'s 2026-08-25 entries. Full pytest suite: 442 passed / 3
   skipped, unchanged.
-- **Next actual step:** the screens/components pass, dark mode, and
-  everything else in the AUSVIA 2.0 mockup beyond the tokens and the now-
-  resolved logo decision - **not yet scoped or started.** The token layer
-  this pass shipped (named font sizes, `rounded-panel`,
-  `shadow-hairline`/`shadow-overlay`, the full color table) is available
-  for it; actually adopting those tokens on existing headings/cards/screens
-  site-wide is itself part of that not-yet-started
-  work, not something this pass did.
+- **Screen inventory verified against the repo, 2026-08-25** - an
+  element-by-element read of all 10 bundle screens plus the theme/
+  component-layer addendum, bucketed A (restyle)/B (new UI, existing
+  data)/C (new backend)/D (prototype-only). Every bucket call was checked
+  against the live repo, not the project docs it was originally read
+  against - corrections filed alongside the original inventory, not
+  silently overwritten, since the whole point was to see what was wrong.
+  Full detail: `AUSVIA_2_0_SCREEN_INVENTORY.md`.
+- **Theme pass done, 2026-08-25** - a real Porzellan/Tinte light/dark
+  toggle, reversing the foundation-tokens pass's explicit "ink is fixed,
+  no toggle" decision (product direction changed, not a correction of
+  that pass). Built on CSS custom properties swapping under
+  `[data-theme="dark"]` on `<html>` - not Tailwind `dark:` variants, which
+  would have doubled every one of the ~500 existing color-class call
+  sites. No class name in any template changed; only the token values
+  swap. The bundle was verified directly (its self-extracting artifact
+  payload was unpacked, not inferred from screenshots): the sidebar now
+  follows the theme (`bg-card`, was fixed `bg-ink`) since the bundle's own
+  markup is `background: var(--card)`; the mobile topbar/drawer and the
+  landing hero stay fixed-ink, confirmed rather than assumed (the bundle's
+  own copy says the mobile chrome "stays" ink; its landing page has no
+  themed hero to model a light version on, so the app's hero was left
+  exactly as-is by explicit decision, pending the eventual landing
+  re-layout pass). Icon-only toggle, `localStorage` persistence,
+  `prefers-color-scheme` respected on first visit, no flash of the wrong
+  theme (a nonce'd synchronous script sets the theme attribute before
+  first paint). Measuring contrast *before* migrating, not after, caught
+  two real bugs rather than shipping them: a fixed white button-label text
+  passes AA on every light-mode fill but fails on several dark-mode fills
+  at rest, not just on hover (3.66:1-2.29:1, well under the 4.5:1
+  threshold) - fixed with one new derived token (`on-fill`, not five
+  separate per-fill tokens, since the fix is identical for all of them);
+  and Tailwind's stock semantic colors (`green-700`/`amber-700`/
+  `red-600`, never migrated when `ok`/`warn`/`err`/`info` were first
+  defined) pass AA against a light card but fail against the new dark
+  card - migrated 62 occurrences across 18 templates, alongside 68
+  `bg-white`→`bg-card` card-panel sites (33 on-ink `white/NN` overlays
+  correctly excluded) and 27 `text-white`→`text-on-fill` button-label
+  sites. Full contrast tables (12 pairings, both themes, all passing AA):
+  `DESIGN_SYSTEM.md` "Theme architecture - 2026-08-25 pass",
+  `DECISIONS.md`'s 2026-08-25 entry. Full pytest suite: 442 passed / 3
+  skipped, unchanged - this pass is templates/CSS/JS only, no schema
+  change. One disclosed gap: no browser-automation tool was available in
+  this environment to do a live rendered-in-both-themes visual pass this
+  session - verified via CSS values, contrast math, and confirmed
+  template rendering (no Jinja errors, expected classes present in
+  output) instead of a screenshot check.
+- **Next actual step:** the i18n pass (English default, language
+  switcher - reserved space for it already sits beside the new theme
+  toggle) and the component layer (buttons, inputs, status pills, chips,
+  the Intelligence surface) plus the remaining per-screen re-layouts -
+  **not yet scoped or started.** The token layer shipped across the
+  tokens/logo/theme passes (named font sizes, `rounded-panel`,
+  `shadow-hairline`/`shadow-overlay`, the full color table incl. `card`/
+  `on-fill`) is available for it; actually adopting those tokens on
+  existing headings/cards/screens site-wide is itself part of that
+  not-yet-started work, not something these passes did.
 
 ## Security posture
 
@@ -348,17 +397,23 @@ Functionally complete and internally consistent - the same handful of
 Tailwind utility patterns (card, button tiers, status pill, progress bar)
 are reused correctly across all templates with no visual drift. Brand
 colors now match the **AUSVIA 2.0 foundation-tokens pass** (2026-08-25):
-Tiefsee-Teal primary (light surfaces) / a distinct ink-surface action
-color (dark surfaces), the fixed ink sidebar/hero foundation on updated
-hex values, a Porzellan page background and neutral text/border scale
-(replacing Tailwind `slate` app-wide), green/amber semantics unchanged
-- see `DESIGN_SYSTEM.md` for the full token table and role mapping. **The
-symbol is now Wegmarke** (two offset tracks, 48-grid), implemented
-2026-08-25 - Aperture rev 1.0 is retired. The wordmark's shape/spec (Sora
-SemiBold, lowercase, -4% tracking) needed no rework and wasn't touched;
-its text color had one drift bug (a leftover pre-tokens-pass `ink` hex),
-caught and fixed the same day. See `DESIGN_SYSTEM.md`'s "Logo - Wegmarke
-replaces Aperture" for construction and color roles.
+Tiefsee-Teal primary, a Porzellan page background and neutral text/border
+scale (replacing Tailwind `slate` app-wide) - see `DESIGN_SYSTEM.md` for
+the full token table and role mapping. **The symbol is now Wegmarke** (two
+offset tracks, 48-grid), implemented 2026-08-25 - Aperture rev 1.0 is
+retired. The wordmark's shape/spec (Sora SemiBold, lowercase, -4%
+tracking) needed no rework and wasn't touched; its text color had one
+drift bug (a leftover pre-tokens-pass `ink` hex), caught and fixed the
+same day. See `DESIGN_SYSTEM.md`'s "Logo - Wegmarke replaces Aperture" for
+construction and color roles. **A real light/dark theme toggle shipped**
+the same day, superseding the tokens pass's "ink is a fixed surface, no
+toggle" decision - the sidebar now follows the theme, the mobile
+topbar/drawer and the landing hero stay fixed-ink (verified against the
+bundle, not assumed), and the green/amber/red semantics referenced above
+are no longer Tailwind's stock literals - they're now the theme-aware
+`ok`/`warn`/`err`/`info` tokens, migrated because the stock colors fail
+AA against the new dark surfaces. See `DESIGN_SYSTEM.md`'s "Theme
+architecture - 2026-08-25 pass".
 
 There is still no shared component library beyond a couple of form-
 rendering macros - every card/button/badge/pill is a repeated (but

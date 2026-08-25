@@ -18,7 +18,7 @@
     {{ field(class_="w-full rounded-lg border border-line2 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes, aria_describedby=field.id ~ "-error", aria_invalid="true") }}
     <div id="{{ field.id }}-error">
       {% for error in field.errors %}
-      <p class="mt-1 text-xs text-red-600">{{ error }}</p>
+      <p class="mt-1 text-xs text-err">{{ error }}</p>
       {% endfor %}
     </div>
   {% else %}

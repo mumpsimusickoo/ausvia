@@ -12,7 +12,7 @@
 <div class="space-y-3">
   {% for item in items %}
   <a href="{% if item.kind == 'application' %}{{ url_for('applications.detail', application_id=item.url_kwargs.application_id) }}{% else %}{{ url_for('jobs.detail', job_id=item.url_kwargs.job_id) }}{% endif %}"
-     class="block rounded-xl border border-line bg-white shadow-sm p-5 hover:border-tint2">
+     class="block rounded-xl border border-line bg-card shadow-sm p-5 hover:border-tint2">
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="font-medium text-t1">{{ item.title }}</p>
@@ -31,7 +31,7 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="rounded-xl border border-line bg-white shadow-sm p-6">
+<div class="rounded-xl border border-line bg-card shadow-sm p-6">
   <p class="text-sm text-t2">Nothing needs attention right now - no upcoming deadlines, interviews, or follow-ups due, and nothing has been sitting idle. Check back later or after you save/apply to more opportunities.</p>
 </div>
 {% endif %}

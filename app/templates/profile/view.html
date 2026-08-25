@@ -8,7 +8,7 @@
 
 <div class="space-y-6">
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Personal information</h2>
     <form method="post" action="{{ url_for('profile.update_personal') }}">
       {{ personal_form.hidden_tag() }}
@@ -24,11 +24,11 @@
         {{ render_field(personal_form.phone) }}
         {{ render_field(personal_form.contact_email) }}
       </div>
-      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save</button>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Education</h2>
     {% for edu in profile.education_entries %}
     <div class="flex items-start justify-between border-b border-line py-3 last:border-0">
@@ -39,7 +39,7 @@
       </div>
       <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}">
         {{ education_form.csrf_token }}
-        <button type="submit" class="text-xs font-medium text-red-600 hover:underline">Remove</button>
+        <button type="submit" class="text-xs font-medium text-err hover:underline">Remove</button>
       </form>
     </div>
     {% else %}
@@ -58,12 +58,12 @@
           {{ render_field(education_form.end_date) }}
         </div>
         {{ render_field(education_form.description) }}
-        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
+        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Add</button>
       </form>
     </details>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Experience</h2>
     {% for exp in profile.experience_entries %}
     <div class="flex items-start justify-between border-b border-line py-3 last:border-0">
@@ -74,7 +74,7 @@
       </div>
       <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}">
         {{ experience_form.csrf_token }}
-        <button type="submit" class="text-xs font-medium text-red-600 hover:underline">Remove</button>
+        <button type="submit" class="text-xs font-medium text-err hover:underline">Remove</button>
       </form>
     </div>
     {% else %}
@@ -92,12 +92,12 @@
         </div>
         {{ render_field(experience_form.responsibilities) }}
         {{ render_field(experience_form.achievements) }}
-        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
+        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Add</button>
       </form>
     </details>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Skills</h2>
     <div class="flex flex-wrap gap-2 mb-4">
       {% for skill in profile.skills %}
@@ -105,7 +105,7 @@
         {{ skill.name }}{% if skill.proficiency %} <span class="text-t2">· {{ skill.proficiency }}</span>{% endif %}
         <form method="post" action="{{ url_for('profile.delete_skill', entry_id=skill.id) }}" class="inline">
           {{ skill_form.csrf_token }}
-          <button type="submit" class="text-t2 hover:text-red-600" aria-label="Remove skill">&times;</button>
+          <button type="submit" class="text-t2 hover:text-err" aria-label="Remove skill">&times;</button>
         </form>
       </span>
       {% else %}
@@ -116,11 +116,11 @@
       {{ skill_form.hidden_tag() }}
       <div>{{ render_field(skill_form.name) }}</div>
       <div>{{ render_field(skill_form.proficiency) }}</div>
-      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
+      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Add</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Languages</h2>
     <div class="flex flex-wrap gap-2 mb-4">
       {% for lang in profile.languages %}
@@ -128,7 +128,7 @@
         {{ lang.name }}{% if lang.level %} <span class="text-t2">· {{ lang.level }}</span>{% endif %}
         <form method="post" action="{{ url_for('profile.delete_language', entry_id=lang.id) }}" class="inline">
           {{ language_form.csrf_token }}
-          <button type="submit" class="text-t2 hover:text-red-600" aria-label="Remove language">&times;</button>
+          <button type="submit" class="text-t2 hover:text-err" aria-label="Remove language">&times;</button>
         </form>
       </span>
       {% else %}
@@ -139,11 +139,11 @@
       {{ language_form.hidden_tag() }}
       <div>{{ render_field(language_form.name) }}</div>
       <div>{{ render_field(language_form.level) }}</div>
-      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
+      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Add</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <div class="flex items-center justify-between mb-1">
       <h2 class="font-semibold text-t1">Profile coaching</h2>
     </div>
@@ -163,7 +163,7 @@
     {% endif %}
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-1">Common questions</h2>
     <p class="text-xs text-t2 mb-4">Grounded answers to common Ausbildung process questions - pick one, no free-text chat.</p>
     <div class="space-y-3">
@@ -189,7 +189,7 @@
     </div>
   </section>
 
-  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-card shadow-sm p-6">
     <h2 class="font-semibold text-t1 mb-4">Ausbildung preferences</h2>
     <form method="post" action="{{ url_for('profile.update_preferences') }}">
       {{ preference_form.hidden_tag() }}
@@ -202,7 +202,7 @@
       </div>
       {{ render_checkbox(preference_form.open_to_relocation) }}
       {{ render_field(preference_form.other_notes) }}
-      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save preferences</button>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save preferences</button>
     </form>
   </section>
 

@@ -1,14 +1,20 @@
 # Design System — AUSVIA
 
-Status: **AUSVIA 2.0 foundation-tokens pass implemented**, 2026-08-25 — see
-the dated section immediately below. This pass is colors/typography/
-spacing/radius/shadow/focus only, extracted from the approved AUSVIA 2.0
-mockup bundle's own "Foundations" reference screen (audit bucket D — a
-style-guide screen, not a real product page, but the authoritative token
-source). No screens, components, or the logo changed. Everything below the
-new section is the prior rev-1.0 record, kept for history; two of its
-subsections (Typography decision, Color tokens) are explicitly superseded
-and say so at the top.
+Status: **Theme pass implemented**, 2026-08-25 — see "Theme architecture —
+2026-08-25 pass" below. This supersedes the foundation-tokens pass's "fixed
+dark surface, no toggle" decision: the app now has a real light/dark theme
+toggle (Porzellan/Tinte), built on CSS custom properties. See
+`DECISIONS.md` for the supersession entry.
+
+Prior status, still accurate for everything it covers: **AUSVIA 2.0
+foundation-tokens pass implemented**, 2026-08-25 — see the dated section
+immediately below. This pass is colors/typography/spacing/radius/shadow/
+focus only, extracted from the approved AUSVIA 2.0 mockup bundle's own
+"Foundations" reference screen (audit bucket D — a style-guide screen, not
+a real product page, but the authoritative token source). No screens,
+components, or the logo changed. Everything below the new section is the
+prior rev-1.0 record, kept for history; two of its subsections (Typography
+decision, Color tokens) are explicitly superseded and say so at the top.
 
 ## Foundation tokens — 2026-08-25 pass
 
@@ -112,11 +118,16 @@ reached/not-reached distinction is still carried by the label line above it
 and the connector color, just no longer double-encoded on the description
 line too.
 
-The authenticated sidebar and landing hero use a **fixed dark surface, not
-a toggleable dark mode** — no theme switch was built. The bundle's own
-dark block is still the real source for these values; "complete dark
-palette, sidebar-only consumer" per explicit instruction, so more is
-defined here than currently has a call site (noted per row).
+**Superseded 2026-08-25 (theme pass, same day) for the sidebar; still
+accurate for the landing hero.** The paragraph below described the
+sidebar and landing hero as both using "a fixed dark surface, not a
+toggleable dark mode." That's no longer true for the sidebar — see "Theme
+architecture" below: the sidebar now follows the theme (confirmed
+directly against the bundle's own markup, `background: var(--card)`). The
+landing hero remains fixed, by explicit decision (also in that section) —
+the bundle has no themed version of it to model one on. The table
+immediately below is otherwise unchanged and is now the *dark theme's*
+value set (via `[data-theme="dark"]`), not a second fixed palette.
 
 | Token | Hex | Role |
 |---|---|---|
@@ -146,9 +157,16 @@ token above, per the explicit instruction that ink is a full mode, not
 an inverted afterthought half-defined down to whatever the sidebar
 happens to use. The bundle's dark `--sh` is literally `none` — no
 ink-surface hairline shadow token exists, on purpose, matching that. Its
-`--sh2` is defined as `ink-overlay` (see Shadows below). Still no toggle
-— nothing here switches at runtime; it's one more fixed-surface token
-set, same as `ink`/`ink-t2`/`bright` already were before this pass.
+`--sh2` is defined as `ink-overlay` (see Shadows below).
+
+**Superseded 2026-08-25 (theme pass, same day):** "still no toggle" is no
+longer accurate — this table's values are exactly what
+`:root[data-theme="dark"]` now sets at runtime for
+`page`/`card`/`raised`/`line`/`line2`/`t1`/`t2`/`t3`/`brand`/`brand-hover`/
+`tint`/`tint2`/`ok`/`warn`/`err`/`info` (+ tints). The `ink`/`ink-t2`/
+`bright` family named here stays exactly as described — a real, separate,
+non-toggling fixed palette — but it's no longer *all* the app has for dark
+surfaces; see "Theme architecture" below for which is which.
 
 `bright` is the direct analogue of the pre-existing `brand`/`bright` split
 this project already established (Signal Blue for light, Bright Blue for
@@ -328,6 +346,241 @@ role-mapping table above. No new failing pairing ships as a result of this
 pass; `ink-t3` is defined but deliberately left unused precisely because
 it fails at normal text size and nothing in the app has a large-text-only
 use for it yet.
+
+## Theme architecture — 2026-08-25 pass
+
+Reverses the foundation-tokens pass's decision to treat `ink` as a fixed
+surface with a toggle explicitly out of scope (see the superseded-notices
+above, and `DECISIONS.md`). Product direction changed: AUSVIA now has a
+real Porzellan/Tinte theme toggle, matching the bundle's own architecture.
+
+### The bundle was verified directly, not inferred
+
+The bundle (`AUSVIA 2.0 standalone.html`) is a self-extracting artifact
+bundle — its real markup isn't visible by opening the file in a text
+editor, only by running it. Unpacked it directly (its
+`__bundler/template` payload is a JSON string containing the actual HTML)
+rather than assuming from screenshots or prior notes. Two things this
+settled that would otherwise have been guesses:
+
+- **The sidebar is `background: var(--card)`** in the bundle's own
+  markup — white in light, `#12171B` in dark. Not a fixed dark surface.
+  This is the one reversal from the foundation-tokens pass: the desktop
+  `<aside>` in `base.html` was `bg-ink`, now `bg-card`.
+- **The mobile topbar and drawer are genuinely fixed**, not theme-following
+  — confirmed two ways, not one: every mobile-frame topbar/drawer in the
+  bundle's own Mobile screen hardcodes `background:#0C1013` (not
+  `var(--page)`), and the bundle's own copy says so outright: *"Die
+  bestehende mobile Struktur bleibt: Ink-Topbar mit Logo und Menü, Drawer
+  von links, dieselben Ziele"* — "stays," not "adapts." Nothing changed
+  here; today's app already matched this before the theme pass.
+
+**The landing hero has no themed equivalent in the bundle to model one
+on.** The bundle's own landing page is fully theme-following — plain
+`var(--page)` background, `var(--t1)` headline, no full-bleed dark
+section, no counterform graphic at all. The app's hero (the ink section
+with the counterform SVG cutout) has no bundle design to convert to. By
+explicit decision: **the hero stays fixed-ink**, deliberately rather than
+by omission — its `bg-ink`/`text-ink-t2`/`bright-action` classes and its
+one necessarily-raw SVG `fill="#0C1013"` (a `<path>` fill can't reference
+a Tailwind class, so it's a literal kept in sync with the `ink` token by
+comment, unchanged from the logo pass) already pinned it to the fixed ink
+palette rather than a raw hex, so this pass didn't need to retokenize
+anything there — it verified the pinning was already real, not
+incidental. Revisit when the landing screen re-layout pass runs (per
+`AUSVIA_2_0_SCREEN_INVENTORY.md`'s sequencing) — that pass has an actual
+bundle spec to build the light version from; this one didn't.
+
+Everything else in the app — every card, every page background, the new
+desktop top bar, and the sidebar as of this pass — follows the theme,
+matching the bundle's own "every surface follows the theme" position
+(section 11 of the inventory): *"Tinte ist ein vollwertiger Modus, nicht
+ein invertiertes Nachspiel"* — Tinte is a full mode, not an inverted
+afterthought.
+
+### Mechanism: CSS custom properties, not Tailwind `dark:`
+
+`base.html` defines the full light/dark value set as CSS custom
+properties, `:root { --page: ...; }` and `:root[data-theme="dark"] {
+--page: ...; }`, and `tailwind.config`'s `colors` block points every
+theme-following role at the matching `var(--x)` instead of a hex literal.
+**No class name in any template changed as a result** — `bg-paper`,
+`text-t1`, `border-line`, `bg-brand` all keep working exactly as before,
+in both themes, because only the variable's *value* swaps under
+`[data-theme="dark"]` on `<html>`. The alternative — Tailwind's
+`darkMode: 'class'` with `dark:` variants — was explicitly rejected: it
+would have added a second class at every one of the ~500 existing
+color-class call sites (and every future one), where this approach adds
+none. All values are unchanged from the foundation-tokens pass — this
+restructures *how* they're referenced, not what they are; verified
+byte-identical against the bundle's own light `:root` and
+`[data-theme="dark"]` blocks (see table below).
+
+| Token | Light | Dark | Was (foundation-tokens pass) |
+|---|---|---|---|
+| `paper` (page bg) | `#F2F5F6` | `#0C1013` | light-only; dark value = old fixed `ink` |
+| `card` | `#FFFFFF` | `#12171B` | **new token** — was bare Tailwind `white`; dark value = old fixed `ink-card` |
+| `raised` | `#FAFBFB` | `#171E23` | light-only; dark value = old fixed `ink-raised` |
+| `line` / `line2` | `#E3E8EA` / `#CFD4D6` | `#222A30` / `#303B42` | light-only; dark values = old fixed `ink-line`/`ink-line2` |
+| `t1` / `t2` / `t3` | `#101619` / `#55636D` / `#8A96A0` | `#E9EFF1` / `#9DABB3` / `#6E7C85` | light-only; dark values = old fixed `ink-t1`/`ink-t2`/`ink-t3` |
+| `brand` / `brand-hover` | `#0B767D` / `#075A61` | `#12949B` / `#3FBFC4` | light-only; dark values = old fixed `bright-action`/`bright-action-hover` |
+| `tint` / `tint2` | `#EDF6F6` / `#D3EAEB` | `#0E2327` / `#123337` | light-only; dark values = old fixed `ink-tint`/`ink-tint2` |
+| `ok`/`warn`/`err`/`info` (+`-tint`) | as before | old fixed `ink-ok`/`ink-warn`/`ink-err`/`ink-info` (+`-tint`) values | light-only, undefined in dark |
+| `on-fill` | `#FFFFFF` | `#0C1013` (ink) | **new, derived this pass** — see below, not a bundle value |
+
+`ink`, `ink-card`, `ink-raised`, `ink-line`, `ink-line2`, `ink-t1`,
+`ink-t2`, `ink-t3`, `ink-tint`/`ink-tint2`, `ink-ok`/`ink-warn`/`ink-err`/
+`ink-info` (+ tints), `bright`, `bright-action`, `bright-action-hover`
+**stay exactly as literal hex, not `var()`-based** — they're the
+genuinely-fixed palette, now used only by: the mobile topbar/drawer, the
+landing hero, and the `bg-ink/20` divider trick in the application-detail
+station tracker (a fixed-black-at-opacity effect, not a themed surface —
+making it `var()`-based would have inverted it into a near-invisible
+light-gray-on-light-gray in light mode).
+
+### `on-fill` — a derived token, not a bundle value
+
+Measuring before migrating (not after) caught a real problem: a fixed
+`text-white` button label, which was correct on every LIGHT fill, fails
+AA against several of the DARK fills — not just on hover, at rest:
+
+| Fill (dark value) | White label | Ink (`#0C1013`) label |
+|---|---|---|
+| `brand` `#12949B` | 3.66:1 — **fail** | 5.22:1 — pass |
+| `ok` `#4BBE7E` | 2.34:1 — **fail** | 8.16:1 — pass |
+| `warn` `#D9A22B` | 2.29:1 — **fail** | 8.33:1 — pass |
+| `err` `#E4665A` | 3.31:1 — **fail** | 5.77:1 — pass |
+| `info` `#5FA6D6` | 2.65:1 — **fail** | 7.20:1 — pass |
+
+(All five LIGHT fills pass with white at 5.38–6.39:1 — ink also passes
+there, just isn't needed.) Same flip every time — white in light, ink in
+dark — so this is one shared variable (`on-fill`), not five separate
+`on-brand`/`on-ok`/`on-warn`/`on-err`/`on-info` tokens. Migrated the 27
+`text-white` sites paired with `bg-brand` (every primary button in the
+app) to `text-on-fill`. `ok`/`warn`/`err`/`info` have no filled-pill
+consumer yet (status pills are still the neutral `bg-line`/`text-t2`
+treatment from the Phase 7 remediation — see
+`AUSVIA_2_0_SCREEN_INVENTORY.md`), so this table is also the reference for
+whoever builds the bundle's filled Offer (`ok` fill) and Accepted (`brand`
+fill) status pills later: their label needs `on-fill`, not a fixed white,
+from the start.
+
+### Hardcoded-color hunt
+
+Two categories of "hardcoded value that stays wrong in dark mode," found
+by grepping for exactly that pattern and fixed in this pass:
+
+- **`bg-white` card panels → `bg-card`.** 68 sites across 24 templates,
+  every one in the `border-line bg-white shadow-sm`-shaped card pattern —
+  checked directly, not assumed: `bg-white/NN` opacity overlays (33 sites,
+  mostly `base.html`'s mobile chrome and the landing hero) were excluded
+  from the sweep and stay literal, since those sit on the surfaces that
+  remain fixed-ink; none of the 68 card sites were inside those surfaces.
+- **Tailwind's stock semantic literals → `ok`/`warn`/`err`/`info` (+
+  `-tint`).** 62 individual class occurrences across 18 templates —
+  match-score bands and category-bar fills, validated/needs-review text,
+  flash-message categories, admin/document status badges, destructive
+  buttons, warning callouts. These were never migrated when
+  `ok`/`warn`/`err`/`info` were first defined (foundation-tokens pass, "not
+  yet wired in"). Measured before migrating, not after: Tailwind's
+  `green-700`/`amber-700`/`red-600` all pass AA against a **light** card
+  (4.83–5.02:1) but drop to **3.59–3.74:1** — a real AA failure — against
+  the new **dark** card, since they were tuned for white backgrounds only.
+  The tokens they replaced them with measure 5.31–7.86:1 in dark and
+  5.06–6.39:1 in light — equal-or-better in both themes, not a regression
+  anywhere. No pairing was migrated where the new value measured worse
+  than the old one.
+
+### The toggle
+
+Icon-only (sun/moon, `_icons.html`), real `aria-label` that updates with
+state ("Switch to dark theme" / "Switch to light theme"), keyboard
+reachable with the same `focus:outline-brand` 2px ring as everything else.
+Two placements sharing one `theme_toggle()` macro in `base.html`:
+
+- **Mobile** — added to the existing fixed-ink topbar, left of the
+  hamburger button. Styled for that fixed surface (`text-ink-t2`,
+  `outline-bright`), not theme-var-based, since that bar doesn't follow
+  the theme.
+- **Desktop** — a new slim top bar above `<main>` (desktop had no
+  persistent chrome at all before this pass). Deliberately minimal: the
+  toggle and reserved space for the language switcher the i18n pass adds
+  beside it, nothing else — no title, breadcrumb, or search. Checked
+  against the bundle before inventing this: the bundle's own top bar (with
+  screen tabs and a `PORZELLAN`/`TINTE` text button) is its screen-switcher
+  demo chrome, not product UI — confirmed by its tab list matching the ten
+  mockup screens exactly and its hardcoded, non-`var()` colors sitting
+  outside the bundle's own `data-theme` wrapper entirely. None of the real
+  screens render a top bar. So this bar's styling (`bg-card`,
+  `border-line`) is an original minimal treatment using existing theme
+  tokens, not a bundle-sourced pattern.
+
+Persistence and no-flash, both in `base.html`:
+
+- **Persistence**: `localStorage['ausvia-theme']`, written on toggle.
+- **First visit** (nothing stored): `prefers-color-scheme` decides.
+- **No flash**: a synchronous inline `<script nonce="{{ csp_nonce }}">` at
+  the very top of `<head>`, before the Tailwind CDN script, sets
+  `data-theme` on `<html>` before first paint. It carries the nonce
+  because `script-src` has no `'unsafe-inline'` (see `SECURITY.md`/
+  `app/security_headers.py`) — an un-nonced script here would be silently
+  CSP-blocked, which produces exactly the flash this exists to prevent,
+  just a different one (stuck on the light default until the next
+  toggle). The `<style>` block defining the CSS variables needs no nonce —
+  `style-src` already carries `'unsafe-inline'`, unavoidably, because the
+  Tailwind CDN injects its own runtime `<style>` tag that this app's code
+  can't attach a nonce to.
+
+### Sidebar rework
+
+`nav_links()` (shared by the desktop sidebar and the mobile drawer, per
+the Phase 7 "never drift" reasoning for why it's one macro at all) took a
+`surface` argument (`'themed'` | `'fixed-ink'`, default `'fixed-ink'` so
+the drawer's call site didn't need to change) rather than being split in
+two — the nav *item list* stays single-sourced; only the color classes
+branch. The themed surface's active-item treatment (`bg-tint` fill,
+`t1`/`t2` text split, an inset `brand` left border) isn't invented — it's
+read directly from the bundle's own nav-item rendering logic
+(`background: on ? var(--tint) : transparent`, `color: var(--t1)` /
+`var(--t2)`, `box-shadow: inset 2px 0 0 var(--brand)` on the active item).
+
+### Contrast — measured for both themes
+
+| Pairing | Light | Dark |
+|---|---|---|
+| Body text (`t1`) on `page` | 16.66:1 | 16.45:1 |
+| Body text (`t1`) on `card` | 18.25:1 | 15.53:1 |
+| Secondary text (`t2`) on `page` | 5.65:1 | 8.11:1 |
+| Secondary text (`t2`) on `card` | 6.19:1 | 7.65:1 |
+| `t3` on `card` (**not used for text, either theme**) | 3.02:1 — fails | 4.20:1 — fails |
+| Primary button label (`on-fill`) on `brand` | 5.38:1 | 5.22:1 |
+| Focus ring (`brand`) on `page` | 4.91:1 | 5.22:1 |
+| Sidebar nav text (`t2`/`t1` on `card`, new pairing) | 6.19:1 / 18.25:1 | 7.65:1 / 15.53:1 |
+| `ok` on `ok-tint` / on `card` | 5.31:1 / 6.06:1 | 6.97:1 / 7.70:1 |
+| `warn` on `warn-tint` / on `card` | 5.06:1 / 5.59:1 | 7.35:1 / 7.86:1 |
+| `err` on `err-tint` / on `card` | 5.59:1 / 6.39:1 | 5.38:1 / 5.45:1 |
+| `info` on `info-tint` / on `card` | 4.83:1 / 5.51:1 | 6.47:1 / 6.80:1 |
+
+Every pairing above passes AA (4.5:1) in both themes. `t3` fails at normal
+text size in both light (3.02:1, already known from the foundation-tokens
+pass) and dark (4.20:1, newly measured) — stays defined, deliberately
+wired into zero live call sites in either theme, same reasoning as
+`ink-t3` above: real bundle/derived values, known traps, not bugs to fix.
+
+### Verification
+
+Full pytest suite: 442 passed / 3 skipped, unchanged — this pass is
+templates/CSS/JS only. Rendered both authenticated and public templates
+through the app directly (dashboard, profile, documents, applications,
+Gmail) to confirm no Jinja errors and that the new classes/markup are
+actually present in the output. **Not independently verified in this
+pass: an actual browser-rendered visual pass in both themes** — no
+browser-automation tool was available in this environment to drive one.
+The CSS variable values, the contrast math, and the template rendering
+were all checked directly; the remaining risk is confined to things only
+a rendered browser would catch (e.g. a genuinely missed call site that
+still resolves visually wrong despite valid CSS). Flagged here rather than
+silently claimed as done.
 
 ### Logo — Wegmarke replaces Aperture (implemented 2026-08-25)
 

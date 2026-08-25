@@ -53,3 +53,21 @@
   <path d="M2 4.5H14M2 8H14M2 11.5H14"/>
 </svg>
 {% endmacro %}
+
+{# Theme pass, 2026-08-25: toggle icon pair - sun shown in dark mode
+   (click to go light), moon shown in light mode (click to go dark). Both
+   render every time; base.html's theme-toggle script shows/hides the
+   correct one via the [hidden] attribute rather than swapping markup, so
+   there's nothing to keep in sync with data-theme beyond that one toggle. #}
+{% macro sun(size=18, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+  <circle cx="8" cy="8" r="3.2"/>
+  <path d="M8 1.2V2.7M8 13.3V14.8M14.8 8H13.3M2.7 8H1.2M12.7 3.3L11.6 4.4M4.4 11.6L3.3 12.7M12.7 12.7L11.6 11.6M4.4 4.4L3.3 3.3"/>
+</svg>
+{% endmacro %}
+
+{% macro moon(size=18, class="") %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 16 16" class="{{ class }}" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true">
+  <path d="M13.8 9.9A6 6 0 1 1 6.1 2.2A5 5 0 0 0 13.8 9.9Z"/>
+</svg>
+{% endmacro %}

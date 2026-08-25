@@ -4,7 +4,7 @@
 <h1 class="text-2xl font-bold text-t1">Job Sources</h1>
 <p class="mt-1 text-sm text-t2 mb-6">Enable or disable each source independently. Disabling a source stops it from being queried on new searches - previously discovered jobs from it aren't removed.</p>
 
-<section class="rounded-xl border border-line bg-white shadow-sm">
+<section class="rounded-xl border border-line bg-card shadow-sm">
   <table class="w-full text-sm">
     <thead>
       <tr class="border-b border-line text-left text-xs uppercase tracking-wide text-t2">
@@ -19,13 +19,13 @@
       <tr class="border-b border-line last:border-0">
         <td class="px-5 py-3 font-medium text-t1">{{ s.display_name }}</td>
         <td class="px-5 py-3">
-          {% if s.is_enabled %}<span class="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Enabled</span>
+          {% if s.is_enabled %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">Enabled</span>
           {% else %}<span class="rounded-full bg-line px-2 py-0.5 text-xs text-t2">Disabled</span>{% endif %}
         </td>
         <td class="px-5 py-3 text-t2">
           {% if s.last_run_at %}
             {{ s.last_run_at.strftime('%d %b %Y %H:%M') }} —
-            <span class="{% if s.last_run_status == 'error' %}text-red-600{% else %}text-t2{% endif %}">{{ s.last_run_message }}</span>
+            <span class="{% if s.last_run_status == 'error' %}text-err{% else %}text-t2{% endif %}">{{ s.last_run_message }}</span>
           {% else %}
             Never run
           {% endif %}

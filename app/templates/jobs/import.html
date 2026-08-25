@@ -7,13 +7,13 @@
 <p class="mt-1 text-sm text-t2 mb-6">Paste a link - or several, one per line - and we'll try to fetch the readable text for each. If a site blocks automatic access, paste the job text yourself. Nothing here bypasses logins, paywalls, or bot protection.</p>
 
 {% if not batch %}
-<section class="rounded-xl border border-line bg-white shadow-sm p-6 mb-6">
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
   <h2 class="font-semibold text-t1 mb-4">1. Fetch from a URL (optional)</h2>
   <form method="post" action="{{ url_for('jobs.import_fetch') }}">
     {{ url_form.hidden_tag() }}
     {{ render_field(url_form.urls, extra_classes="font-mono text-xs") }}
     <p class="text-xs text-t2 -mt-3 mb-4">One URL per line. Up to {{ max_batch_urls }} at a time.</p>
-    <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Fetch</button>
+    <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Fetch</button>
   </form>
 </section>
 {% endif %}
@@ -35,7 +35,7 @@
       {% elif item.status == "skipped" %}
         <span class="text-t2">skipped</span>
       {% elif item.status == "failed" and loop.index0 != batch.current_index %}
-        <span class="inline-flex items-center gap-1 text-amber-700">{{ warning(class="shrink-0") }}fetch failed</span>
+        <span class="inline-flex items-center gap-1 text-warn">{{ warning(class="shrink-0") }}fetch failed</span>
       {% elif loop.index0 == batch.current_index %}
         <span class="text-brand">reviewing now</span>
       {% else %}
@@ -48,7 +48,7 @@
 </section>
 {% endif %}
 
-<section class="rounded-xl border border-line bg-white shadow-sm p-6">
+<section class="rounded-xl border border-line bg-card shadow-sm p-6">
   <h2 class="font-semibold text-t1 mb-4">{% if batch %}Review and save{% else %}2. Review and save{% endif %}</h2>
   {% if show_review %}
   <form method="post" action="{{ url_for('jobs.import_save') }}">
@@ -63,7 +63,7 @@
     </div>
     {{ render_field(review_form.description) }}
     <div class="flex items-center gap-4">
-      <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save opportunity</button>
+      <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save opportunity</button>
       {% if batch %}
       <button type="submit" formaction="{{ url_for('jobs.import_skip') }}" formnovalidate class="text-sm text-t2 hover:text-t2 underline">Skip this one</button>
       {% endif %}
@@ -83,7 +83,7 @@
     until you review it here and press "Save opportunity".
   </p>
   <a id="bookmarklet-link" href="{{ bookmarklet_href }}" draggable="true"
-     class="inline-block rounded-lg border-2 border-dashed border-brand bg-white px-4 py-2 text-sm font-semibold text-brand cursor-move select-none">
+     class="inline-block rounded-lg border-2 border-dashed border-brand bg-card px-4 py-2 text-sm font-semibold text-brand cursor-move select-none">
     Import to AUSVIA
   </a>
 </section>

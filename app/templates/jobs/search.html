@@ -9,14 +9,14 @@
   Searches every enabled job source (Bundesagentur für Arbeit, and Adzuna/Jooble where configured - see each listing's source tag). Can't find a posting? <a href="{{ url_for('jobs.import_start') }}" class="text-brand hover:underline">Import it manually by URL</a>.
 </p>
 
-<form method="get" class="rounded-xl border border-line bg-white shadow-sm p-6 mb-6 flex flex-wrap items-end gap-4">
+<form method="get" class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6 flex flex-wrap items-end gap-4">
   <div class="flex-1 min-w-[16rem]">{{ render_field(form.keywords) }}</div>
   <div class="flex-1 min-w-[12rem]">{{ render_field(form.location) }}</div>
-  <button type="submit" class="mb-4 rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Search</button>
+  <button type="submit" class="mb-4 rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Search</button>
 </form>
 
 {% if ingest_errors %}
-<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+<div class="mb-6 rounded-lg border border-warn/40 bg-warn-tint p-4 text-sm text-warn">
   <p class="font-semibold mb-1">Some sources were unavailable</p>
   <ul class="list-disc list-inside">
     {% for source, message in ingest_errors %}
@@ -31,7 +31,7 @@
   {% if results %}
   <div class="space-y-3">
     {% for job in results %}
-    <div class="rounded-xl border border-line bg-white shadow-sm p-5 flex items-start justify-between">
+    <div class="rounded-xl border border-line bg-card shadow-sm p-5 flex items-start justify-between">
       <div>
         <a href="{{ url_for('jobs.detail', job_id=job.id) }}" class="font-semibold text-t1 hover:text-brand">{{ job.title }}</a>
         <p class="text-sm text-t2">{{ job.company_name or "Unknown company" }}{% if job.location %} · {{ job.location }}{% endif %}</p>
@@ -45,7 +45,7 @@
       <div class="flex flex-col items-end gap-2">
         {% set m = match_by_job_id.get(job.id) %}
         {% if m and m.score is not none %}
-        <span class="rounded-full px-2 py-0.5 text-xs font-semibold {% if m.score >= 80 %}bg-green-100 text-green-700{% elif m.score >= 60 %}bg-tint text-brand{% elif m.score >= 40 %}bg-amber-100 text-amber-700{% else %}bg-line text-t2{% endif %}">
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold {% if m.score >= 80 %}bg-ok-tint text-ok{% elif m.score >= 60 %}bg-tint text-brand{% elif m.score >= 40 %}bg-warn-tint text-warn{% else %}bg-line text-t2{% endif %}">
           {{ m.score }}/100 match
         </span>
         {% endif %}

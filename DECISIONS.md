@@ -6,6 +6,76 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-25 — Theme pass: real light/dark mode, superseding "ink is fixed"
+
+**Decision:** Supersedes this file's most-recent-before-this Wegmarke/
+tokens-adjacent decisions insofar as they assumed the foundation-tokens
+pass's framing — specifically, the foundation-tokens pass's explicit
+choice to treat `ink` (the sidebar/hero surface) as **fixed**, with "no
+theme switch was built" and "a toggle is out of scope" stated directly in
+`DESIGN_SYSTEM.md`. That decision is now reversed: AUSVIA has a real
+light/dark theme toggle (Porzellan/Tinte), built on CSS custom properties
+under `[data-theme="dark"]` on `<html>`, persisted to `localStorage`,
+respecting `prefers-color-scheme` on first visit. The sidebar now follows
+the theme (was fixed-ink); the mobile topbar/drawer and the landing hero
+stay fixed-ink (verified against the bundle directly, not assumed — see
+`DESIGN_SYSTEM.md` "Theme architecture — 2026-08-25 pass" for the full
+reasoning and the specific bundle evidence for each). No hex values
+changed from the foundation-tokens pass — every dark value this pass needs
+already existed as the `ink-*`/`bright-*` family; this is a reference
+restructuring (hex literal → CSS custom property), not a new palette.
+
+**Reason:** Not a correction — the original decision was reasonable given
+its own scope (a style-guide/token pass, not a theming pass) and was
+explicit about the trade-off it was making. Product direction changed
+after that pass shipped: the user wants a working toggle, matching what
+the AUSVIA 2.0 bundle actually specifies (section 11: *"Tinte ist ein
+vollwertiger Modus, nicht ein invertiertes Nachspiel"* — Tinte is a full
+mode, not an inverted afterthought). Two real bugs were also caught and
+fixed as part of doing this properly rather than just flipping a
+`data-theme` switch: (1) a fixed `text-white` button label passes AA on
+every light-mode fill but fails on several dark-mode fills, not just on
+hover, at rest — `#12949B` fill measures 3.66:1 with white text, `#4BBE7E`
+2.34:1, `#D9A22B` 2.29:1, `#5FA6D6` 2.65:1, all failing 4.5:1; fixed with
+one new derived token (`on-fill`, white in light / ink in dark) rather
+than five separate on-brand/on-ok/on-warn/... tokens, since the flip is
+identical for all five fills. (2) Tailwind's stock `green-700`/
+`amber-700`/`red-600` (used for match-score bands, validation states,
+flash messages, never migrated when `ok`/`warn`/`err`/`info` were first
+defined) pass AA against a light card (4.83–5.02:1) but fail against the
+new dark card (3.59–3.74:1) — migrated to the theme-aware semantic tokens,
+measured before migrating rather than after, confirming the replacement is
+equal-or-better in both themes at every site, not just the dark one.
+
+**Alternatives considered:** Tailwind's `darkMode: 'class'` with `dark:`
+variants — explicitly rejected per direct instruction: it would add a
+second class at every one of the ~500 existing color-class call sites (and
+every future one). CSS custom properties add none — every existing class
+name (`bg-paper`, `text-t1`, `bg-brand`, ...) keeps working unchanged in
+both themes; only the variable's value swaps. Also considered and
+rejected: converting the landing hero to theme-following in this same
+pass, since the sidebar reversal set a "everything follows the theme"
+precedent — rejected because the bundle has no themed version of the hero
+to model one on (its own landing page is fully theme-following with no
+dark hero section at all, so the app's counterform-graphic hero has no
+bundle equivalent); converting it now would mean inventing a design
+on-the-fly during a token-restructuring pass rather than following one.
+Left fixed-ink, explicitly and documented as such, pending the landing
+screen re-layout pass that will actually have a spec to build from.
+
+**Consequences:** The full accessibility contrast table (light + dark, 12
+pairings) and the exact hardcoded-color-hunt counts (68 `bg-white`→
+`bg-card` sites, 27 `text-white`→`text-on-fill` sites, 62 semantic-literal
+class occurrences migrated) are in `DESIGN_SYSTEM.md`. No schema/migration
+— this is templates/CSS/JS only; full pytest suite unaffected (442/3,
+unchanged before and after). One open gap, disclosed rather than silently
+skipped: no browser-automation tool was available in this environment to
+do a live rendered-in-both-themes visual pass — verification here is CSS
+values + contrast math + confirmed template rendering (no Jinja errors,
+expected classes present in output), not an eyeballed screenshot check.
+
+---
+
 ## 2026-08-25 — Deploy gap: Job Radar's migration was never run against production; added a post-deploy checklist
 
 **Decision:** Not a code decision - a process one. The dashboard 500'd in
