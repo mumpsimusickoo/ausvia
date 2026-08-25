@@ -30,7 +30,9 @@ def test_skipped_and_future_stations_render_with_different_ring_style(client, db
     assert "Not reached yet." in html
 
     # the skipped station's marker must use a dashed ring...
-    assert "border-2 border-dashed border-brand-600" in html
+    # (was border-brand-600 pre-2.0 - foundation-tokens pass, 2026-08-25,
+    # renamed the color token, not the ring/shape logic this test covers)
+    assert "border-2 border-dashed border-brand" in html
     # ...and the future station's marker must stay solid - proving the two
     # states are no longer visually identical apart from color.
     assert "border-2 border-solid border-ink/20" in html

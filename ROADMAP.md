@@ -477,16 +477,43 @@ for a redesign pass, started 2026-08-24.
       (`pdf_package.py` only ever merged existing PDFs), not a repurposing
       of `CvProfileStatement`. No AI call; empty sections omitted, nothing
       invented.
-- [ ] **Foundation-tokens pass** (colors, typography, spacing, radius,
+- [x] **Foundation-tokens pass** (colors, typography, spacing, radius,
       shadow, focus states only - no screens/components/logo/dark-mode
-      changes) - the next actual step. **Not yet sent or started.** A
-      prior attempt at exactly this pass was started and then explicitly
-      reverted mid-implementation at the user's request before anything
-      was committed - the repo carries no trace of it, and whenever this
-      is picked back up it starts fresh, not from that attempt.
-- [ ] Screens/components pass, dark mode, and everything else in the
-      AUSVIA 2.0 mockup beyond the two resolved decisions above - not yet
-      scoped or started.
+      changes), 2026-08-25 - values extracted directly from the approved
+      2.0 mockup's own "Foundations" reference screen. Accent changed
+      Signal Blue → Tiefsee-Teal (light) / a new distinct ink-surface
+      action color (dark); page background and the fixed ink sidebar/hero
+      surface both got new hex values; the retired `brand-50..900`
+      Tailwind ramp was replaced role-by-role (not regenerated) across
+      ~110 call sites in ~24 templates; Sora became a live UI webfont for
+      titles/sections/values/numbers (superseding "wordmark-only"), IBM
+      Plex Sans replaced Inter as the body face, IBM Plex Mono was added
+      for labels; focus states became a real 2px outline everywhere,
+      including the sidebar (which previously had none at all). The
+      light-surface neutral scale (Tailwind `slate` → the bundle's
+      Porzellan `t1`/`t2`/`t3`/`line`/`line2`/`raised`) was migrated in
+      full too, same role-mapped method, across 384 call sites in 31
+      templates - not left as "close enough" once the real RGB deltas
+      turned out to be visible across a full page of body text. Two real
+      accessibility regressions were caught and fixed before shipping, not
+      after: a white-on-fill button label that measured 3.66:1 (fails AA),
+      and a naive `slate-500/400` → `t3` mapping that measured
+      2.76-3.02:1 at 98 call sites (`t3` stays defined, wired into zero
+      live elements, same as `ink-t3`) - see `DESIGN_SYSTEM.md`
+      Accessibility for the full measured numbers. The logo symbol
+      (Aperture, rev 1.0) is frozen and **superseded, not just
+      off-palette** - the approved 2.0 bundle specifies a different mark
+      ("Wegmarke," two offset tracks) that isn't implemented; the wordmark
+      spec (Sora SemiBold, lowercase, -4% tracking) is unchanged. Full
+      detail: `DESIGN_SYSTEM.md` "Foundation tokens - 2026-08-25 pass",
+      `DECISIONS.md`'s three entries dated 2026-08-25.
+- [ ] **Screens/components pass, dark mode, and everything else** in the
+      AUSVIA 2.0 mockup beyond the tokens and the two resolved decisions
+      above - not yet scoped or started. The named token layer
+      (`text-display`/`text-title`/`text-section`/etc., `rounded-panel`,
+      `shadow-hairline`/`shadow-overlay`) is now available for it; adopting
+      those tokens on existing headings/cards site-wide is itself part of
+      this not-yet-started work, not something the tokens pass did.
 
 ## Explicitly not scheduled
 

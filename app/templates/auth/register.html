@@ -3,20 +3,20 @@
 {% block title %}Activate access code — AUSVIA{% endblock %}
 {% block public_content %}
 <section class="mx-auto max-w-sm px-4 py-16 md:px-0">
-  <h1 class="text-2xl font-bold text-slate-900 mb-1">Create your account</h1>
-  <p class="text-sm text-slate-600 mb-6">Enter the access code you were given, then set up your login.</p>
-  <form method="post" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <h1 class="text-2xl font-bold text-t1 mb-1">Create your account</h1>
+  <p class="text-sm text-t2 mb-6">Enter the access code you were given, then set up your login.</p>
+  <form method="post" class="rounded-xl border border-line bg-white shadow-sm p-6">
     {{ form.hidden_tag() }}
     {{ render_field(form.access_code, extra_classes="uppercase tracking-widest") }}
     {{ render_field(form.email) }}
     {{ render_field(form.password) }}
     {{ render_field(form.confirm_password) }}
-    <button type="submit" class="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+    <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover">
       Create account
     </button>
   </form>
-  <p class="mt-4 text-sm text-slate-500">
-    Already have an account? <a href="{{ url_for('auth.login') }}" class="text-brand-700 hover:underline">Log in</a>
+  <p class="mt-4 text-sm text-t2">
+    Already have an account? <a href="{{ url_for('auth.login') }}" class="text-brand hover:underline">Log in</a>
   </p>
 </section>
 {% endblock %}

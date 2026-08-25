@@ -1,26 +1,35 @@
+{#
+  Foundation-tokens pass, 2026-08-25: focus style switched from a 1px inset
+  ring (focus:ring-1 focus:ring-brand-600, the pre-2.0 token) to the bundle's real spec - a
+  2px solid outline, 2px offset - plus the border darkening to `brand` at
+  the same time, matching the bundle's own focused-input example exactly.
+  This is the single centralized definition every form field/checkbox in
+  the app draws from. See DESIGN_SYSTEM.md "Focus states" for the measured
+  contrast numbers.
+#}
 {% macro render_field(field, extra_classes="") %}
 <div class="mb-4">
-  <label for="{{ field.id }}" class="block text-sm font-medium text-slate-700 mb-1">{{ field.label.text }}</label>
+  <label for="{{ field.id }}" class="block text-sm font-medium text-t2 mb-1">{{ field.label.text }}</label>
   {# Phase 7 remediation (QA finding W7): errors must be programmatically
      associated with the field (aria-describedby/aria-invalid), not just
      visually adjacent - a screen-reader user tabbing to an invalid field
      was previously given no indication an error exists. #}
   {% if field.errors %}
-    {{ field(class_="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 " ~ extra_classes, aria_describedby=field.id ~ "-error", aria_invalid="true") }}
+    {{ field(class_="w-full rounded-lg border border-line2 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes, aria_describedby=field.id ~ "-error", aria_invalid="true") }}
     <div id="{{ field.id }}-error">
       {% for error in field.errors %}
       <p class="mt-1 text-xs text-red-600">{{ error }}</p>
       {% endfor %}
     </div>
   {% else %}
-    {{ field(class_="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600 " ~ extra_classes) }}
+    {{ field(class_="w-full rounded-lg border border-line2 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes) }}
   {% endif %}
 </div>
 {% endmacro %}
 
 {% macro render_checkbox(field) %}
 <div class="mb-4 flex items-center gap-2">
-  {{ field(class_="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600") }}
-  <label for="{{ field.id }}" class="text-sm text-slate-700">{{ field.label.text }}</label>
+  {{ field(class_="h-4 w-4 rounded border-line2 text-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand") }}
+  <label for="{{ field.id }}" class="text-sm text-t2">{{ field.label.text }}</label>
 </div>
 {% endmacro %}

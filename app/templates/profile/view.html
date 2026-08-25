@@ -2,14 +2,14 @@
 {% from "_macros.html" import render_field, render_checkbox %}
 {% block title %}Candidate Profile — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-slate-900">Candidate Profile</h1>
-<p class="mt-1 text-sm text-slate-600">This is the single source of truth the AI will use when generating anything on your behalf. Nothing is invented beyond what's here.</p>
-<a href="{{ url_for('profile.download_cv') }}" class="mt-3 mb-6 inline-block rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50">Download CV (PDF)</a>
+<h1 class="text-2xl font-bold text-t1">Candidate Profile</h1>
+<p class="mt-1 text-sm text-t2">This is the single source of truth the AI will use when generating anything on your behalf. Nothing is invented beyond what's here.</p>
+<a href="{{ url_for('profile.download_cv') }}" class="mt-3 mb-6 inline-block rounded-lg border border-brand px-4 py-2 text-sm font-semibold text-brand hover:bg-tint">Download CV (PDF)</a>
 
 <div class="space-y-6">
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Personal information</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Personal information</h2>
     <form method="post" action="{{ url_for('profile.update_personal') }}">
       {{ personal_form.hidden_tag() }}
       <div class="grid gap-4 sm:grid-cols-2">
@@ -24,18 +24,18 @@
         {{ render_field(personal_form.phone) }}
         {{ render_field(personal_form.contact_email) }}
       </div>
-      <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save</button>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Education</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Education</h2>
     {% for edu in profile.education_entries %}
-    <div class="flex items-start justify-between border-b border-slate-100 py-3 last:border-0">
+    <div class="flex items-start justify-between border-b border-line py-3 last:border-0">
       <div>
-        <p class="font-medium text-slate-900">{{ edu.degree or "—" }} {% if edu.field %}· {{ edu.field }}{% endif %}</p>
-        <p class="text-sm text-slate-600">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</p>
-        <p class="text-xs text-slate-400">{{ edu.start_date or "?" }} – {{ edu.end_date or "present" }}</p>
+        <p class="font-medium text-t1">{{ edu.degree or "—" }} {% if edu.field %}· {{ edu.field }}{% endif %}</p>
+        <p class="text-sm text-t2">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</p>
+        <p class="text-xs text-t2">{{ edu.start_date or "?" }} – {{ edu.end_date or "present" }}</p>
       </div>
       <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}">
         {{ education_form.csrf_token }}
@@ -43,10 +43,10 @@
       </form>
     </div>
     {% else %}
-    <p class="text-sm text-slate-500 mb-3">No education entries yet.</p>
+    <p class="text-sm text-t2 mb-3">No education entries yet.</p>
     {% endfor %}
     <details class="mt-4">
-      <summary class="cursor-pointer text-sm font-medium text-brand-700">Add education entry</summary>
+      <summary class="cursor-pointer text-sm font-medium text-brand">Add education entry</summary>
       <form method="post" action="{{ url_for('profile.add_education') }}" class="mt-4">
         {{ education_form.hidden_tag() }}
         <div class="grid gap-4 sm:grid-cols-2">
@@ -58,19 +58,19 @@
           {{ render_field(education_form.end_date) }}
         </div>
         {{ render_field(education_form.description) }}
-        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
       </form>
     </details>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Experience</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Experience</h2>
     {% for exp in profile.experience_entries %}
-    <div class="flex items-start justify-between border-b border-slate-100 py-3 last:border-0">
+    <div class="flex items-start justify-between border-b border-line py-3 last:border-0">
       <div>
-        <p class="font-medium text-slate-900">{{ exp.role or "—" }}</p>
-        <p class="text-sm text-slate-600">{{ exp.company }}</p>
-        <p class="text-xs text-slate-400">{{ exp.start_date or "?" }} – {{ exp.end_date or "present" }}</p>
+        <p class="font-medium text-t1">{{ exp.role or "—" }}</p>
+        <p class="text-sm text-t2">{{ exp.company }}</p>
+        <p class="text-xs text-t2">{{ exp.start_date or "?" }} – {{ exp.end_date or "present" }}</p>
       </div>
       <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}">
         {{ experience_form.csrf_token }}
@@ -78,10 +78,10 @@
       </form>
     </div>
     {% else %}
-    <p class="text-sm text-slate-500 mb-3">No experience entries yet.</p>
+    <p class="text-sm text-t2 mb-3">No experience entries yet.</p>
     {% endfor %}
     <details class="mt-4">
-      <summary class="cursor-pointer text-sm font-medium text-brand-700">Add experience entry</summary>
+      <summary class="cursor-pointer text-sm font-medium text-brand">Add experience entry</summary>
       <form method="post" action="{{ url_for('profile.add_experience') }}" class="mt-4">
         {{ experience_form.hidden_tag() }}
         <div class="grid gap-4 sm:grid-cols-2">
@@ -92,96 +92,96 @@
         </div>
         {{ render_field(experience_form.responsibilities) }}
         {{ render_field(experience_form.achievements) }}
-        <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+        <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
       </form>
     </details>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Skills</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Skills</h2>
     <div class="flex flex-wrap gap-2 mb-4">
       {% for skill in profile.skills %}
-      <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm">
-        {{ skill.name }}{% if skill.proficiency %} <span class="text-slate-400">· {{ skill.proficiency }}</span>{% endif %}
+      <span class="inline-flex items-center gap-2 rounded-full border border-line bg-raised px-3 py-1 text-sm">
+        {{ skill.name }}{% if skill.proficiency %} <span class="text-t2">· {{ skill.proficiency }}</span>{% endif %}
         <form method="post" action="{{ url_for('profile.delete_skill', entry_id=skill.id) }}" class="inline">
           {{ skill_form.csrf_token }}
-          <button type="submit" class="text-slate-400 hover:text-red-600" aria-label="Remove skill">&times;</button>
+          <button type="submit" class="text-t2 hover:text-red-600" aria-label="Remove skill">&times;</button>
         </form>
       </span>
       {% else %}
-      <p class="text-sm text-slate-500">No skills added yet.</p>
+      <p class="text-sm text-t2">No skills added yet.</p>
       {% endfor %}
     </div>
     <form method="post" action="{{ url_for('profile.add_skill') }}" class="flex flex-wrap items-end gap-3">
       {{ skill_form.hidden_tag() }}
       <div>{{ render_field(skill_form.name) }}</div>
       <div>{{ render_field(skill_form.proficiency) }}</div>
-      <button type="submit" class="mb-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Languages</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Languages</h2>
     <div class="flex flex-wrap gap-2 mb-4">
       {% for lang in profile.languages %}
-      <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm">
-        {{ lang.name }}{% if lang.level %} <span class="text-slate-400">· {{ lang.level }}</span>{% endif %}
+      <span class="inline-flex items-center gap-2 rounded-full border border-line bg-raised px-3 py-1 text-sm">
+        {{ lang.name }}{% if lang.level %} <span class="text-t2">· {{ lang.level }}</span>{% endif %}
         <form method="post" action="{{ url_for('profile.delete_language', entry_id=lang.id) }}" class="inline">
           {{ language_form.csrf_token }}
-          <button type="submit" class="text-slate-400 hover:text-red-600" aria-label="Remove language">&times;</button>
+          <button type="submit" class="text-t2 hover:text-red-600" aria-label="Remove language">&times;</button>
         </form>
       </span>
       {% else %}
-      <p class="text-sm text-slate-500">No languages added yet.</p>
+      <p class="text-sm text-t2">No languages added yet.</p>
       {% endfor %}
     </div>
     <form method="post" action="{{ url_for('profile.add_language') }}" class="flex flex-wrap items-end gap-3">
       {{ language_form.hidden_tag() }}
       <div>{{ render_field(language_form.name) }}</div>
       <div>{{ render_field(language_form.level) }}</div>
-      <button type="submit" class="mb-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button>
+      <button type="submit" class="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Add</button>
     </form>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
     <div class="flex items-center justify-between mb-1">
-      <h2 class="font-semibold text-slate-900">Profile coaching</h2>
+      <h2 class="font-semibold text-t1">Profile coaching</h2>
     </div>
-    <p class="text-xs text-slate-400 mb-4">An AI review of your whole profile, independent of any one job posting - never invents achievements, only suggests presenting what's real more effectively.</p>
+    <p class="text-xs text-t2 mb-4">An AI review of your whole profile, independent of any one job posting - never invents achievements, only suggests presenting what's real more effectively.</p>
     {% if coaching and coaching.summary_text %}
-    <p class="text-sm text-slate-700 whitespace-pre-line">{{ coaching.summary_text }}</p>
-    {% if coaching.provider %}<p class="mt-2 text-xs text-slate-400">Generated by {{ coaching.provider }}.</p>{% endif %}
+    <p class="text-sm text-t2 whitespace-pre-line">{{ coaching.summary_text }}</p>
+    {% if coaching.provider %}<p class="mt-2 text-xs text-t2">Generated by {{ coaching.provider }}.</p>{% endif %}
     <form method="post" action="{{ url_for('profile.generate_coaching') }}" class="mt-3">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand-700 hover:underline">Regenerate</button>
+      <button class="text-sm font-medium text-brand hover:underline">Regenerate</button>
     </form>
     {% else %}
     <form method="post" action="{{ url_for('profile.generate_coaching') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand-700 hover:underline">Get AI feedback on my profile</button>
+      <button class="text-sm font-medium text-brand hover:underline">Get AI feedback on my profile</button>
     </form>
     {% endif %}
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-1">Common questions</h2>
-    <p class="text-xs text-slate-400 mb-4">Grounded answers to common Ausbildung process questions - pick one, no free-text chat.</p>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-1">Common questions</h2>
+    <p class="text-xs text-t2 mb-4">Grounded answers to common Ausbildung process questions - pick one, no free-text chat.</p>
     <div class="space-y-3">
       {% for key, question in qa_questions.items() %}
       {% set answer = qa_answers.get(key) %}
-      <div class="rounded-lg border border-slate-100 p-4">
-        <p class="text-sm font-medium text-slate-900 mb-1">{{ question }}</p>
+      <div class="rounded-lg border border-line p-4">
+        <p class="text-sm font-medium text-t1 mb-1">{{ question }}</p>
         {% if answer and answer.answer_text %}
-        <p class="text-sm text-slate-700 whitespace-pre-line">{{ answer.answer_text }}</p>
-        {% if answer.provider %}<p class="mt-1 text-xs text-slate-400">Generated by {{ answer.provider }}.</p>{% endif %}
+        <p class="text-sm text-t2 whitespace-pre-line">{{ answer.answer_text }}</p>
+        {% if answer.provider %}<p class="mt-1 text-xs text-t2">Generated by {{ answer.provider }}.</p>{% endif %}
         <form method="post" action="{{ url_for('profile.generate_qa_answer', question_key=key) }}" class="mt-2">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-xs font-medium text-brand-700 hover:underline">Regenerate</button>
+          <button class="text-xs font-medium text-brand hover:underline">Regenerate</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('profile.generate_qa_answer', question_key=key) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-sm font-medium text-brand-700 hover:underline">Show answer</button>
+          <button class="text-sm font-medium text-brand hover:underline">Show answer</button>
         </form>
         {% endif %}
       </div>
@@ -189,8 +189,8 @@
     </div>
   </section>
 
-  <section class="rounded-xl border border-slate-200 bg-white shadow-sm p-6">
-    <h2 class="font-semibold text-slate-900 mb-4">Ausbildung preferences</h2>
+  <section class="rounded-xl border border-line bg-white shadow-sm p-6">
+    <h2 class="font-semibold text-t1 mb-4">Ausbildung preferences</h2>
     <form method="post" action="{{ url_for('profile.update_preferences') }}">
       {{ preference_form.hidden_tag() }}
       <div class="grid gap-4 sm:grid-cols-2">
@@ -202,7 +202,7 @@
       </div>
       {{ render_checkbox(preference_form.open_to_relocation) }}
       {{ render_field(preference_form.other_notes) }}
-      <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save preferences</button>
+      <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Save preferences</button>
     </form>
   </section>
 

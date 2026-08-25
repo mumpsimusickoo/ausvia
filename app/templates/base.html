@@ -9,37 +9,116 @@
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='brand/favicon-16.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script nonce="{{ csp_nonce }}">
+    // AUSVIA 2.0 foundation tokens, 2026-08-25 pass - values extracted
+    // verbatim from the approved 2.0 mockup bundle's Foundations screen
+    // (light :root block + fixed dark [data-theme="dark"] block; no
+    // toggle exists or was built - the dark values are a second, fixed
+    // surface, same as the old `ink`/`bright` pair, just re-sourced).
+    // Full role table, mapping rationale, and measured contrast numbers:
+    // DESIGN_SYSTEM.md "Foundation tokens - 2026-08-25 pass".
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            // Body/UI face - replaces Inter (removed from the <link> above,
+            // nothing references it anymore).
+            sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            // Titles, section headings, values, numbers only - never body
+            // text. Supersedes the old "Sora is wordmark-only" decision;
+            // see DECISIONS.md for the loading-cost consequence.
+            display: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            // Labels and source attributions only - never body copy.
+            mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+          },
+          fontSize: {
+            display: ['52px', { lineHeight: '1.04', letterSpacing: '-0.035em' }],
+            title: ['28px', { lineHeight: '1.2' }],
+            section: ['19px', { lineHeight: '1.35' }],
+            body: ['15px', { lineHeight: '1.62' }],
+            label: ['11px', { lineHeight: '1.4', letterSpacing: '0.1em' }],
+          },
+          borderRadius: {
+            // The bundle's 20px "panel" radius - no exact Tailwind default
+            // (2xl=16px, 3xl=24px). Available; no panel component exists
+            // yet, so nothing consumes this today.
+            panel: '20px',
+          },
+          boxShadow: {
+            // Exact bundle values, for when hairline/overlay precision
+            // actually matters. The existing `shadow-sm` (used at 154 call
+            // sites already) is close enough to `hairline` that it wasn't
+            // worth a mass rename - see DESIGN_SYSTEM.md.
+            hairline: '0 1px 2px rgba(12,16,19,.05)',
+            overlay: '0 12px 32px -10px rgba(12,16,19,.18)',
+            // Ink-surface overlay shadow (the bundle's dark --sh2 - a
+            // stronger, near-black shadow since a hairline shadow doesn't
+            // read against a dark background). The bundle's dark --sh is
+            // literally `none` - no ink-surface hairline token exists on
+            // purpose, not an omission.
+            'ink-overlay': '0 16px 40px -12px rgba(0,0,0,.6)',
           },
           colors: {
-            // Signal Blue - approved logo spec section 08 (#2563EB), 5.17:1 on
-            // white. Matches Tailwind's own blue-500/600 almost exactly, so
-            // this scale is effectively the standard blue ramp around it.
-            brand: {
-              50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
-              400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
-              800: '#1e40af', 900: '#1e3a8a',
-            },
-            // Bright Blue - approved logo spec section 08 (#3B82F6). Dark-
-            // background-only: 5.4:1 on Ink Navy vs. Signal Blue's 2.9:1.
-            // Numerically equal to brand-500, named explicitly so any use on
-            // a dark/navy surface is an intentional choice, not an accident.
-            bright: '#3B82F6',
-            // Ink Navy - approved logo spec section 08 (#0B1220). Now a real
-            // foundation element (authenticated sidebar), not just the
-            // landing hero - see DESIGN_SYSTEM.md.
-            ink: '#0B1220',
-            // Warm off-white page background (replaces slate-50's cool cast)
-            // - closes the brand-direction gap flagged in the Phase 5.5
-            // checkpoint. See DESIGN_SYSTEM.md.
-            paper: '#FAF8F5',
+            // Light-surface neutrals (Porzellan) - the bundle's card token
+            // (#FFFFFF) is already exactly Tailwind's `white`, already used
+            // everywhere; no new token needed for it. These four are real
+            // additions, replacing Tailwind `slate` app-wide (see
+            // DESIGN_SYSTEM.md for the measured deltas and the full
+            // shade-to-role mapping table, same method as `brand`).
+            raised: '#FAFBFB',
+            line: '#E3E8EA',
+            line2: '#CFD4D6',
+            t1: '#101619',
+            t2: '#55636D',
+            t3: '#8A96A0',
+            // Tiefsee-Teal - the single accent, light surfaces.
+            brand: '#0B767D',
+            'brand-hover': '#075A61',
+            // Light wash pair - info-card/badge fill+border, not a shade
+            // ramp (the 2.0 system doesn't have one - see DESIGN_SYSTEM.md).
+            tint: '#EDF6F6',
+            tint2: '#D3EAEB',
+            // Page background (Porzellan) - was the warm #FAF8F5.
+            paper: '#F2F5F6',
+            // Semantic tokens - defined from the bundle, not yet wired into
+            // the app's existing green-600/amber-600/red-600 usage. See
+            // DESIGN_SYSTEM.md.
+            ok: '#14713F', 'ok-tint': '#E9F2ED',
+            warn: '#8A6008', 'warn-tint': '#FAF3E4',
+            err: '#AE3227', 'err-tint': '#FAEDEB',
+            info: '#2C6E9B', 'info-tint': '#EAF1F7',
+            // Fixed dark surface (sidebar, hero) - not a toggleable dark
+            // mode. Complete palette defined per explicit instruction even
+            // though only a subset has a live consumer today (noted below).
+            ink: '#0C1013',
+            'ink-card': '#12171B',   // no current consumer
+            'ink-raised': '#171E23', // no current consumer
+            'ink-line': '#222A30',   // no current consumer (still border-white/10)
+            'ink-line2': '#303B42',  // no current consumer
+            'ink-t1': '#E9EFF1',     // no current consumer (white used instead)
+            'ink-t2': '#9DABB3',     // sidebar nav/secondary text
+            'ink-t3': '#6E7C85',     // NOT used anywhere - fails AA at normal text size, see DESIGN_SYSTEM.md
+            // Dark-surface light-wash pair - the ink analogue of tint/tint2
+            // above (info-card/badge fill+border, on ink). No current
+            // consumer - nothing on ink needs a tinted panel yet.
+            'ink-tint': '#0E2327', 'ink-tint2': '#123337',
+            // Dark-surface semantic set - the ink analogue of
+            // ok/warn/err/info above. No current consumer - no semantic
+            // status UI exists on ink yet, same reasoning as the light set.
+            'ink-ok': '#4BBE7E', 'ink-ok-tint': '#0F2419',
+            'ink-warn': '#D9A22B', 'ink-warn-tint': '#241C0B',
+            'ink-err': '#E4665A', 'ink-err-tint': '#251311',
+            'ink-info': '#5FA6D6', 'ink-info-tint': '#0E1D26',
+            // Accent text/icon on ink (nav-active, hero badge, logo symbol
+            // on dark) - was #3B82F6.
+            bright: '#4FC3C9',
+            // Primary action FILL specifically on ink surfaces - distinct
+            // from `bright` (a text/icon accent). New this pass; see the
+            // landing-hero-CTA fix in DESIGN_SYSTEM.md's role-mapping table.
+            'bright-action': '#12949B',
+            'bright-action-hover': '#3FBFC4',
           },
         },
       },
@@ -77,7 +156,7 @@
   </style>
   {% block head %}{% endblock %}
 </head>
-<body class="min-h-screen bg-paper text-slate-900 antialiased font-sans">
+<body class="min-h-screen bg-paper text-t1 antialiased font-sans">
   {% if current_user.is_authenticated %}
   {#
     Phase 7 remediation (QA finding B2): the desktop sidebar below is
@@ -95,32 +174,41 @@
     ('documents.list_documents', 'Documents'),
     ('integrations.gmail_status', 'Gmail'),
   ] %}
+  {#
+    Foundation-tokens pass, 2026-08-25: sidebar/drawer text switched from
+    text-slate-300/400/500 to ink-t2 uniformly (not the bundle's three-tier
+    t1/t2/t3 - ink-t3 fails AA at this surface's actual text sizes, see
+    DESIGN_SYSTEM.md). Every interactive element here also gained a real
+    focus outline (focus:outline-bright) for the first time - previously
+    none of them had any custom focus style, relying on the unverified
+    browser default against the dark sidebar.
+  #}
   {% macro nav_links() %}
   <nav class="flex-1 px-3 py-4 space-y-1 text-sm">
     {% for endpoint, label in nav_items %}
     <a href="{{ url_for(endpoint) }}"
-       class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
-         {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
+       class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+         {% if request.endpoint == endpoint %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}">
       {{ label }}
     </a>
     {% endfor %}
     {% if current_user.is_admin %}
     <div class="pt-4 mt-4 border-t border-white/10">
-      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Admin</p>
+      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-t2">Admin</p>
       <a href="{{ url_for('admin.overview') }}"
-         class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-slate-300 hover:bg-white/5 hover:text-white{% endif %}">
+         class="flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright {% if request.blueprint == 'admin' %}bg-white/10 text-white{% else %}text-ink-t2 hover:bg-white/5 hover:text-white{% endif %}">
         Admin Dashboard
       </a>
-      <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Invitation Codes</a>
-      <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Users</a>
-      <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Job Sources</a>
-      <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">AI Usage</a>
+      <a href="{{ url_for('admin.codes') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Invitation Codes</a>
+      <a href="{{ url_for('admin.users') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Users</a>
+      <a href="{{ url_for('admin.job_sources') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Job Sources</a>
+      <a href="{{ url_for('admin.ai_usage') }}" class="flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">AI Usage</a>
     </div>
     {% endif %}
   </nav>
   <div class="px-3 py-4 border-t border-white/10 text-sm">
-    <p class="px-3 truncate text-slate-400">{{ current_user.email }}</p>
-    <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors duration-150">Log out</a>
+    <p class="px-3 truncate text-ink-t2">{{ current_user.email }}</p>
+    <a href="{{ url_for('auth.logout') }}" class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium text-ink-t2 hover:bg-white/5 hover:text-white transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">Log out</a>
   </div>
   {% endmacro %}
   {% from "_logo.html" import lockup %}
@@ -128,11 +216,11 @@
 
   <!-- Mobile top bar: only the entry point below md, where the sidebar is hidden -->
   <header class="md:hidden sticky top-0 z-40 flex items-center justify-between bg-ink px-4 py-3">
-    <a href="{{ url_for('main.dashboard') }}" class="flex items-center">
+    <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
       {{ lockup(22, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
     </a>
     <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
-            aria-label="Open menu" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white">
+            aria-label="Open menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
       {{ menu(22) }}
     </button>
   </header>
@@ -143,7 +231,7 @@
     <div class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-ink flex flex-col shadow-xl">
       <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
         {{ lockup(24, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
-        <button type="button" id="mobile-nav-close" aria-label="Close menu" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white">
+        <button type="button" id="mobile-nav-close" aria-label="Close menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
           {{ cross(18) }}
         </button>
       </div>
@@ -184,7 +272,7 @@
   <div class="flex min-h-screen">
     <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
       <div class="px-5 py-5 border-b border-white/10">
-        <a href="{{ url_for('main.dashboard') }}" class="flex items-center">
+        <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
           {{ lockup(26, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
         </a>
       </div>

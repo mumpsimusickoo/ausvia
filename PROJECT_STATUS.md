@@ -1,6 +1,6 @@
 # Project Status — AUSVIA
 
-Snapshot date: 2026-08-24. For phase-by-phase detail see `ROADMAP.md`; for
+Snapshot date: 2026-08-25. For phase-by-phase detail see `ROADMAP.md`; for
 the original working/partial/broken/mocked/missing category audit see
 `PROJECT_AUDIT.md`; for the Phase 7 QA findings and their fixes see
 `QA_REPORT.md` and `PHASE7_REMEDIATION.md`; for the full decision history
@@ -230,13 +230,47 @@ for a redesign pass. Status:
     not a repurposing of the per-application `CvProfileStatement`. No AI
     call anywhere in this feature; empty sections are simply omitted, never
     invented.
-- **Next actual step:** the foundation-tokens pass (colors, typography,
+- **Foundation-tokens pass done, 2026-08-25** (colors, typography,
   spacing, radius, shadow, focus states only - no screens/components/logo/
-  dark-mode changes) - **not yet sent or started.** A prior attempt at this
-  exact pass was started and then explicitly reverted mid-implementation
-  at the user's request ("undo all this, forget about that prompt") before
-  anything was committed - the repo carries no trace of it. Whenever this
-  pass is picked back up, it starts fresh, not from that abandoned attempt.
+  dark-mode changes). Values extracted directly from the approved 2.0
+  mockup's own "Foundations" reference screen. Highlights: the single
+  accent moved from Signal Blue to Tiefsee-Teal (light surfaces) with a
+  new, distinct ink-surface action color (dark surfaces, previously
+  conflated with the text/icon accent); the old `brand-50..900` Tailwind
+  ramp was retired and every one of its ~110 call sites across ~24
+  templates was individually role-mapped, not regenerated; Sora became a
+  live UI webfont for titles/section headings/values/numbers (superseding
+  the 2026-08-11 "wordmark-only" decision), IBM Plex Sans replaced Inter
+  as the body face; focus states became a real 2px outline everywhere,
+  including the sidebar, which previously had no custom focus style at
+  all. The light-surface neutral scale (Tailwind `slate` → the bundle's
+  Porzellan `t1`/`t2`/`t3`/`line`/`line2`/`raised`) was migrated in full
+  too, role-mapped across 384 call sites in 31 templates, once the actual
+  RGB deltas against `slate` turned out to be visible, not close-enough.
+  Two real WCAG AA failures were caught and fixed *before* shipping, not
+  after: a button label at 3.66:1 contrast, and a `slate-500/400` → `t3`
+  mapping that measured 2.76-3.02:1 at 98 call sites (`t3` is defined but
+  wired into zero live elements, same treatment as `ink-t3`) - see
+  `DESIGN_SYSTEM.md` Accessibility for every measured number. The current
+  logo symbol (Aperture, rev 1.0) is frozen and unimplemented-replaced
+  this pass: the approved 2.0 bundle specifies a different mark entirely
+  ("Wegmarke" - two offset tracks, not the aperture cut), not implemented
+  anywhere yet - stronger than a palette mismatch. The wordmark spec (Sora
+  SemiBold, lowercase, -4% tracking) is unchanged, so `_logo.html`'s
+  existing outlined path stays valid. Full detail:
+  `DESIGN_SYSTEM.md` "Foundation tokens - 2026-08-25 pass",
+  `DECISIONS.md`'s three entries dated 2026-08-25. Full pytest suite: 442
+  passed / 3 skipped, unchanged (one assertion updated for a renamed
+  class, one conditional simplified after the `t3` fix - neither deleted
+  nor skipped).
+- **Next actual step:** the screens/components pass, dark mode, and
+  everything else in the AUSVIA 2.0 mockup beyond the tokens and the two
+  earlier resolved decisions (Job Radar, CV export) - **not yet scoped or
+  started.** The token layer this pass shipped (named font sizes,
+  `rounded-panel`, `shadow-hairline`/`shadow-overlay`, the full color
+  table) is available for it; actually adopting those tokens on existing
+  headings/cards/screens site-wide is itself part of that not-yet-started
+  work, not something this pass did.
 
 ## Security posture
 
@@ -273,16 +307,23 @@ Full detail: `SECURITY.md`.
 Functionally complete and internally consistent - the same handful of
 Tailwind utility patterns (card, button tiers, status pill, progress bar)
 are reused correctly across all templates with no visual drift. Brand
-colors (Signal Blue primary, Ink Navy foundation, warm off-white
-background, green/amber semantics) match the target spec, including on
-mobile navigation surfaces added in Phase 7 Remediation.
+colors now match the **AUSVIA 2.0 foundation-tokens pass** (2026-08-25):
+Tiefsee-Teal primary (light surfaces) / a distinct ink-surface action
+color (dark surfaces), the fixed ink sidebar/hero foundation on updated
+hex values, a Porzellan page background and neutral text/border scale
+(replacing Tailwind `slate` app-wide), green/amber semantics unchanged
+- see `DESIGN_SYSTEM.md` for the full token table and role mapping. **The
+symbol (Aperture, rev 1.0) is superseded, not just off-palette** - the
+approved 2.0 bundle specifies a different mark ("Wegmarke," two offset
+tracks) that isn't implemented anywhere yet; the wordmark spec (Sora
+SemiBold, lowercase, -4% tracking) is unchanged and needs no rework.
 
 There is still no shared component library beyond a couple of form-
 rendering macros - every card/button/badge/pill is a repeated (but
 consistent) utility-class pattern, not a reusable macro or component. This
-is exactly the kind of gap the AUSVIA 2.0 redesign's eventual component
-pass would address, but it hasn't been reached yet (still at the
-foundation-tokens step - see above).
+is exactly the kind of gap the AUSVIA 2.0 redesign's eventual
+screens/components pass would address, but it hasn't been reached yet
+(the foundation-tokens step that precedes it is now done - see above).
 
 Full detail on the brand direction and any remaining gaps: `DESIGN_SYSTEM.md`.
 
@@ -320,9 +361,10 @@ when explicitly opted into.
 ## Recommended next step
 
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
-its next concrete step is the foundation-tokens pass, not yet started.
-Everything else from Phases 1-8 plus everything documented in `ROADMAP.md`
-since is complete. When the redesign isn't the priority, the longer-
+its foundation-tokens pass is done (2026-08-25); the next concrete step is
+the screens/components pass, not yet scoped or started. Everything else
+from Phases 1-8 plus everything documented in `ROADMAP.md` since is
+complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in
 `ROADMAP.md` (UX Polish - accessibility audit, loading/empty/error states,
 a notification system - note this is a different "Phase 9" from the

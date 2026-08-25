@@ -6,6 +6,210 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-25 — Foundation-tokens pass: light/dark accent, page background, and status-marker colors replaced (Signal Blue → Tiefsee-Teal); the `brand-50..900` shade ramp retired for a smaller, role-mapped token set
+
+**Decision:** Implemented the AUSVIA 2.0 foundation-tokens pass (colors,
+typography, spacing, radius, shadow, focus states only — no screens,
+components, or logo changes), extracting every value from the approved
+2.0 mockup bundle's own "Foundations" reference screen. The single accent
+changes from Signal Blue (`#2563EB`) to Tiefsee-Teal (`#0B767D`, light
+surfaces) / `#12949B` (fixed ink surfaces, a new, distinct role from the
+existing `bright` text/icon-on-ink accent, now `#4FC3C9`); the page
+background from `#FAF8F5` to `#F2F5F6`; the fixed dark sidebar/hero
+surface from `#0B1220` to `#0C1013`. The old `brand-50` through
+`brand-900` Tailwind shade ramp is retired entirely — the 2.0 system does
+not have a ramp, only two raw accent values (`brand`/`brand-hover`) plus
+two light washes (`tint`/`tint2`). Every one of the ~110 `brand-NNN`
+call sites across ~24 templates was individually read in context and
+assigned to one of six roles (primary action fill, primary action hover,
+link/tertiary text, brand-colored border, light-wash fill, light-wash
+border) — never picked by nearest-lightness hex, which can put a fill
+color in a text role. Full table: `DESIGN_SYSTEM.md`'s "Foundation
+tokens — 2026-08-25 pass".
+
+**Reason:** Explicit product direction — the AUSVIA 2.0 mockup bundle is
+the approved next visual direction (see the 2026-08-24 audit referenced
+in `ROADMAP.md`'s "AUSVIA 2.0 redesign" section), and this is its first
+implementation pass. The shade-ramp retirement specifically was a
+deliberate, explicit choice over generating synthetic `brand-50..900`
+values algorithmically from the two real anchor hexes: `tint`/`tint2`
+**are** the 2.0 system's answer to "light badge/card fill and border,"
+not a smaller version of a bigger ramp that never existed in the approved
+design — shipping invented intermediate shades would mean roughly half
+the app's accent color values were never actually approved by anyone.
+
+**Alternatives considered:** Generating the missing `50`–`900` shades
+algorithmically from the two anchor hex values (consistent lightness
+steps) so every existing `brand-NNN` utility class kept working with zero
+template edits — rejected specifically because it manufactures colors
+the approved design never specified, for a system that structurally
+doesn't have a ramp. Mapping each retired shade to its nearest-lightness
+new token without checking the call site's actual role — rejected before
+it started; nearest-hex-by-lightness routinely picks a *fill* token for a
+*text* role or vice versa (e.g. `brand-50`, a near-white wash, is closer
+by raw lightness to `tint2`'s border role than to `tint`'s fill role in
+some naive rankings, despite the two having opposite intended uses).
+
+**Consequences:** Real per-template work across ~24 files (documented in
+`DESIGN_SYSTEM.md`'s role-mapping table), not a pure config change — an
+explicit, accepted tradeoff for correctness over minimal footprint. One
+call site turned out to be an actual pre-existing bug, not just a rename:
+the landing hero's primary CTA was using the light-surface `brand` fill
+directly on the dark ink hero (exactly the mistake the project's own
+"Signal Blue is light-only, Bright Blue is dark-only" rule, 2026-08-11
+below, was written to prevent — just missed for a fill color instead of a
+text color), with an undocumented manual hover-lightening patch
+compensating for the resulting low contrast. Fixed to use the real
+ink-surface action pair, which lightens on hover by design; its white
+label text also failed WCAG AA at this button's size (3.66:1, computed)
+and was switched to ink-colored text (5.22:1, passes) — see
+`DESIGN_SYSTEM.md` Accessibility for both numbers. `_macros.html`'s
+`render_field()`/`render_checkbox()` focus style changed from a 1px inset
+ring to the bundle's real 2px solid outline + 2px offset; the sidebar
+nav/logout/admin links and the mobile nav toggle/close buttons gained a
+focus outline for the first time (previously none existed, relying on an
+unverified browser default against the dark surface). `paper`'s hex
+changed but no other neutral-scale (`slate-*`) color was touched — this
+was **not** a full retheme; the existing `text-slate-900`/`slate-600`/
+etc. text scale, `border-slate-200` card borders, and the existing
+`green-600`/`amber-600`/`red-600` semantic colors are all unchanged. The
+bundle's own `ok`/`warn`/`err`/`info` semantic tokens are now defined in
+the Tailwind config but deliberately not wired into that existing
+green/amber/red usage — revisiting that is a separate decision this pass
+didn't reopen (see the 2026-08-11 "Brand palette reuses the existing
+Tailwind slate/blue scale" entry below, still standing). One real,
+flagged inconsistency this pass does **not** fix — and it's stronger
+than a palette mismatch: the logo symbol (Aperture, rev 1.0,
+`_logo.html`/`app/static/brand/*.svg`) is frozen while the approved 2.0
+bundle specifies a **different mark entirely** ("Wegmarke" — two offset
+tracks on a 48 grid, not the aperture counterform cut), not implemented
+anywhere in the codebase. The wordmark spec (Sora SemiBold, lowercase,
+−4% tracking) is unchanged, so the existing outlined path stays valid.
+Documented as a known, deliberate, temporary state in `DESIGN_SYSTEM.md`,
+needing its own follow-up decision (implementing Wegmarke, or reverting
+the app's accent instead) before the two are reconciled.
+Bundle-matched Tailwind defaults required zero config or template
+changes: `rounded-lg`/`rounded-xl`/`rounded-full` already equal the
+bundle's control/card/pill radii, and `p-6`/`gap-8`/`mt-14` already equal
+its card-inner/block/section spacing — both systems happen to share the
+same 4px base unit. `shadow-sm` was left in place rather than replaced
+by a new exact-match token — the difference from the bundle's `--sh` is
+imperceptible (near-black vs. ink-tinted black at the same 5% opacity)
+and it's already applied at 154 call sites. One pytest assertion
+(`test_status_route_accessibility.py`) hardcoded the retired
+`border-brand-600` class name and was updated to `border-brand`, not
+deleted or skipped — the ring/shape logic it actually tests (dashed vs.
+solid) is unchanged. Full suite: 442 passed / 3 skipped, unchanged from
+before this pass.
+
+---
+
+## 2026-08-25 — Light-surface neutral scale (Tailwind `slate` → bundle's Porzellan `t1`/`t2`/`t3`/`line`/`line2`/`raised`) fully migrated, not left as "close enough"
+
+**Decision:** Added six light-surface neutral tokens (`raised`, `line`,
+`line2`, `t1`, `t2`, `t3`) from the bundle's Foundations screen, and
+migrated all 384 `slate-NNN` call sites across 31 templates to them by
+role, same method as the `brand` shade-ramp migration above. `card`
+(`#FFFFFF`) needed no new token — it already equals Tailwind `white`. Full
+token table and role-mapping table: `DESIGN_SYSTEM.md`'s "Light-surface
+neutrals (Porzellan)" and "Neutral-scale role mapping" sections.
+
+**Reason:** This pass originally shipped without this migration — the
+initial reasoning was that swapping Tailwind's default `slate` scale for
+a bundle-defined equivalent was a full retheme, not a token swap, and out
+of this pass's scope. That reasoning was wrong: `slate` is measurably
+blue-tinted, not a neutral approximation of the bundle's cool-neutral
+scale. `t1` (`#101619`) vs `slate-900` (`#0F172A`) differ by 17 units on
+the blue channel alone; `t2` (`#55636D`) vs `slate-600` (`#475569`) shows
+a comparable lightness/saturation shift. Both are visible across a full
+page of running body text, which is most of the app. Leaving this
+undocumented and unmigrated would have meant roughly half the app's
+"neutral" surface never actually matched the approved design, silently.
+
+**Alternatives considered:** Documenting the deltas in `DESIGN_SYSTEM.md`
+and leaving `slate` in place as "close enough" — rejected once the actual
+RGB deltas were computed and found to be a real, visible difference, not
+a rounding-level one; the same standard already applied to `brand`
+(no synthetic/approximate values) applies here. Mapping each retired
+shade to its nearest-lightness token without reading the call site's role
+— rejected for the same reason it was rejected for `brand`: nearest-hex
+picks a border token for a text role or vice versa in enough cases to be
+unreliable.
+
+**Consequences:** Real per-template work across 31 files, not a pure
+config change — the same tradeoff already accepted for `brand`. One
+genuine accessibility regression was caught and fixed within this same
+pass, not shipped and fixed later: mapping `slate-500`/`slate-400` to the
+"obviously correct" `t3` computed at 2.76:1–3.02:1 against the app's
+light surfaces, failing WCAG AA at 98 call sites (mostly helper text and
+table headers — normal-sized, genuinely read). The class it replaced
+(`slate-500`/`slate-400`) measured 4.35–4.76:1 in the same positions —
+borderline-passing — so this would have been a real regression, not a
+wash. Remapped to `t2` instead (5.65–6.19:1); `t3` stays defined as a
+token (it's a real bundle value, kept for a future large-text-only use)
+but wired into zero live call sites, exactly matching how `ink-t3` was
+already handled for the identical reason. One small, honest side effect:
+a two-branch conditional in `applications/detail.html`'s Wayfinding
+component collapsed to identical branches once `t3` left and was
+simplified to a single class — the reached/not-reached distinction it
+carried is still conveyed by the adjacent label line and connector color,
+just no longer redundantly encoded twice. Full suite re-run after this
+migration: 442 passed / 3 skipped, unchanged.
+
+---
+
+## 2026-08-25 — Sora becomes a live UI webfont (titles, section headings, values, numbers), superseding "Sora is wordmark-only"
+
+**Decision:** Sora is now loaded as a live Google Fonts webfont
+(`font-weight: 600` only) and used for titles, section headings, values,
+and numbers app-wide via a new `font-display` Tailwind family — not
+scoped to the outlined logotype path data anymore. IBM Plex Sans replaces
+Inter as the body/UI face (`font-sans`); IBM Plex Mono is added
+(`font-mono`) for labels and source attributions only. This directly
+reverses the 2026-08-11 "Typography decision: Sora is wordmark-only
+(Option A)" entry below. Named `fontSize` tokens for the bundle's exact
+scale (`text-display`/`text-title`/`text-section`/`text-body`/
+`text-label`) were added to the Tailwind config, but existing
+`text-3xl`/`text-xl`/etc. headings across every template were
+deliberately **not** migrated to them this pass — see Consequences.
+
+**Reason:** Explicit product direction — the approved AUSVIA 2.0 mockup
+uses Sora as a live display face throughout (titles, section headings,
+tabular numbers), not only in a pre-outlined logo path. The original
+Option A reasoning was sound for what the project needed *then* (the
+wordmark had just been outlined as static vector paths specifically so it
+would never need Sora loaded at runtime, and nothing else in the app at
+that time asked for a second display typeface) — that constraint hasn't
+changed technically, the product direction changed instead.
+
+**Alternatives considered:** Migrating every existing heading across
+every template to the new named font-size scale in the same pass —
+rejected as genuine per-template retype work well beyond "a token swap,"
+explicitly scoped out; the named tokens are defined and available, the
+migration itself is deliberately deferred to a future pass. Keeping Sora
+scoped to the logotype and finding some other way to satisfy "titles use
+a display face" (e.g. weight/tracking tricks on Inter/Plex Sans instead)
+— rejected; the approved 2.0 direction specifically calls for Sora as a
+second display family, not a heavier cut of the body face.
+
+**Consequences:** The app now loads a webfont it had previously and
+deliberately avoided loading — a real, honest cost worth stating plainly:
+one additional Google Fonts request (same `fonts.googleapis.com`/
+`fonts.gstatic.com` hosts already allow-listed in the CSP for Inter, so
+no CSP change was needed) fetching three families/weights (IBM Plex Sans
+400/500/600/700, Sora 600, IBM Plex Mono 500) instead of Inter's previous
+400/500/600/700/800 — a comparable request shape, not a dramatically
+heavier one, but it is a font-loading dependency the Option A decision
+was specifically written to avoid entirely for Sora. `_logo.html`'s
+outlined wordmark path data is unaffected either way — it never depended
+on a loaded Sora font and still doesn't; this decision is about live UI
+text, not the logo mark. Role boundary recorded in `DESIGN_SYSTEM.md` so
+it doesn't drift: Sora 600 for titles/sections/values/numbers only, never
+body text; IBM Plex Sans 400 for everything read as running language;
+IBM Plex Mono 500 for labels/source-attributions only, never body copy.
+
+---
+
 ## 2026-08-19 — "Approve & Send" (Gmail auto-send) investigated and rejected
 
 **Decision:** AUSVIA will not send the application email itself. The

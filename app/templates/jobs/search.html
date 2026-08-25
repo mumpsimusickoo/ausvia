@@ -4,15 +4,15 @@
 {% from "jobs/_source_attribution.html" import adzuna_attribution %}
 {% block title %}Job Search — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-slate-900">Job Search</h1>
-<p class="mt-1 text-sm text-slate-600 mb-6">
-  Searches every enabled job source (Bundesagentur für Arbeit, and Adzuna/Jooble where configured - see each listing's source tag). Can't find a posting? <a href="{{ url_for('jobs.import_start') }}" class="text-brand-700 hover:underline">Import it manually by URL</a>.
+<h1 class="text-2xl font-bold text-t1">Job Search</h1>
+<p class="mt-1 text-sm text-t2 mb-6">
+  Searches every enabled job source (Bundesagentur für Arbeit, and Adzuna/Jooble where configured - see each listing's source tag). Can't find a posting? <a href="{{ url_for('jobs.import_start') }}" class="text-brand hover:underline">Import it manually by URL</a>.
 </p>
 
-<form method="get" class="rounded-xl border border-slate-200 bg-white shadow-sm p-6 mb-6 flex flex-wrap items-end gap-4">
+<form method="get" class="rounded-xl border border-line bg-white shadow-sm p-6 mb-6 flex flex-wrap items-end gap-4">
   <div class="flex-1 min-w-[16rem]">{{ render_field(form.keywords) }}</div>
   <div class="flex-1 min-w-[12rem]">{{ render_field(form.location) }}</div>
-  <button type="submit" class="mb-4 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700">Search</button>
+  <button type="submit" class="mb-4 rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white hover:bg-brand-hover">Search</button>
 </form>
 
 {% if ingest_errors %}
@@ -31,13 +31,13 @@
   {% if results %}
   <div class="space-y-3">
     {% for job in results %}
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm p-5 flex items-start justify-between">
+    <div class="rounded-xl border border-line bg-white shadow-sm p-5 flex items-start justify-between">
       <div>
-        <a href="{{ url_for('jobs.detail', job_id=job.id) }}" class="font-semibold text-slate-900 hover:text-brand-700">{{ job.title }}</a>
-        <p class="text-sm text-slate-600">{{ job.company_name or "Unknown company" }}{% if job.location %} · {{ job.location }}{% endif %}</p>
+        <a href="{{ url_for('jobs.detail', job_id=job.id) }}" class="font-semibold text-t1 hover:text-brand">{{ job.title }}</a>
+        <p class="text-sm text-t2">{{ job.company_name or "Unknown company" }}{% if job.location %} · {{ job.location }}{% endif %}</p>
         <div class="mt-2 flex flex-wrap items-center gap-1">
           {% for source in job.sources %}
-          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{{ source }}</span>
+          <span class="rounded-full bg-line px-2 py-0.5 text-xs text-t2">{{ source }}</span>
           {% endfor %}
           {% if "adzuna" in job.sources %}{{ adzuna_attribution() }}{% endif %}
         </div>
@@ -45,13 +45,13 @@
       <div class="flex flex-col items-end gap-2">
         {% set m = match_by_job_id.get(job.id) %}
         {% if m and m.score is not none %}
-        <span class="rounded-full px-2 py-0.5 text-xs font-semibold {% if m.score >= 80 %}bg-green-100 text-green-700{% elif m.score >= 60 %}bg-brand-50 text-brand-700{% elif m.score >= 40 %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold {% if m.score >= 80 %}bg-green-100 text-green-700{% elif m.score >= 60 %}bg-tint text-brand{% elif m.score >= 40 %}bg-amber-100 text-amber-700{% else %}bg-line text-t2{% endif %}">
           {{ m.score }}/100 match
         </span>
         {% endif %}
         <form method="post" action="{{ url_for('jobs.save', job_id=job.id) if job.id not in saved_job_ids else url_for('jobs.unsave', job_id=job.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="inline-flex items-center gap-1 text-sm font-medium {% if job.id in saved_job_ids %}text-slate-500{% else %}text-brand-700{% endif %} hover:underline">
+          <button class="inline-flex items-center gap-1 text-sm font-medium {% if job.id in saved_job_ids %}text-t2{% else %}text-brand{% endif %} hover:underline">
             {% if job.id in saved_job_ids %}{{ check(12) }} Saved{% else %}Save{% endif %}
           </button>
         </form>
@@ -60,7 +60,7 @@
     {% endfor %}
   </div>
   {% else %}
-  <p class="text-sm text-slate-500">No results found. Try different keywords, or <a href="{{ url_for('jobs.import_start') }}" class="text-brand-700 hover:underline">import a posting manually</a>.</p>
+  <p class="text-sm text-t2">No results found. Try different keywords, or <a href="{{ url_for('jobs.import_start') }}" class="text-brand hover:underline">import a posting manually</a>.</p>
   {% endif %}
 {% endif %}
 {% endblock %}
