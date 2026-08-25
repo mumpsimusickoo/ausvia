@@ -214,10 +214,16 @@
   {% from "_logo.html" import lockup %}
   {% from "_icons.html" import menu, cross %}
 
+  {#
+    Logo-replacement pass, 2026-08-25: all three lockups below sit on the
+    bg-ink shell, so symbol_color is `bright` (#4FC3C9), not `brand` - the
+    same ink/light split the sidebar's other accent uses already followed.
+    wordmark_color stays #FFFFFF, untouched by this pass (symbol only).
+  #}
   <!-- Mobile top bar: only the entry point below md, where the sidebar is hidden -->
   <header class="md:hidden sticky top-0 z-40 flex items-center justify-between bg-ink px-4 py-3">
     <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
-      {{ lockup(22, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
+      {{ lockup(22, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
     </a>
     <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
             aria-label="Open menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
@@ -230,7 +236,7 @@
     <div id="mobile-nav-backdrop" class="absolute inset-0 bg-black/50"></div>
     <div class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-ink flex flex-col shadow-xl">
       <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
-        {{ lockup(24, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
+        {{ lockup(24, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
         <button type="button" id="mobile-nav-close" aria-label="Close menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
           {{ cross(18) }}
         </button>
@@ -273,7 +279,7 @@
     <aside class="hidden md:flex w-60 shrink-0 flex-col bg-ink">
       <div class="px-5 py-5 border-b border-white/10">
         <a href="{{ url_for('main.dashboard') }}" class="flex items-center focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
-          {{ lockup(26, symbol_color="#3B82F6", wordmark_color="#FFFFFF") }}
+          {{ lockup(26, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
         </a>
       </div>
       {{ nav_links() }}

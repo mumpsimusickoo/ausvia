@@ -251,25 +251,44 @@ for a redesign pass. Status:
   after: a button label at 3.66:1 contrast, and a `slate-500/400` → `t3`
   mapping that measured 2.76-3.02:1 at 98 call sites (`t3` is defined but
   wired into zero live elements, same treatment as `ink-t3`) - see
-  `DESIGN_SYSTEM.md` Accessibility for every measured number. The current
-  logo symbol (Aperture, rev 1.0) is frozen and unimplemented-replaced
-  this pass: the approved 2.0 bundle specifies a different mark entirely
-  ("Wegmarke" - two offset tracks, not the aperture cut), not implemented
-  anywhere yet - stronger than a palette mismatch. The wordmark spec (Sora
-  SemiBold, lowercase, -4% tracking) is unchanged, so `_logo.html`'s
-  existing outlined path stays valid. Full detail:
+  `DESIGN_SYSTEM.md` Accessibility for every measured number. Full detail:
   `DESIGN_SYSTEM.md` "Foundation tokens - 2026-08-25 pass",
   `DECISIONS.md`'s three entries dated 2026-08-25. Full pytest suite: 442
   passed / 3 skipped, unchanged (one assertion updated for a renamed
   class, one conditional simplified after the `t3` fix - neither deleted
   nor skipped).
+- **Logo-replacement pass done, 2026-08-25** - retired Aperture (rev 1.0),
+  implemented **Wegmarke** (two offset tracks on a 48-unit grid, the
+  bundle's own Foundations-screen construction, transcribed exactly) as
+  the live symbol everywhere it appears: `_logo.html`'s `symbol()`/
+  `lockup()` macros (plus a new `app_icon()` macro), all 17 static brand
+  SVG/PNG exports, and the favicon. Below 22px both macros automatically
+  switch to a wider-bar path variant so the gap between tracks stays
+  legible - verified by rendering the real macro output at sizes on both
+  sides of the threshold, not just reading the conditional. Symbol color
+  follows the existing `brand`/`bright` light/dark split; resolved one
+  real discrepancy in the bundle itself (two of its four rendered
+  examples hardcode a different teal, `#0F7379`, instead of its own
+  `var(--brand)`) in favor of the shipped token, not the inconsistent
+  hardcoded value. Favicon PNGs were regenerated via Pillow (no SVG
+  rasterizer available in this environment) at 8x supersampling from the
+  exact path coordinates - visually confirmed, not just asserted; no
+  `.ico`/apple-touch-icon/manifest exists in this repo, so none were
+  invented. The wordmark (Sora SemiBold, lowercase, -4% tracking) is
+  completely untouched - only the symbol changed. One pre-existing
+  inconsistency flagged, not fixed (out of this pass's explicit
+  "symbol only" scope): the wordmark's light-surface text color still
+  hardcodes the pre-tokens-pass `ink` hex (`#0B1220`), not the current
+  `#0C1013`. Full detail: `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces
+  Aperture", `DECISIONS.md`'s 2026-08-25 entry. Full pytest suite: 442
+  passed / 3 skipped, unchanged.
 - **Next actual step:** the screens/components pass, dark mode, and
-  everything else in the AUSVIA 2.0 mockup beyond the tokens and the two
-  earlier resolved decisions (Job Radar, CV export) - **not yet scoped or
-  started.** The token layer this pass shipped (named font sizes,
-  `rounded-panel`, `shadow-hairline`/`shadow-overlay`, the full color
-  table) is available for it; actually adopting those tokens on existing
-  headings/cards/screens site-wide is itself part of that not-yet-started
+  everything else in the AUSVIA 2.0 mockup beyond the tokens and the now-
+  resolved logo decision - **not yet scoped or started.** The token layer
+  this pass shipped (named font sizes, `rounded-panel`,
+  `shadow-hairline`/`shadow-overlay`, the full color table) is available
+  for it; actually adopting those tokens on existing headings/cards/screens
+  site-wide is itself part of that not-yet-started
   work, not something this pass did.
 
 ## Security posture
@@ -313,10 +332,12 @@ color (dark surfaces), the fixed ink sidebar/hero foundation on updated
 hex values, a Porzellan page background and neutral text/border scale
 (replacing Tailwind `slate` app-wide), green/amber semantics unchanged
 - see `DESIGN_SYSTEM.md` for the full token table and role mapping. **The
-symbol (Aperture, rev 1.0) is superseded, not just off-palette** - the
-approved 2.0 bundle specifies a different mark ("Wegmarke," two offset
-tracks) that isn't implemented anywhere yet; the wordmark spec (Sora
-SemiBold, lowercase, -4% tracking) is unchanged and needs no rework.
+symbol is now Wegmarke** (two offset tracks, 48-grid), implemented
+2026-08-25 - Aperture rev 1.0 is retired. The wordmark (Sora SemiBold,
+lowercase, -4% tracking) needed no rework and wasn't touched. See
+`DESIGN_SYSTEM.md`'s "Logo - Wegmarke replaces Aperture" for construction,
+color roles, and the one flagged-but-unfixed wordmark-color leftover
+(out of that pass's explicit symbol-only scope).
 
 There is still no shared component library beyond a couple of form-
 rendering macros - every card/button/badge/pill is a repeated (but

@@ -329,44 +329,131 @@ pass; `ink-t3` is defined but deliberately left unused precisely because
 it fails at normal text size and nothing in the app has a large-text-only
 use for it yet.
 
-### Flagged: Aperture is superseded by an unimplemented 2.0 mark — this is stronger than "off-palette"
+### Logo — Wegmarke replaces Aperture (implemented 2026-08-25)
 
-The current symbol — Aperture, rev 1.0 (`_logo.html`'s `symbol()`, the
-">" counterform cut) — is not merely wearing the wrong colors now. **The
-approved AUSVIA 2.0 mockup bundle specifies a different mark entirely**,
-in its own Foundations reference screen (section "01 — MARKE, Offset —
-zwei Spuren, eine voraus"): two parallel offset tracks at the same angle,
-the right one leading — motion implied by position, not a drawn arrow.
-Construction, transcribed exactly from the bundle, not approximated: 48
-grid, bar width 8, constant rise; the right track sits 6 units higher and
-14 units ahead of the left one. Two flat shapes, no outline strokes. This
-mark (call it **"Wegmarke"** — the bundle's own working name for it) is
-**not implemented anywhere in the codebase** — `_logo.html`, the static
-SVGs in `app/static/brand/`, and the favicon are all still Aperture, rev
-1.0, unchanged, frozen this pass same as everything else in scope.
+**Aperture, rev 1.0, is retired.** The symbol is now **Wegmarke**
+("waymark") — two parallel offset tracks at the same angle, the right one
+leading, motion implied by position rather than a drawn arrow. This is
+exactly what the previous pass's "flagged, not fixed" note above
+predicted would eventually need doing; this pass is that follow-up,
+implemented in full, not just documented.
 
-**The wordmark is a different story — its spec is unchanged and needs no
+**Construction**, transcribed exactly from the bundle's own Foundations
+reference screen ("01 — MARKE, Offset — zwei Spuren, eine voraus"), not
+approximated: 48-unit grid, bar width 8 (constant), the right track 6
+units higher and 14 units ahead of the left one. Two flat, non-overlapping
+shapes — no strokes, no cutout/evenodd construction (unlike Aperture,
+which was a single counterform path). Exact path data:
+
+```
+M12 34 L20 12 L28 12 L20 34 Z
+M26 28 L34 6 L42 6 L34 28 Z
+```
+
+**Below 22px the bundle switches to a wider-bar variant** (bar width 10,
+not 8) so the gap between the two tracks stays legible at small sizes:
+
+```
+M11 35 L20 11 L30 11 L21 35 Z
+M25 29 L34 5 L44 5 L35 29 Z
+```
+
+This switch is **automatic inside `_logo.html`'s `symbol()` and
+`lockup()` macros** (keyed on the `size`/`height` param), not left to each
+call site to remember — verified directly against the real macro output,
+not just read from the source: rendering `symbol(size=21)` produces the
+wide-bar variant, `symbol(size=22)` produces the standard variant, exactly
+at the bundle's stated threshold.
+
+**App icon** (viewBox `0 0 48 48`, new `app_icon()` macro): a rounded-rect
+tile (`rx="11"`, ~23% of the grid) filled `brand`, with the standard-size
+mark knocked out in the card color (`#FFFFFF`) rather than drawn on top —
+matches the bundle's own "GRÖSSEN · APP-ICON" composited example exactly.
+Nothing in the app currently calls this macro (no manifest or
+apple-touch-icon exists in this repo to consume it — see "Static assets
+regenerated" below) — it's available for when one is added.
+
+**Color — one real discrepancy in the bundle, resolved in favor of the
+shipped token, not guessed:** the bundle's own Foundations screen renders
+the mark four different ways, and two of those hardcode `#0F7379` where
+the other two use `var(--brand)` (`#0B767D` on light). These are two
+different teals in the *same reference screen* — internally inconsistent,
+not a deliberate second color. Resolved by using the token everywhere,
+never the hardcoded value: `#0B767D` is what every other surface in this
+app already renders as `brand` (buttons, links, focus rings — the entire
+"single accent" system from the tokens pass), and `#0F7379` has no other
+consumer anywhere in the app. Using it here would introduce a second,
+undocumented teal for no reason beyond one inconsistent example in the
+bundle's own art. Color roles:
+
+| Context | Color | Token |
+|---|---|---|
+| Symbol on light surfaces | `#0B767D` | `brand` |
+| Symbol on ink surfaces | `#4FC3C9` | `bright` |
+| App icon tile fill | `#0B767D` | `brand` |
+| App icon mark (knocked out) | `#FFFFFF` | `card` |
+
+**The wordmark is unchanged — its spec was already correct and needed no
 rework.** The bundle's own type section documents the wordmark exactly as
-`_logo.html`'s existing `wordmark()`/`lockup()` macros already implement
-it: **Sora SemiBold, lowercase "ausvia", −4% tracking.** The outlined
-vector path baked into `_logo.html` (extracted from the real licensed
-Sora SemiBold font via `fontTools`, per the rev-1.0 decision below) stays
-exactly valid under the 2.0 spec and needs no regeneration — only the
-symbol half of the lockup is superseded, not the wordmark half. This
-also means Sora becoming a live UI webfont this pass (see the typography
-section above) doesn't change anything about how the wordmark itself is
-produced — it was never rendered as live text and still isn't.
+`_logo.html`'s `wordmark()`/`lockup()` macros already implement it:
+**Sora SemiBold, lowercase "ausvia", −4% tracking.** The outlined vector
+path baked into `_logo.html` (extracted from the real licensed Sora
+SemiBold font via `fontTools`) stays exactly valid and was not touched —
+only the symbol half of every lockup changed this pass. The wordmark's
+own text color (`#0B1220` on light, `#FFFFFF` on dark, set via each
+lockup call site's `wordmark_color` param) is likewise untouched — out of
+this pass's explicit scope ("only the symbol beside it changes"). One
+pre-existing inconsistency noticed but deliberately not fixed here: the
+light-surface default (`#0B1220`, "Ink Navy") is the *old*, pre-tokens-pass
+`ink` surface hex — the tokens pass renamed the surface token to
+`#0C1013` without updating this same hex's other historical use as
+light-surface wordmark text (see the 2026-08-11 "Ink Navy as a real
+foundation element" note). Real, but a wordmark-color question, and this
+pass's scope is the symbol only — flagged for a future pass, not silently
+folded in here.
 
-**Consequence, not a fix:** the app currently ships Aperture, colored in
-the *new* palette-mismatched way described above (its hardcoded Signal
-Blue/Bright Blue hex values, unchanged, now sitting against the new
-Tiefsee-Teal/`bright` accent everywhere around it) — a mark that is both
-the wrong color *and*, per the approved 2.0 direction, the wrong shape.
-Implementing Wegmarke (new symbol geometry, new static SVG asset set, a
-new favicon) is real, separate, unscoped work — not decided or started
-here. `LOGO.md` still documents Aperture as "approved, rev 1.0" and has
-not been updated to record Wegmarke as its replacement; that update, and
-the actual implementation, are both follow-up work.
+**Clear space and minimum sizes**, transcribed from the bundle's
+"FREIRAUM & MINDESTGRÖSSE" note: clear space is half the mark's height, on
+every side; minimum sizes are 16px for the bare mark, 88px for the full
+lockup (below that the wordmark's letterform detail stops being legible).
+Both are call-site/usage rules, encoded in `_logo.html`'s header comment
+and here — a macro can't enforce spacing or container sizing on its own.
+
+**Static assets regenerated** (17 files under `app/static/brand/`,
+existing filenames kept, per explicit instruction — geometry and, where
+applicable, color updated in place):
+`ausvia-symbol-{blue,bright,ink,white,black,currentcolor}.svg`,
+`ausvia-lockup-{primary-light,primary-dark,mono-black,mono-white,stacked,
+stacked-dark,tagline}.svg`, `ausvia-appicon-source.svg` (1024px canvas,
+same construction scaled up: `rx="234.67"`, paths scaled ×21.3333),
+`favicon.svg`, `favicon-32.png`, `favicon-16.png` (regenerated via Pillow
+— no SVG rasterizer, e.g. cairosvg/Inkscape/ImageMagick, is available in
+this environment, so these were redrawn from the exact same path
+coordinates at 8× supersampling and downsampled with LANCZOS, not
+approximated by eye). `favicon-32.png` uses the standard path variant,
+`favicon-16.png` the 16px variant — visually confirmed side by side, not
+just asserted (the 16px variant's wider bars and narrower gap are visibly
+different at a glance). **Checked and confirmed absent, so nothing was
+regenerated or invented for them:** no `.ico` file, no `apple-touch-icon`,
+no web manifest exists anywhere in this repo.
+
+**One filename/content mismatch worth flagging, not fixed this pass:**
+`ausvia-symbol-blue.svg` now contains the mark in `brand` teal
+(`#0B767D`), not blue — kept per the explicit instruction to preserve the
+existing filename convention, but the name is now inaccurate. A future
+asset-naming pass could rename it (nothing in the codebase references
+these files by path — confirmed via grep — so it would be a safe,
+zero-risk rename), not done here since renaming wasn't asked for and
+wasn't necessary to complete this pass. `ausvia-symbol-ink.svg` was
+updated to the *current* `ink` hex (`#0C1013`, not the pre-tokens-pass
+`#0B1220`) since that file is purely about the symbol's fill color, which
+is squarely in this pass's scope.
+
+**`LOGO.md`** still documents Aperture's full historical construction
+(artboard, counter span, leg angle, etc.) — left as-is, not rewritten,
+since it's now a historical record, not the live spec; a short
+superseded-notice was added at its top pointing here instead of deleting
+or rewriting the history it documents.
 
 ---
 

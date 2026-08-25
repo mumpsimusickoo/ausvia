@@ -500,16 +500,33 @@ for a redesign pass, started 2026-08-24.
       and a naive `slate-500/400` → `t3` mapping that measured
       2.76-3.02:1 at 98 call sites (`t3` stays defined, wired into zero
       live elements, same as `ink-t3`) - see `DESIGN_SYSTEM.md`
-      Accessibility for the full measured numbers. The logo symbol
-      (Aperture, rev 1.0) is frozen and **superseded, not just
-      off-palette** - the approved 2.0 bundle specifies a different mark
-      ("Wegmarke," two offset tracks) that isn't implemented; the wordmark
-      spec (Sora SemiBold, lowercase, -4% tracking) is unchanged. Full
-      detail: `DESIGN_SYSTEM.md` "Foundation tokens - 2026-08-25 pass",
+      Accessibility for the full measured numbers. Full detail:
+      `DESIGN_SYSTEM.md` "Foundation tokens - 2026-08-25 pass",
       `DECISIONS.md`'s three entries dated 2026-08-25.
+- [x] **Logo-replacement pass**, 2026-08-25 - retired Aperture (rev 1.0),
+      implemented Wegmarke (two offset tracks, 48-grid, transcribed
+      exactly from the bundle's own Foundations screen) as the AUSVIA
+      symbol. Below 22px both `_logo.html` macros automatically switch to
+      a wider-bar path variant so the gap stays visible - verified by
+      rendering the real macro output on both sides of the threshold, not
+      just reading the code. Symbol color follows the existing light/dark
+      token split (`brand`/`bright`); one real discrepancy in the bundle
+      itself (two of its four rendered examples hardcode a different teal,
+      `#0F7379`, instead of its own `var(--brand)`) was resolved in favor
+      of the shipped token, not the inconsistent hardcoded value. All 17
+      static brand assets and the favicon (PNG raster regenerated via
+      Pillow - no SVG rasterizer available in this environment) were
+      regenerated to match; no `.ico`/apple-touch-icon/manifest exists in
+      this repo, so none were invented. The wordmark (Sora SemiBold,
+      lowercase, -4% tracking) is completely untouched - only the symbol
+      changed. One pre-existing inconsistency flagged, not fixed (out of
+      this pass's "symbol only" scope): the wordmark's light-surface text
+      color still hardcodes the pre-tokens-pass `ink` hex. Full detail:
+      `DESIGN_SYSTEM.md` "Logo - Wegmarke replaces Aperture",
+      `DECISIONS.md`'s 2026-08-25 entry.
 - [ ] **Screens/components pass, dark mode, and everything else** in the
-      AUSVIA 2.0 mockup beyond the tokens and the two resolved decisions
-      above - not yet scoped or started. The named token layer
+      AUSVIA 2.0 mockup beyond the tokens and the now-resolved logo
+      decision above - not yet scoped or started. The named token layer
       (`text-display`/`text-title`/`text-section`/etc., `rounded-panel`,
       `shadow-hairline`/`shadow-overlay`) is now available for it; adopting
       those tokens on existing headings/cards site-wide is itself part of

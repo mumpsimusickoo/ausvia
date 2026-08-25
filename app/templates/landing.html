@@ -5,6 +5,12 @@
 
 <header class="border-b border-line">
   <div class="mx-auto max-w-5xl px-4 py-5 md:px-8 flex items-center justify-between">
+    {#
+      Logo-replacement pass, 2026-08-25: this header is a light surface,
+      so it relies on lockup()'s default symbol_color (`brand`, #0B767D) -
+      no explicit override needed here, unlike the ink-surface calls in
+      base.html.
+    #}
     <a href="{{ url_for('main.landing') }}" class="flex items-center">
       {{ lockup(24) }}
     </a>

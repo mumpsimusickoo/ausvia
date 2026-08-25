@@ -1,4 +1,12 @@
-# Logo — AUSVIA Aperture (rev 1.0, approved)
+# Logo — AUSVIA Aperture (rev 1.0, retired 2026-08-25)
+
+> **Superseded.** Aperture was retired 2026-08-25 in favor of Wegmarke,
+> the AUSVIA 2.0 mockup bundle's symbol. See `DESIGN_SYSTEM.md`'s "Logo —
+> Wegmarke replaces Aperture" section for the implemented replacement and
+> `DECISIONS.md`'s 2026-08-25 entry for the reasoning. This document is
+> kept as-is below as a historical record of Aperture's construction and
+> the judgment calls made implementing it — not rewritten, since none of
+> that history changed, only the shipped symbol did.
 
 Implemented 2026-08-11 from the approved logo specification PDF
 ("Brand identity with logo.pdf", rev 1.0). This document records what was

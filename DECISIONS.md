@@ -6,6 +6,84 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-25 — Retire Aperture (rev 1.0), implement Wegmarke as the AUSVIA symbol
+
+**Decision:** Replaced the Aperture symbol (a route-climbing-to-a-point
+counterform cut into a rounded tile, `fill-rule="evenodd"`, one path) with
+**Wegmarke** ("waymark") — two flat, non-overlapping offset tracks at the
+same angle, the right one 6 units higher and 14 units ahead on a 48-unit
+grid, transcribed exactly from the approved AUSVIA 2.0 mockup bundle's own
+Foundations reference screen. Implemented everywhere the symbol appears:
+`_logo.html`'s `symbol()`/`lockup()` macros (plus a new `app_icon()`
+macro the bundle's own spec calls for but the old system never had), all
+17 static SVG/PNG exports under `app/static/brand/`, and the favicon.
+Below 22px both macros automatically switch to a wider-bar path variant
+(bar width 10, not 8) per the bundle's own stated rule, verified by
+rendering the real macro output at sizes on both sides of that threshold,
+not just reading the conditional in source. Symbol color follows the
+existing light/dark token split (`brand` `#0B767D` on light, `bright`
+`#4FC3C9` on ink) — resolving a real discrepancy in the bundle itself,
+where two of its four rendered examples hardcode a different teal
+(`#0F7379`) instead of using its own `var(--brand)`; the shipped token was
+used everywhere, not the inconsistent hardcoded value, since `#0F7379` has
+no other consumer anywhere in this app. The wordmark — Sora SemiBold,
+lowercase "ausvia", −4% tracking, the same outlined vector path extracted
+from the licensed font via `fontTools` — is completely untouched; only the
+symbol half of every lockup changed. Full detail, the color-role table,
+and the flagged pre-existing wordmark-color inconsistency this pass
+deliberately left alone: `DESIGN_SYSTEM.md`'s "Logo — Wegmarke replaces
+Aperture" section.
+
+**Reason:** This is the direct, planned follow-up to the 2026-08-25
+foundation-tokens pass, which explicitly flagged Aperture as "superseded,
+not just off-palette": the approved 2.0 bundle specifies a different mark
+entirely, and shipping Aperture in the new teal accent colors (done in
+that earlier pass, since the symbol's *color* is set by the same tokens
+every other accent uses) left the app with a mark that was correctly
+colored but the wrong shape — a mismatch the tokens pass could describe
+but not fix, since implementing new symbol geometry was explicitly out of
+that pass's scope. Aperture's own rationale (rev 1.0, 2026-08-11: a route
+climbing to a point, doubling as a cut-open "A" for Ausbildung/Ausvia) was
+sound design reasoning for the pre-2.0 direction, not a mistake being
+corrected — it's superseded by product direction (the approved 2.0
+mockup), not by a flaw in the original mark.
+
+**Alternatives considered:** Keeping Aperture and only re-coloring it to
+the new palette — rejected, since that's what the tokens pass already did
+and is exactly the "wrong color and, per the approved direction, wrong
+shape" state this pass exists to resolve. Redrawing Wegmarke by eye from
+the bundle's rendered screenshots — rejected; the bundle contains real SVG
+path data, and re-deriving coordinates by eye when exact numbers are
+available would reintroduce the risk of subtle inaccuracies for no reason.
+Using the bundle's hardcoded `#0F7379` for the symbol instead of the
+`brand` token — rejected once the bundle's own internal inconsistency was
+found (two of its four examples use one value, two use the other); the
+token every other surface in the app already uses was the only
+non-arbitrary choice. Renaming the static asset files to match their new
+colors (e.g. `ausvia-symbol-blue.svg` no longer being blue) — rejected for
+this pass per the explicit instruction to keep the existing filename
+convention; flagged as a safe future cleanup instead (nothing references
+these files by path).
+
+**Consequences:** Real work across `_logo.html`, 3 template call sites
+(`base.html` ×3 for `bright`, `landing.html` relying on the new `brand`
+default), and 17 static brand assets — not a pure recolor. Favicon PNGs
+(`favicon-16.png`, `favicon-32.png`) were regenerated via Pillow at 8×
+supersampling from the exact path coordinates, since no SVG rasterizer
+(cairosvg/Inkscape/ImageMagick) is available in this environment — visibly
+confirmed correct, not just asserted. No `.ico`, `apple-touch-icon`, or
+web manifest exists in this repo to regenerate; none were invented. One
+pre-existing inconsistency was found and deliberately left alone, not
+folded into this pass: the wordmark's light-surface text color still
+hardcodes the *pre-tokens-pass* `ink` hex (`#0B1220`), not the current
+`#0C1013` — a wordmark-color question, out of this pass's explicit
+"symbol only" scope, flagged in `DESIGN_SYSTEM.md` for a future pass.
+`LOGO.md` was not rewritten (it's now a historical record of Aperture,
+which didn't change) but got a superseded-notice pointing here. Full
+pytest suite: 442 passed / 3 skipped, unchanged.
+
+---
+
 ## 2026-08-25 — Foundation-tokens pass: light/dark accent, page background, and status-marker colors replaced (Signal Blue → Tiefsee-Teal); the `brand-50..900` shade ramp retired for a smaller, role-mapped token set
 
 **Decision:** Implemented the AUSVIA 2.0 foundation-tokens pass (colors,
