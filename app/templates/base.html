@@ -46,6 +46,12 @@
   #}
   <style>
     :root {
+      /* --page's value is duplicated as the fixed `hero-backing` Tailwind
+         color below (tailwind.config, next to `ink`/`bright-action`) - the
+         landing hero's counterform backing div is pinned to it rather than
+         following the theme. If this hex changes, update hero-backing to
+         match, or the hero's cutout graphic goes invisible in dark mode
+         again (see DESIGN_SYSTEM.md, 2026-08-26 entry). */
       --page:#F2F5F6; --card:#FFFFFF; --raised:#FAFBFB; --line:#E3E8EA; --line2:#CFD4D6;
       --t1:#101619; --t2:#55636D; --t3:#8A96A0;
       --brand:#0B767D; --brand-hover:#075A61;
@@ -205,6 +211,18 @@
             // hero. Distinct from `bright` (a text/icon accent).
             'bright-action': '#12949B',
             'bright-action-hover': '#3FBFC4',
+            // Theme pass verification follow-up, 2026-08-26: the light
+            // backing behind the landing hero's counterform cutout (see
+            // landing.html) - a pinned copy of the exact hex `paper` held
+            // before the theme pass, not a live reference to it, since
+            // `paper` now varies by theme and this must not. Named and
+            // kept here with its fixed siblings, not as an arbitrary
+            // value at the call site, so a future palette change to the
+            // light `--page` value (in the <style> block above) has a
+            // sibling right next to it to remind whoever's editing that
+            // this pinned copy needs the same update - a bare hex at the
+            // call site gives no such reminder. Single consumer today.
+            'hero-backing': '#F2F5F6',
           },
         },
       },

@@ -82,7 +82,7 @@
   </div>
 
   {#
-    Theme pass, 2026-08-25 (verification follow-up): bg-[#F2F5F6], not
+    Theme pass, 2026-08-25 (verification follow-up): bg-hero-backing, not
     bg-paper. This is the light backing that shows through the counterform
     cutout below - it has to stay pinned exactly like the ink foreground it
     contrasts against, for the same reason. It was missed in the original
@@ -95,10 +95,13 @@
     class list. Audited every other element inside this hero section and
     the mobile topbar/drawer for the same leak (a theme-aware token used
     somewhere that's supposed to stay fixed) - this was the only one.
-    #F2F5F6 is the exact literal `paper` held before this pass; arbitrary
-    value here rather than a new named token since nothing else needs it.
+    hero-backing (base.html's tailwind.config, alongside `ink`/
+    `bright-action`) is a fixed, named pin of the exact literal `paper`
+    held before this pass - not an arbitrary value at the call site, so it
+    lives with its fixed siblings and stays greppable/documented rather
+    than a bare hex someone could copy-edit without knowing why.
   #}
-  <div class="relative w-full bg-[#F2F5F6]" style="aspect-ratio: 1240 / 300">
+  <div class="relative w-full bg-hero-backing" style="aspect-ratio: 1240 / 300">
     <svg viewBox="0 0 1240 300" preserveAspectRatio="none" class="absolute inset-0 block w-full h-full" aria-hidden="true">
       {# Hardcoded ink hex, not a Tailwind class (SVG path fill) - kept in
          sync with the `ink` token's new value (#0C1013, was #0B1220) so
