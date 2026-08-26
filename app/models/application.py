@@ -111,6 +111,15 @@ class GeneratedDocument(db.Model):
 
     validated = db.Column(db.Boolean, nullable=False, default=False)
     validation_notes = db.Column(db.Text, nullable=True)
+    # "high"|"medium"|"low", same range as GmailMessage.classification_confidence.
+    # Deliberately NOT derived from `validated` above, even though it's
+    # tempting to have one column feed the other - `validated` is a
+    # pass/fail fact-check (did the AI invent something not in the
+    # candidate's real data), a different question from "how confident is
+    # the model in this text", and conflating the two would misrepresent
+    # what either one means. Null by design, unwired by any generator -
+    # see DECISIONS.md's 2026-08-26 "Reliability field" entry.
+    reliability = db.Column(db.String(20), nullable=True)
 
     generated_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     edited_at = db.Column(db.DateTime, nullable=True)
@@ -128,6 +137,7 @@ class GeneratedEmail(db.Model):
     body = db.Column(db.Text, nullable=False)
     source = db.Column(db.String(20), nullable=False)  # "ai" | "template"
     provider = db.Column(db.String(30), nullable=True)
+    reliability = db.Column(db.String(20), nullable=True)  # see GeneratedDocument.reliability
 
     generated_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     edited_at = db.Column(db.DateTime, nullable=True)

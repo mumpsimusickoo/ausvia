@@ -362,17 +362,55 @@ for a redesign pass. Status:
   scope. Full detail: `DESIGN_SYSTEM.md` "Component layer - 2026-08-26
   pass", `DECISIONS.md`'s 2026-08-26 entry. Full pytest suite: 443 passed
   / 3 skipped, unchanged - templates/CSS only, no schema change.
+- **Schema pass done, 2026-08-26** - backend only, no UI/screens/templates
+  touched. Added `reliability` (`"high"`/`"medium"`/`"low"`, reusing
+  `GmailMessage.classification_confidence`'s exact type) to the six other
+  AI-backed models feeding the Intelligence component's reliability
+  badge slot: `JobMatch` (match explanation + improvement tips, two
+  separate columns), `CompanyInsight`, `GeneratedDocument` (cover
+  letter), `GeneratedEmail` (application email), and `GmailMessage`'s
+  reply suggestion. Every generator function was checked directly (not
+  assumed) for a real confidence signal before deciding how to populate
+  each column - found exactly one, the existing
+  `classification_confidence`, because email classification is a
+  structured extraction task the model already reports a confidence
+  field for. Every other surface's AI response *is* the delivered
+  content verbatim (narrative, letter, email body, summary) with nothing
+  structured to source a rating from without restructuring that surface's
+  prompt/response format for a signal no more trustworthy than the one
+  self-report mechanism that already exists - so all seven new columns
+  ship `None` on every row, by explicit decision, not as a gap. The
+  Intelligence surface macro already treats `None` as "hide the badge"
+  (confirmed, not assumed) - no template change needed for this to render
+  correctly once the screens pass wires real values in. Also added
+  `edited_at` (same plain-timestamp mechanism as cover letter/application
+  email, not a text-diff) to `InterviewPrep`, `CvProfileStatement`, and
+  `GmailMessage`'s reply suggestion - found while matching the pattern
+  that none of these three currently has a save/edit route at all
+  (generate/regenerate-only today), so these three columns ship
+  unpopulated too, ready for the screens pass to wire a save route onto
+  directly. Migration `5b4fe35a6528` (down-revision `5405dd108168`) -
+  **explicitly not applied to Railway's production database by this
+  pass**, per `DEPLOYMENT.md`'s Post-deploy checklist; needs `flask db
+  upgrade` run against production manually. Full detail: `DECISIONS.md`'s
+  two 2026-08-26 schema-pass entries, `DESIGN_SYSTEM.md`'s "Reliability -
+  where the value comes from". Full pytest suite: 452 passed / 3 skipped
+  (9 new tests covering nullable defaults and non-population for both
+  additions).
 - **Next actual step:** the screens pass - migrating the ~180 existing
   card/badge/button/empty-state/match-score occurrences onto the
-  component-layer macros above - and the i18n pass (English default,
-  language switcher - reserved space for it already sits beside the theme
-  toggle) - **neither yet scoped or started.** The token layer shipped
-  across the tokens/logo/theme passes (named font sizes, `rounded-panel`,
-  `shadow-hairline`/`shadow-overlay`, the full color table incl. `card`/
-  `on-fill`) and the component layer shipped this pass are both available
-  for the screens pass; actually adopting them on existing headings/
-  cards/screens site-wide is that not-yet-started work, not something
-  this pass did.
+  component-layer macros, wiring the new reliability/edit-tracking
+  columns into the Intelligence surfaces and save routes that will
+  actually populate them - and the i18n pass (English default, language
+  switcher - reserved space for it already sits beside the theme toggle)
+  - **neither yet scoped or started.** The token layer shipped across the
+  tokens/logo/theme passes, the component layer, and this schema pass are
+  all available for the screens pass; actually adopting them on existing
+  headings/cards/screens site-wide is that not-yet-started work, not
+  something this pass did. **Reminder for whoever picks up the screens
+  pass:** the 2026-08-26 schema migration must be run against production
+  (`flask db upgrade`) before or alongside that work if it touches any of
+  the seven new columns - it has not been applied yet.
 
 ## Security posture
 
@@ -491,10 +529,15 @@ when explicitly opted into.
 ## Recommended next step
 
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
-its tokens, logo, theme, and component-layer passes are done (2026-08-25/
-2026-08-26); the next concrete step is the screens pass (migrating
-existing call sites onto the component-layer macros), not yet scoped or
-started. Everything else
+its tokens, logo, theme, component-layer, and reliability/edit-tracking
+schema passes are done (2026-08-25/2026-08-26); the next concrete step is
+the screens pass (migrating existing call sites onto the component-layer
+macros and wiring the new schema columns into real Intelligence surfaces
+and save routes), not yet scoped or started. **The 2026-08-26 schema
+migration (`5b4fe35a6528`) still needs to be run against Railway's
+production database** - flagged here so it isn't missed the way
+`job_radar_status` was; see `DECISIONS.md`'s 2026-08-26 entries. Everything
+else
 from Phases 1-8 plus everything documented in `ROADMAP.md` since is
 complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in

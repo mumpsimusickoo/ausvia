@@ -1,12 +1,21 @@
 # Design System — AUSVIA
 
-Status: **Component layer pass implemented**, 2026-08-26 — see "Component
-layer — 2026-08-26 pass" below. Adds a documented macro library
-(`app/templates/_components.html`, 11 macros) demonstrated at
-`/admin/components` (admin-only). Build-only: no existing template call
-site was touched, nothing in the live app changed appearance. Migrating
-the ~180 existing card/badge/button/empty-state occurrences onto these
-macros is the next (screens) pass, not this one.
+Status: **Schema pass implemented**, 2026-08-26 — backend only, see
+"Component layer — 2026-08-26 pass"'s new "Reliability — where the value
+comes from" subsection below for what actually changed here (no new
+component, no macro touched). Adds a `reliability` column to the six
+AI-backed models feeding the Intelligence component and `edited_at` to
+three more feeding the "you edited this" state, per `DECISIONS.md`'s two
+2026-08-26 schema-pass entries. Migration pending against production - see
+that same entry.
+
+Prior status, still accurate: **Component layer pass implemented**,
+2026-08-26 — see "Component layer — 2026-08-26 pass" below. Adds a
+documented macro library (`app/templates/_components.html`, 11 macros)
+demonstrated at `/admin/components` (admin-only). Build-only: no existing
+template call site was touched, nothing in the live app changed
+appearance. Migrating the ~180 existing card/badge/button/empty-state
+occurrences onto these macros is the next (screens) pass, not this one.
 
 Prior status, still accurate for everything it covers: **Theme pass
 implemented**, 2026-08-25 — see "Theme architecture —
@@ -834,7 +843,38 @@ at `/admin/components` — no existing call site migrated yet.
 | `match_band(category_scores, score, skipped_categories, title, narrative)` | `category_scores` dict keyed like `CATEGORY_WEIGHTS` (`skills`/`language`/`education`/`location`/`start_date`), each 0–100 or absent | 0%-achieved segments render as an empty groove with a warn-colored label | Replaces the five stacked bars in `jobs/detail.html` / `main/dashboard.html`. Pass a `{% call %}` block for the "Aufschlüsselung anzeigen" detail. |
 | `empty_state(heading, guidance, action_label, action_href)` | `action_label`/`action_href` optional | one shape | Any of the app's 20 empty states, migrated one at a time in the screens pass — this pass built the macro only. |
 | `notice(variant, message, failures, note)` | `variant`: `success`/`partial_failure`/`info`; `failures` is a `(source, reason)` list for `partial_failure` | 3 variants | `partial_failure` takes the exact shape `jobs/search.html`'s `ingest_errors` already produces — visual upgrade to already-wired data. |
-| `intelligence_surface(text, provider, model, reliability, generated_at, provenance, edited_at, regenerate_href)` | `reliability`: `high`/`medium`/`low`; set `edited_at` to switch to the edited construction | not-edited (tint fill, brand edge, provenance footer) vs. edited (neutral fill, line2 edge, no provenance) | Any AI-generated text block (cover letters, follow-ups, reply drafts). Reliability slot only `GmailMessage.classification_confidence` can fill today. |
+| `intelligence_surface(text, provider, model, reliability, generated_at, provenance, edited_at, regenerate_href)` | `reliability`: `high`/`medium`/`low`; set `edited_at` to switch to the edited construction | not-edited (tint fill, brand edge, provenance footer) vs. edited (neutral fill, line2 edge, no provenance) | Any AI-generated text block (cover letters, follow-ups, reply drafts). See "Reliability — where the value comes from" below for which surfaces can fill the slot. |
+
+### Reliability — where the value comes from (2026-08-26 schema pass)
+
+The 2026-08-26 schema pass gave every AI-backed model behind this
+component a `reliability` column (`GeneratedDocument`, `GeneratedEmail`,
+`JobMatch` ×2, `CompanyInsight`, `ProfileCoaching`, `GmailMessage`'s reply
+suggestion) matching `classification_confidence`'s exact type/range. No
+macro logic changed — `intelligence_surface()` already treated `None` as
+"don't render the badge" (confirmed by reading it, not assumed), so the
+new columns need no template change to render correctly the moment a
+screen starts passing them in.
+
+**What actually fills the slot today: only `GmailMessage.
+classification_confidence`, unchanged.** The other seven columns ship
+`None` on every row and stay that way — not a temporary gap, a deliberate
+conclusion. `classification_confidence` works because email classification
+is a structured extraction task (`INTENT`/`CONFIDENCE`/`NOTES`, the whole
+response) — adding a confidence field costs nothing there. Every other
+surface's entire AI response *is* the delivered content (the narrative,
+the letter, the summary) with nothing structured to hang a rating on
+without restructuring the prompt and parsing a meta-line back out of
+prose — and even then, a self-reported number would carry the same weak-
+evidence caveat that already applies to the one place it exists. Full
+reasoning and the per-model mapping: `DECISIONS.md`'s 2026-08-26
+"Reliability field" entry.
+
+Rendering guidance for the screens pass: pass `reliability=None` (or omit
+the kwarg) for any of the seven still-unpopulated surfaces — the badge
+correctly disappears, the rest of the surface renders normally. Don't
+backfill a guessed level to "make the badge appear"; an absent badge is
+the honest state.
 | `progress_bar(percent, label)` | — | one shape | Profile completeness and any other single-value completion bar. Uses the existing `.ausvia-bar-fill` shear, not new. |
 
 ### Contrast — new pairings measured

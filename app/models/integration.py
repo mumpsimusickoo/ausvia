@@ -61,6 +61,22 @@ class GmailMessage(db.Model):
 
     ai_suggested_reply = db.Column(db.Text, nullable=True)
     ai_suggested_reply_provider = db.Column(db.String(30), nullable=True)
+    # "high"|"medium"|"low", same range as classification_confidence above -
+    # a separate column because it's a separate surface (the drafted reply
+    # text, not the intent classification), generated independently. Null
+    # by design, never populated by generate_reply_suggestion() - see
+    # DECISIONS.md's 2026-08-26 "Reliability field" entry: this response
+    # text IS the drafted reply verbatim, so there's no secondary signal to
+    # rate it from without restructuring the prompt's response format.
+    reply_suggestion_reliability = db.Column(db.String(20), nullable=True)
+    # Same mechanism as GeneratedDocument/GeneratedEmail.edited_at (app/
+    # models/application.py) - a plain timestamp set only by a manual-save
+    # action. The reply textarea in applications/detail.html already lets a
+    # user retype ai_suggested_reply before sending, but that edit is never
+    # persisted back to this row today (it goes straight into the Gmail
+    # draft) - no save route exists yet, so this column ships unwired, same
+    # as InterviewPrep/CvProfileStatement.edited_at.
+    reply_suggestion_edited_at = db.Column(db.DateTime, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 

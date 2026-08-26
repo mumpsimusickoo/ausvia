@@ -574,6 +574,26 @@ for a redesign pass, started 2026-08-24.
       accessibility bug caught and fixed (Ready status pill's dark-mode
       text failed AA by a hair - see `DECISIONS.md`'s 2026-08-26 entry).
       Full detail: `DESIGN_SYSTEM.md` "Component layer - 2026-08-26 pass".
+- [x] **Schema pass: reliability + edit tracking** - 2026-08-26,
+      backend-only (no UI/screens/templates touched). Added a
+      `reliability` column (`"high"`/`"medium"`/`"low"`, same type as
+      `GmailMessage.classification_confidence`) to the six other
+      AI-backed models feeding the Intelligence component
+      (`JobMatch` x2, `CompanyInsight`, `GeneratedDocument`,
+      `GeneratedEmail`, `GmailMessage`'s reply suggestion) - ships null on
+      all seven by design, not a gap: only email classification has a
+      real self-report mechanism, and none of the other six surfaces have
+      a structured field to hang a rating on without restructuring their
+      prompts for no real evidentiary gain. Added `edited_at` to
+      `InterviewPrep`/`CvProfileStatement`/`GmailMessage` (reply
+      suggestion), matching cover-letter/email's exact mechanism - all
+      three ship unpopulated too, since none of those three features has
+      a save/edit route yet (generate-only today; wiring that is screens-
+      pass work). Migration `5b4fe35a6528` - **not yet applied to
+      production**, pending manually via Railway's console. Full pytest
+      suite: 452 passed / 3 skipped (9 new tests). Full detail:
+      `DECISIONS.md`'s two 2026-08-26 schema-pass entries,
+      `DESIGN_SYSTEM.md`'s "Reliability - where the value comes from".
 - [ ] **Screens pass** - migrate the ~180 existing card/badge/button/
       empty-state/match-score occurrences onto the component-layer macros
       above, plus the remaining per-screen re-layouts beyond

@@ -29,10 +29,20 @@ class JobMatch(db.Model):
     narrative_text = db.Column(db.Text, nullable=True)
     narrative_provider = db.Column(db.String(30), nullable=True)
     narrative_generated_at = db.Column(db.DateTime, nullable=True)
+    # "high"|"medium"|"low", same range as GmailMessage.classification_confidence.
+    # Null by design, not wired by any generator - see DECISIONS.md's
+    # 2026-08-26 "Reliability field" entry for why: this whole response IS
+    # the delivered narrative text, so there's no secondary signal to source
+    # a rating from without restructuring the prompt's response format, and
+    # a self-report would be no more trustworthy than the one place this
+    # pattern already exists. The component treats null as "hide the badge",
+    # not "assume high".
+    narrative_reliability = db.Column(db.String(20), nullable=True)
 
     improvement_tips_text = db.Column(db.Text, nullable=True)
     improvement_tips_provider = db.Column(db.String(30), nullable=True)
     improvement_tips_generated_at = db.Column(db.DateTime, nullable=True)
+    improvement_tips_reliability = db.Column(db.String(20), nullable=True)  # see narrative_reliability above
 
     user = db.relationship("User")
     job = db.relationship("Job")
@@ -74,6 +84,7 @@ class CompanyInsight(db.Model):
 
     summary_text = db.Column(db.Text, nullable=True)
     provider = db.Column(db.String(30), nullable=True)
+    reliability = db.Column(db.String(20), nullable=True)  # see JobMatch.narrative_reliability
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     generated_at = db.Column(db.DateTime, nullable=True)
 
@@ -99,6 +110,7 @@ class ProfileCoaching(db.Model):
 
     summary_text = db.Column(db.Text, nullable=True)
     provider = db.Column(db.String(30), nullable=True)
+    reliability = db.Column(db.String(20), nullable=True)  # see JobMatch.narrative_reliability
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     generated_at = db.Column(db.DateTime, nullable=True)
 
@@ -123,6 +135,13 @@ class InterviewPrep(db.Model):
     provider = db.Column(db.String(30), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     generated_at = db.Column(db.DateTime, nullable=True)
+    # Same mechanism as GeneratedDocument/GeneratedEmail.edited_at - a plain
+    # timestamp set only by a manual-save action, never derived from a text
+    # diff. No save/edit route exists for interview prep yet (display +
+    # regenerate only) - see DECISIONS.md's 2026-08-26 "Edit tracking"
+    # entry. Column ships now so the screens pass can wire an edit form
+    # straight onto it without a second migration.
+    edited_at = db.Column(db.DateTime, nullable=True)
 
     application = db.relationship("Application", back_populates="interview_prep")
 
@@ -147,6 +166,7 @@ class CvProfileStatement(db.Model):
     provider = db.Column(db.String(30), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     generated_at = db.Column(db.DateTime, nullable=True)
+    edited_at = db.Column(db.DateTime, nullable=True)  # see InterviewPrep.edited_at
 
     application = db.relationship("Application", back_populates="cv_profile_statement")
 

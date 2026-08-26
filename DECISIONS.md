@@ -6,6 +6,155 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — Schema pass: reliability field, mostly left unpopulated by design
+
+**Decision:** Added a nullable `reliability` column (`db.String(20)`, values
+`"high"`/`"medium"`/`"low"` — the exact type and range
+`GmailMessage.classification_confidence` already used) to every AI-backed
+model behind the Intelligence component that didn't already have one.
+Mapped the bundle's eight named Intelligence surfaces to real code, not
+guessed from the name list:
+
+| Bundle surface | Model / column |
+|---|---|
+| Match explanation | `JobMatch.narrative_reliability` |
+| Improvement tips | `JobMatch.improvement_tips_reliability` |
+| Company insight | `CompanyInsight.reliability` |
+| Cover letter | `GeneratedDocument.reliability` |
+| Application email | `GeneratedEmail.reliability` |
+| Reply classification | `GmailMessage.classification_confidence` (already existed, unchanged) |
+| Reply suggestion | `GmailMessage.reply_suggestion_reliability` |
+| Profile coaching | `ProfileCoaching.reliability` |
+
+Six models, seven new columns (`JobMatch` and `GmailMessage` each carry two
+surfaces). `JobExplainer` and `ProcessQAAnswer` are real AI-backed models
+but aren't among the bundle's eight named surfaces — left untouched.
+
+**Design question 1 — same type/range as `classification_confidence`, not a
+numeric score:** Yes, reused exactly (`String(20)`, `"high"`/`"medium"`/
+`"low"`). The bundle displays three discrete levels, not a percentage, and
+a shared type means one rendering path in `intelligence_surface()` for
+every surface rather than a per-model conversion layer. No column differs
+in shape.
+
+**Design question 2 — nullable, null hides the badge:** Confirmed by
+reading `intelligence_surface()` (`app/templates/_components.html`)
+directly rather than assuming: `reliability_label` is computed via
+`{'high': 'HOCH', ...}.get(reliability)`, and the badge `<span>` is wrapped
+in `{% if reliability_label %}`. A `None` value already produces "no badge
+rendered," not a fabricated "HOCH" default — no macro change was needed.
+
+**Design question 3 — where does the value come from (the real
+question):** Checked every generator function directly, not assumed.
+Exactly one surface has a genuine mechanism: `email_classification`'s
+system prompt already instructs the model to output a `CONFIDENCE:
+high|medium|low` line alongside its classification (`app/ai/prompts/
+email_classification.py`), because the entire response IS a small set of
+structured fields (`INTENT`/`CONFIDENCE`/`NOTES`) parsed out of the text -
+asking for a fourth field costs nothing and doesn't touch anything
+user-facing.
+
+Every other surface is a different shape of problem: `response.text` **is**
+the delivered content verbatim (the narrative, the letter, the email body,
+the summary) - there is no structured field to add a `RELIABILITY:` line
+next to without asking the model to also emit a meta-line inside otherwise
+free-form prose, then parsing and stripping it back out before storing the
+content. That's a real prompt-and-parsing change per surface, not a schema
+addition, and it wasn't scoped for this pass ("small, mechanical... no UI,
+no screens, no templates"). More importantly, doing it wouldn't actually
+answer the question honestly: a model's self-reported confidence in its
+own classification is already acknowledged as weak evidence in the one
+place it exists; multiplying that same weak mechanism across six more
+surfaces manufactures the *appearance* of a signal without adding real
+evidence behind it.
+
+One near-signal was checked and deliberately not used:
+`GeneratedDocument.validated`/`validation_notes` (cover letter's existing
+two-pass generate-then-validate flow, `app/ai/cover_letter.py`) is a real,
+non-invented pass/fail fact-check - but it answers "did the AI invent
+something not in the candidate's real data," a different question from
+"how confident is the model in this text's quality." Mapping one onto the
+other would misrepresent what either signal means, so `reliability` is not
+derived from `validated` - they stay two separate, honestly-labeled
+columns.
+
+**Conclusion, stated plainly because it's the actual decision:** six of
+the seven new columns ship unpopulated - every generator was checked to
+confirm none of them touch the new column, and a test asserts each stays
+`None` after generation (`tests/test_reliability_and_edit_tracking.py`).
+An empty slot that hides the badge is more honest than a rating this
+project has no real basis for. This isn't a gap to close reflexively in
+the next pass; it's a standing conclusion that should only be revisited if
+a genuine per-surface signal shows up (e.g. a provider that returns real
+token-level confidence, or a structural check specific to that content
+type) - not by defaulting to self-report just because the column exists.
+
+**Consequences:** Migration `5b4fe35a6528` (down-revision
+`5405dd108168`), autogenerated and verified column-for-column against this
+mapping before being committed unedited. **Not yet applied to
+production** - see the Deploy note in this same date's "Edit tracking"
+entry below, they share one migration.
+
+---
+
+## 2026-08-26 — Schema pass: edit tracking extended to interview prep, CV statement, reply suggestion
+
+**Decision:** Added `edited_at` (`db.DateTime`, nullable) to
+`InterviewPrep`, `CvProfileStatement`, and `GmailMessage` (as
+`reply_suggestion_edited_at`, since `GmailMessage` already carries a
+different timestamp-shaped concept for its other surface). Checked how the
+two existing usages (`GeneratedDocument`/cover letter,
+`GeneratedEmail`/application email) actually determine "edited" before
+copying the pattern, rather than assuming: it's a plain timestamp, set to
+`utcnow()` unconditionally by the dedicated `save_*` route
+(`app/applications/routes.py`) whenever it's called against an *existing*
+row - never a hash or text-diff comparison against the generated content.
+The three new columns match that exact mechanism and type.
+
+**Honest gap found while matching the pattern:** cover letter and
+application email have that dedicated save route because the app already
+lets a user edit and persist their content separately from
+(re)generating it. Interview prep and the CV statement do not - both are
+currently generate/regenerate-only (confirmed by reading `applications/
+detail.html` and `app/applications/routes.py` directly: no save form, no
+save route, for either). The reply-suggestion textarea in `applications/
+detail.html` *does* let a user retype the AI's draft, but that edit is
+never persisted back to `GmailMessage` today - it's read once, at
+send-time, straight into the Gmail draft (`create_reply_draft`), and
+discarded otherwise. So for all three, there is currently no code path
+that could set `edited_at` even if the column existed - "extend the same
+pattern" is satisfied at the schema level (same column type, same
+timestamp-not-diff semantics), but the save-action wiring itself doesn't
+exist yet anywhere in the app for these three features. That's real,
+in-scope screens-pass work (a save form + route per feature), not
+something this schema-only pass invents routes for.
+
+What this pass does verify: that AI (re)generation itself must never be
+mistaken for an edit. `generate_interview_prep()`, `generate_cv_profile_
+statement()`, and `generate_reply_suggestion()` were all checked directly
+- none of them touch the new `edited_at` columns - and
+`tests/test_reliability_and_edit_tracking.py` asserts this stays true.
+When the screens pass adds a save route for each of these three, it drops
+straight into the identical one-line pattern already used twice
+(`x.edited_at = utcnow()` inside the save handler, only when updating an
+existing row) - no new mechanism to design then.
+
+**Consequences:** Same migration as the reliability entry above
+(`5b4fe35a6528`, down-revision `5405dd108168`). Full pytest suite: 452
+passed / 3 skipped (443 + 9 new tests covering both entries' nullable
+defaults and non-population).
+
+**Deploy - explicitly flagged, not left implicit:** this migration is
+**not applied to Railway's production database by this pass.** Per
+`DEPLOYMENT.md`'s Post-deploy checklist (written in anticipation of this
+exact pass, after the 2026-08-25 Job Radar deploy gap where a real
+migration shipped in code but was never run against production): the user
+runs `flask db upgrade` against Railway's console themselves. This note
+exists so that step doesn't get silently skipped the way
+`job_radar_status` was.
+
+---
+
 ## 2026-08-26 — Component layer pass: macros built, three decisions locked in
 
 **Decision:** Built `app/templates/_components.html` (11 macros: `btn`,
