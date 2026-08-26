@@ -6,6 +6,52 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — Removed dead `admin_required` decorator; admin gating is the `before_request` guard
+
+**Decision:** Deleted `app/utils/decorators.py` (it contained exactly one
+thing: `admin_required`, a `login_required`-style decorator that checked
+`current_user.is_admin` and `abort(403)`'d otherwise). Confirmed
+unreferenced with a repo-wide grep across `app/`, `tests/`, and
+`templates/` for both `admin_required` and `utils.decorators`/`from ...
+decorators import` - the only match anywhere was the definition itself.
+Surfaced by the module-level graph collapse (`scripts/
+graphify_module_graph.py`): of 101 app/ modules, it was the one non-
+`__init__.py` module with zero inter-module edges.
+
+**How admin gating actually works, for the record:** every route in the
+`admin` blueprint is gated by one shared guard, not a per-route decorator:
+
+```python
+# app/admin/routes.py
+@bp.before_request
+@login_required
+def _guard():
+    if not current_user.is_admin:
+        abort(403)
+```
+
+`before_request` runs it ahead of every view function registered on `bp`,
+so protection is automatic for anything added to the blueprint - a new
+admin route doesn't need to remember to decorate itself, because there's
+nothing to remember. `admin_required` predates this (or was written
+alongside it and never adopted) and was never wired to a single route.
+
+**Why delete rather than leave it:** a dead auth decorator is a live trap,
+not neutral dead code - it type-checks, imports cleanly, and does exactly
+what its name promises, so a future route (in `admin/` or anywhere a new
+admin-gated area gets added later) could reach for `@admin_required`,
+assume it's the app's real protection mechanism, and ship unprotected
+because the actual mechanism here is a blueprint-level guard, not a
+decorator. Removing it means that mistake can't happen; leaving a comment
+pointing at the real mechanism would still leave the trap loaded for
+anyone who finds the decorator first and doesn't read the comment.
+
+**Consequences:** `app/utils/decorators.py` deleted; `app/utils/__init__.py`
+was already empty, nothing to re-export/clean up there. No call site
+existed to update. Full pytest suite: 453 passed / 3 skipped, unchanged.
+
+---
+
 ## 2026-08-26 — graphify: kept dev-only, split into requirements-dev.txt; honest evaluation
 
 **Decision:** `graphifyy` (PyPI name; imports as `graphify`) was found installed
