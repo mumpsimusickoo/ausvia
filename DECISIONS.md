@@ -6,6 +6,63 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — Theme pass browser verification: 3 real bugs found and fixed
+
+**Decision:** Closes the disclosed gap in the 2026-08-25 theme-pass entry
+below (no browser tool was available that day, so the pass shipped
+verified by CSS values and contrast math only, with the visual check
+explicitly flagged as not done, not silently skipped). Playwright MCP
+became available the next day; ran the full six-screen, both-theme visual
+pass against the real dev server with a real user's real data. Found
+three real bugs, all fixed same-session, all confirmed by re-running the
+full pass afterward:
+
+1. Every text input/textarea app-wide was illegible in dark mode - none
+   had an explicit background, so they inherited the browser's native
+   white with theme-aware (now near-white in dark) text on top. Fixed by
+   adding `bg-card text-t1` to `render_field()` in `_macros.html` (covers
+   every WTForms field site-wide) plus 7 raw form controls found by
+   sweeping every `<textarea>`/`<select>`/native input in the app.
+2. The desktop theme toggle had no click listener at all - the sync
+   script ran before the desktop button existed in the DOM, so
+   `querySelectorAll('.theme-toggle-btn')` silently missed it. Fixed by
+   moving the script to the true end of `<body>`, not to a new fixed
+   position between two elements, since the desktop bar moves again
+   during the screens pass and a positional fix would silently regress
+   the same way.
+3. The landing hero's counterform graphic disappeared in dark mode - its
+   light backing div was still `bg-paper`, which resolves to the same hex
+   as the `ink` foreground it's cut out of once `paper` became theme-aware.
+   Fixed by pinning it to the literal `#F2F5F6` it held before the theme
+   pass. Audited every other element in the landing hero and the mobile
+   topbar/drawer for the same leak (a theme-aware token left somewhere
+   that's supposed to stay fixed) - this was the only instance.
+
+**Reason:** None of these three were catchable by the verification method
+available on 2026-08-25 (computed hex values + WCAG contrast ratios) -
+all three are structural (a missing background class, a DOM-query timing
+bug, a token that leaked into the wrong surface), not wrong numbers. This
+is exactly why the gap was disclosed rather than papered over with a
+"verified" claim that wasn't true yet: it named precisely what a real
+browser pass might find, and then found it.
+
+**Alternatives considered:** Fixing the toggle by moving its script to sit
+after the specific desktop-header block - rejected in favor of end-of-body
+placement, since a positional fix tied to today's markup order breaks
+again, silently, the next time that markup moves (which is already
+planned for the screens pass). Inventing a new "field surface" token for
+the input background - rejected; reused the already-existing `card` token
+plus `text-t1`, since a form field is exactly a card-elevation surface and
+a second token for the same value would be redundant.
+
+**Consequences:** Full pytest suite re-confirmed 442 passed / 3 skipped
+after all three fixes, no schema change. Full detail, including the
+computed-style numbers and which specific elements were touched:
+`DESIGN_SYSTEM.md`'s "Theme architecture" section, Verification
+subsection.
+
+---
+
 ## 2026-08-25 — Theme pass: real light/dark mode, superseding "ink is fixed"
 
 **Decision:** Supersedes this file's most-recent-before-this Wegmarke/

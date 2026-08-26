@@ -409,41 +409,6 @@
     })();
   </script>
 
-  {#
-    Theme pass, 2026-08-25: click handler shared by both toggle instances
-    (mobile topbar + desktop top bar) - toggling one flips the actual
-    theme, so both buttons' icon/label state are kept in sync together
-    rather than each tracking its own local state.
-  #}
-  <script nonce="{{ csp_nonce }}">
-    (function () {
-      var buttons = document.querySelectorAll('.theme-toggle-btn');
-      function currentTheme() {
-        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-      }
-      function sync() {
-        var dark = currentTheme() === 'dark';
-        buttons.forEach(function (btn) {
-          btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
-          btn.querySelector('.theme-toggle-icon-moon').hidden = dark;
-          btn.querySelector('.theme-toggle-icon-sun').hidden = !dark;
-        });
-      }
-      function toggleTheme() {
-        var next = currentTheme() === 'dark' ? 'light' : 'dark';
-        if (next === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-        }
-        try { localStorage.setItem('ausvia-theme', next); } catch (e) { /* private mode, etc. - theme still applies this session */ }
-        sync();
-      }
-      buttons.forEach(function (btn) { btn.addEventListener('click', toggleTheme); });
-      sync();
-    })();
-  </script>
-
   <div class="flex min-h-screen">
     {#
       Theme pass, 2026-08-25: bg-card (was bg-ink) - the sidebar now
@@ -491,5 +456,50 @@
     {% block public_content %}{% endblock %}
   </main>
   {% endif %}
+
+  {#
+    Theme pass, 2026-08-25 (verification follow-up): moved here, at the
+    true end of body, after a real bug - this used to sit between the
+    mobile drawer markup and the desktop sidebar/header markup, so
+    document.querySelectorAll('.theme-toggle-btn') ran before the desktop
+    button existed in the DOM and silently found only the mobile one. The
+    desktop toggle got no click listener and was never synced - clicking
+    it did nothing, verified by calling .click() on it directly and
+    confirming data-theme didn't change. Positional fixes reintroduce the
+    same class of bug the moment markup is reordered (the desktop bar
+    moves during the screens pass); end-of-body means every possible
+    .theme-toggle-btn instance is guaranteed to exist by the time this
+    runs, regardless of where in <body> future ones get added. Shared by
+    both instances - toggling either one updates both buttons' icon and
+    aria-label together, never just the one that was clicked.
+  #}
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var buttons = document.querySelectorAll('.theme-toggle-btn');
+      function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      }
+      function sync() {
+        var dark = currentTheme() === 'dark';
+        buttons.forEach(function (btn) {
+          btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+          btn.querySelector('.theme-toggle-icon-moon').hidden = dark;
+          btn.querySelector('.theme-toggle-icon-sun').hidden = !dark;
+        });
+      }
+      function toggleTheme() {
+        var next = currentTheme() === 'dark' ? 'light' : 'dark';
+        if (next === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        try { localStorage.setItem('ausvia-theme', next); } catch (e) { /* private mode, etc. - theme still applies this session */ }
+        sync();
+      }
+      buttons.forEach(function (btn) { btn.addEventListener('click', toggleTheme); });
+      sync();
+    })();
+  </script>
 </body>
 </html>

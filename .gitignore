@@ -15,6 +15,7 @@ node_modules/
 AUSVIA_Session_Chat_Export.pdf
 screenshots/*.lnk
 .vscode/
+.playwright-mcp/
 
 # Claude Code
 .claude/

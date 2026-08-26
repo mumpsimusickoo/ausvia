@@ -573,14 +573,76 @@ Full pytest suite: 442 passed / 3 skipped, unchanged — this pass is
 templates/CSS/JS only. Rendered both authenticated and public templates
 through the app directly (dashboard, profile, documents, applications,
 Gmail) to confirm no Jinja errors and that the new classes/markup are
-actually present in the output. **Not independently verified in this
-pass: an actual browser-rendered visual pass in both themes** — no
-browser-automation tool was available in this environment to drive one.
-The CSS variable values, the contrast math, and the template rendering
-were all checked directly; the remaining risk is confined to things only
-a rendered browser would catch (e.g. a genuinely missed call site that
-still resolves visually wrong despite valid CSS). Flagged here rather than
-silently claimed as done.
+actually present in the output.
+
+**Browser-rendered visual pass done 2026-08-26**, once Playwright MCP
+became available (it wasn't in this environment on 2026-08-25 — see the
+`DECISIONS.md` entry for that date, which disclosed this as an open gap
+rather than claiming a visual check that hadn't happened). Screenshotted
+landing, dashboard, job detail, application detail, profile, and
+documents in both themes, plus the mobile topbar and drawer, against the
+real running dev server with a real logged-in user's real data (4
+applications, 8 documents, 62 jobs). Found and fixed three real bugs the
+CSS-values-and-contrast-math verification could not have caught, because
+none of them were wrong *values* — they were structural:
+
+1. **Every text input and textarea was illegible in dark mode, app-wide.**
+   None of them (`_macros.html`'s `render_field()`, used by nearly every
+   form in the app, plus several raw `<textarea>`/`<input>`/`<select>`
+   elements — cover letter, application email, follow-up email, reply
+   text, delete-confirmation, document type/description) had ever had an
+   explicit background class; they relied on the browser's native white
+   form-control background. Invisible as a bug in a single-theme app
+   (native white + the then-always-dark `text-t1` both stayed correct);
+   once `t1` became theme-aware and turns near-white in dark mode, near-
+   white text on native white became functionally unreadable — confirmed
+   via computed style (`color: rgb(233,239,241)` on
+   `background-color: rgb(255,255,255)`). Worst on the Candidate Profile
+   page, where nearly every field value disappeared. Fixed: `bg-card
+   text-t1` added to `render_field()` (fixes every WTForms-rendered field
+   site-wide from one place) and to every raw form control found by
+   sweeping for `<textarea>`/`<select>`/native inputs across every
+   template (7 individual elements, all in `applications/detail.html` and
+   `documents/list.html`). Checkboxes/radios were deliberately left alone
+   — they render no text of their own, so they don't have this failure
+   mode. The native `<input type="file">` picker button itself stays
+   OS-chrome regardless (browsers don't expose it to `background-color`);
+   only its container and the "no file chosen" text got the fix.
+2. **The desktop theme toggle did nothing at all.** The click-handler
+   script ran `document.querySelectorAll('.theme-toggle-btn')` at a point
+   in the HTML between the mobile drawer markup and the desktop sidebar/
+   header markup — so it only ever found the mobile button; the desktop
+   one (used at any viewport ≥768px, i.e. most real usage) got no click
+   listener and was never synced, confirmed by calling `.click()` on it
+   directly and observing no change. Fixed by moving the script to the
+   true end of `<body>`, after both the authenticated and public
+   branches — not repositioning it between two specific elements, since
+   the desktop bar will move again during the screens pass and a
+   positional fix would silently break the same way. Verified both
+   directions: clicking either button now updates both buttons' icon and
+   `aria-label` together.
+3. **The landing hero's counterform graphic (the Discover→Match→Prepare→
+   Apply→Track cutout illustration) went invisible in dark mode.** The
+   graphic's light backing div was still `bg-paper`, which is exactly
+   what breaks: once `paper` became theme-aware, its dark value is the
+   same hex as the `ink` foreground the graphic is cut out of, so the
+   whole construction disappeared. This div reads as an ordinary page
+   background, not something inside the fixed-ink hero, which is why the
+   original sweep missed it — a class-list read wouldn't have caught it;
+   a rendered dark-mode screenshot did. Fixed: pinned to the literal
+   `#F2F5F6` (the exact value `paper` held before this pass) via an
+   arbitrary Tailwind value, not a new named token, since nothing else
+   needs it. Then **audited every other element inside the landing
+   hero and inside the mobile topbar/drawer**, line by line, for the same
+   leak (a theme-aware token used somewhere meant to stay fixed) — this
+   backing div was the only instance found; everything else in those
+   three surfaces already used the fixed `ink`/`ink-t2`/`bright`/
+   `bright-action`/literal-opacity-overlay family correctly.
+
+All three confirmed fixed by re-running the full six-screen, both-theme
+pass afterward (plus mobile, plus direct `.click()` calls on both toggle
+instances) — see screenshots and computed-style checks from that session.
+Full pytest suite re-confirmed at 442 passed / 3 skipped after the fixes.
 
 ### Logo — Wegmarke replaces Aperture (implemented 2026-08-25)
 

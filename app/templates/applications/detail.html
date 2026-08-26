@@ -34,7 +34,7 @@
   <form method="post" action="{{ url_for('applications.save_cover_letter', application_id=application.id) }}">
     {{ cover_letter_form.hidden_tag() }}
     <label for="cover-letter-content" class="sr-only">Cover letter text</label>
-    <textarea id="cover-letter-content" name="content" rows="16" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm font-mono">{{ application.cover_letter.content }}</textarea>
+    <textarea id="cover-letter-content" name="content" rows="16" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm font-mono">{{ application.cover_letter.content }}</textarea>
     <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
@@ -55,7 +55,7 @@
     {{ email_form.hidden_tag() }}
     {{ render_field(email_form.subject) }}
     <label for="email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
-    <textarea id="email-body" name="body" rows="8" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ application.email.body }}</textarea>
+    <textarea id="email-body" name="body" rows="8" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.email.body }}</textarea>
     <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
@@ -82,7 +82,7 @@
     {{ followup_email_form.hidden_tag() }}
     {{ render_field(followup_email_form.subject) }}
     <label for="followup-email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
-    <textarea id="followup-email-body" name="body" rows="6" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ application.follow_up_email.body }}</textarea>
+    <textarea id="followup-email-body" name="body" rows="6" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.follow_up_email.body }}</textarea>
     <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
   </form>
   {% else %}
@@ -355,7 +355,7 @@
       <form method="post" action="{{ url_for('applications.create_reply_draft', application_id=application.id, message_id=msg.id) }}" class="mt-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label for="reply-text-{{ msg.id }}" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Suggested reply ({{ msg.ai_suggested_reply_provider }}) - edit before sending</label>
-        <textarea id="reply-text-{{ msg.id }}" name="reply_text" rows="5" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
+        <textarea id="reply-text-{{ msg.id }}" name="reply_text" rows="5" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
         <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Create reply draft in Gmail</button>
       </form>
       {% endif %}
@@ -393,7 +393,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
       <label for="confirm-delete-text" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Type DELETE to confirm</label>
-      <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-line2 px-3 py-2 text-sm">
+      <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
     </div>
     <button type="submit" class="rounded-lg border border-err/50 px-4 py-2 text-sm font-semibold text-err hover:bg-err-tint">Delete application</button>
   </form>

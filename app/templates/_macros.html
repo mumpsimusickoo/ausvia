@@ -6,6 +6,17 @@
   This is the single centralized definition every form field/checkbox in
   the app draws from. See DESIGN_SYSTEM.md "Focus states" for the measured
   contrast numbers.
+
+  Theme pass, 2026-08-25 (verification follow-up): added bg-card text-t1 -
+  before this, the field had no background class at all and relied on the
+  browser's native white form-control background. That was invisible as a
+  bug in a single-theme app (native white + always-dark inherited text
+  color both stayed correct), but once text-t1 became theme-aware and
+  turns near-white in dark mode, native-white-background + near-white-text
+  is functionally illegible. Caught by an actual rendered screenshot, not
+  by the contrast math alone - the math only checked page/card text
+  against known backgrounds, not that an unstyled native control has an
+  unlisted background of its own. See DESIGN_SYSTEM.md.
 #}
 {% macro render_field(field, extra_classes="") %}
 <div class="mb-4">
@@ -15,14 +26,14 @@
      visually adjacent - a screen-reader user tabbing to an invalid field
      was previously given no indication an error exists. #}
   {% if field.errors %}
-    {{ field(class_="w-full rounded-lg border border-line2 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes, aria_describedby=field.id ~ "-error", aria_invalid="true") }}
+    {{ field(class_="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes, aria_describedby=field.id ~ "-error", aria_invalid="true") }}
     <div id="{{ field.id }}-error">
       {% for error in field.errors %}
       <p class="mt-1 text-xs text-err">{{ error }}</p>
       {% endfor %}
     </div>
   {% else %}
-    {{ field(class_="w-full rounded-lg border border-line2 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes) }}
+    {{ field(class_="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand " ~ extra_classes) }}
   {% endif %}
 </div>
 {% endmacro %}

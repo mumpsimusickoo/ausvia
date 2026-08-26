@@ -11,7 +11,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
       <label for="upload-doc-type" class="block text-sm font-medium text-t2 mb-1">Type</label>
-      <select id="upload-doc-type" name="doc_type" class="rounded-lg border border-line2 px-3 py-2 text-sm">
+      <select id="upload-doc-type" name="doc_type" class="rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
         {% for t in doc_types %}
         <option value="{{ t }}">{{ t.replace('_', ' ')|capitalize }}</option>
         {% endfor %}
@@ -19,11 +19,11 @@
     </div>
     <div>
       <label for="upload-file" class="block text-sm font-medium text-t2 mb-1">File (PDF, JPG, or PNG, max 15 MB)</label>
-      <input id="upload-file" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required class="text-sm">
+      <input id="upload-file" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required class="text-sm text-t1">
     </div>
     <div class="flex-1 min-w-[12rem]">
       <label for="upload-description" class="block text-sm font-medium text-t2 mb-1">Description (optional)</label>
-      <input id="upload-description" type="text" name="description" maxlength="500" class="w-full rounded-lg border border-line2 px-3 py-2 text-sm">
+      <input id="upload-description" type="text" name="description" maxlength="500" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
     </div>
     <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Upload</button>
   </form>

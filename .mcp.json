@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
+    },
+    "flowbite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "flowbite-mcp"
+      ]
+    }
+  }
+}
