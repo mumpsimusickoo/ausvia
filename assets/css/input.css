@@ -1,0 +1,95 @@
+/*
+  AUSVIA source stylesheet. Tailwind build pass, 2026-08-26 - this file
+  replaces the two inline <style> blocks and the CDN <script> that used to
+  live directly in app/templates/base.html. Compiled to
+  app/static/css/tailwind.css (npm run build:css) and committed - see
+  DEPLOYMENT.md and DECISIONS.md for why the build runs locally rather
+  than on Railway.
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Theme pass, 2026-08-25 (values unchanged by this build pass - see
+  DECISIONS.md 2026-08-26 "Tailwind build pass": this move is delivery
+  only). Real CSS custom properties swapped under :root[data-theme="dark"],
+  not Tailwind's dark: variant - every class name (bg-paper, text-t1,
+  border-line, ...) keeps working unchanged in both themes; dark: would
+  have required a second class at ~500 call sites instead. Bundle-verified:
+  byte-identical to the bundle's own light :root and [data-theme="dark"]
+  blocks - see DESIGN_SYSTEM.md "Theme architecture - 2026-08-25 pass".
+
+  --page's value is duplicated as the fixed `hero-backing` Tailwind color
+  in tailwind.config.js (next to `ink`/`bright-action`) - the landing
+  hero's counterform backing div is pinned to it rather than following
+  the theme. If this hex changes, update hero-backing to match, or the
+  hero's cutout graphic goes invisible in dark mode again.
+*/
+:root {
+  --page:#F2F5F6; --card:#FFFFFF; --raised:#FAFBFB; --line:#E3E8EA; --line2:#CFD4D6;
+  --t1:#101619; --t2:#55636D; --t3:#8A96A0;
+  --brand:#0B767D; --brand-hover:#075A61;
+  --tint:#EDF6F6; --tint2:#D3EAEB;
+  --ok:#14713F; --ok-tint:#E9F2ED;
+  --warn:#8A6008; --warn-tint:#FAF3E4;
+  --err:#AE3227; --err-tint:#FAEDEB;
+  --info:#2C6E9B; --info-tint:#EAF1F7;
+  /*
+    Text/icon color for anything sitting on a FILLED brand/semantic
+    surface (primary buttons today; filled status pills once the
+    component pass builds them). Not a bundle value - derived and
+    measured for the theme pass because the naive answer (white in both
+    themes) fails AA at rest in dark mode for every one of these fills,
+    not just on hover: white on dark brand #12949B measures 3.66:1, on
+    dark ok #4BBE7E 2.34:1, on dark warn #D9A22B 2.29:1, on dark err
+    #E4665A 3.31:1, on dark info #5FA6D6 2.65:1 - all fail AA (4.5:1).
+    Ink text passes comfortably on every one of those (5.22-8.33:1), and
+    still passes on all five LIGHT fills (5.38-6.39:1) even though white
+    is also fine there - so one shared variable that flips with the
+    theme, not five separate on-brand/on-ok/on-warn/... tokens. Full
+    table in DESIGN_SYSTEM.md.
+  */
+  --on-fill:#FFFFFF;
+}
+:root[data-theme="dark"] {
+  --page:#0C1013; --card:#12171B; --raised:#171E23; --line:#222A30; --line2:#303B42;
+  --t1:#E9EFF1; --t2:#9DABB3; --t3:#6E7C85;
+  --brand:#12949B; --brand-hover:#3FBFC4;
+  --tint:#0E2327; --tint2:#123337;
+  --ok:#4BBE7E; --ok-tint:#0F2419;
+  --warn:#D9A22B; --warn-tint:#241C0B;
+  --err:#E4665A; --err-tint:#251311;
+  --info:#5FA6D6; --info-tint:#0E1D26;
+  --on-fill:#0C1013;
+}
+
+/*
+  Signature construction rule (visual direction 1a, Counterform): the
+  leading (right) edge of every progress-bar fill is cut at a fixed 12px
+  shear, so a bar reads as an opening cut rather than a flat rectangle -
+  the same construction language as the logo mark, at a different scale.
+  The 12px is a hardcoded literal, not derived from bar height via a
+  ratio - a ratio-based shear at the product's actual 6-8px bar heights
+  rendered as an imperceptible 3-4px notch, which is why this is a fixed
+  value now (see DESIGN_SYSTEM.md / correction pass notes in
+  DECISIONS.md). Bar height is 14px everywhere this is used. min-width
+  keeps low percentages from clipping the shear into an illegible sliver.
+  Scoped to progress-bar fills only.
+*/
+.ausvia-bar-fill {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  min-width: 28px;
+}
+@keyframes ausvia-bar-fill-in {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.ausvia-bar-animated {
+  transform-origin: left;
+  animation: ausvia-bar-fill-in 500ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ausvia-bar-animated { animation: none; }
+}

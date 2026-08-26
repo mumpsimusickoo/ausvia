@@ -109,14 +109,35 @@ def test_security_headers_present_on_every_response(client):
     assert "max-age=" in resp.headers["Strict-Transport-Security"]
 
 
-def test_csp_allows_tailwind_cdn_and_fonts_but_nothing_broader(client):
+def test_csp_allows_fonts_but_nothing_broader(client):
+    # Tailwind build pass, 2026-08-26: the CDN script is gone - Tailwind is
+    # a compiled, committed static file now (app/static/css/tailwind.css),
+    # so script-src no longer needs to allowlist cdn.tailwindcss.com, and
+    # style-src no longer needs 'unsafe-inline' (that only existed for the
+    # CDN's runtime-injected <style> tag). See DECISIONS.md.
     resp = client.get("/")
     csp = resp.headers["Content-Security-Policy"]
-    assert "https://cdn.tailwindcss.com" in csp
+    assert "https://cdn.tailwindcss.com" not in csp
     assert "https://fonts.googleapis.com" in csp
     assert "https://fonts.gstatic.com" in csp
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp
+
+
+def test_style_src_has_no_unsafe_inline_but_style_src_attr_does(client):
+    # style-src governs <style> elements and <link rel="stylesheet"> - no
+    # inline allowance needed since Tailwind stopped injecting its own
+    # <style> tag at runtime. style-src-attr governs inline style="..."
+    # attributes specifically (CSP Level 3) - several templates set
+    # per-request computed values there (a match-score bar width, etc.)
+    # that can't be pre-baked into the compiled stylesheet as static
+    # classes, so that narrower allowance stays. See
+    # app/security_headers.py's module docstring for the full reasoning.
+    resp = client.get("/")
+    csp = resp.headers["Content-Security-Policy"]
+    style_src = [d for d in csp.split("; ") if d.startswith("style-src ")][0]
+    assert "'unsafe-inline'" not in style_src
+    assert "style-src-attr 'unsafe-inline'" in csp
 
 
 def test_csp_nonce_is_unique_per_request_and_appears_in_rendered_page(client):

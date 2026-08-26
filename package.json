@@ -1,0 +1,14 @@
+{
+  "name": "ausvia-css-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tailwind CSS build for AUSVIA. Dev-time only - the compiled output (app/static/css/tailwind.css) is committed and served as a static file; Railway's deploy never runs Node. See DEPLOYMENT.md and DECISIONS.md (2026-08-26, 'Tailwind build pass').",
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i assets/css/input.css -o app/static/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i assets/css/input.css -o app/static/css/tailwind.css --watch",
+    "check:css": "node scripts/check-css-stale.js"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.13"
+  }
+}

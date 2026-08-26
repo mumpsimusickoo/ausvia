@@ -147,6 +147,36 @@ static/compile-time verification, not a substitute for actually running
 before the first production deploy - recommended as the actual final check
 once real hosting is set up.
 
+## Pre-deploy checklist
+
+**Tailwind build pass, 2026-08-26** (see `DECISIONS.md`): the app no longer
+loads Tailwind from a CDN at runtime. `app/static/css/tailwind.css` is a
+compiled, purged, committed static file - Railway's deploy is still pure
+Python and never runs Node, so this file has to already be correct and
+committed *before* you push, not generated during deploy. The tradeoff
+this creates is real: the compiled CSS can go stale (out of sync with
+`tailwind.config.js`, `assets/css/input.css`, or a class name used in a
+template) exactly the way the 2026-08-25 migration gap happened - the code
+is correct, but a required local step wasn't run before pushing.
+
+**Before every push that touches a template, `tailwind.config.js`, or
+`assets/css/input.css`:**
+
+1. Run `npm run build:css` to regenerate `app/static/css/tailwind.css`.
+2. Run `npm run check:css` to confirm it - this rebuilds into a scratch
+   file and diffs it against what's actually committed, so staleness is
+   *detected*, not just hoped against. A clean `git status` on the CSS
+   file after step 1 is the same signal, but the check script is the one
+   to actually run (and the one safe to wire into CI later, if this
+   project ever gets one) since it doesn't depend on remembering to look.
+3. Commit the rebuilt `app/static/css/tailwind.css` alongside whatever
+   template/config change prompted it - it's a real source file for
+   deploy purposes, not a build artifact to gitignore.
+
+If step 2 fails on a branch you didn't expect to touch CSS on, that's the
+check doing its job - something (a class name, a token, a purge-relevant
+template edit) changed since the last commit of the compiled file.
+
 ## Post-deploy checklist
 
 **Every push that includes a migration must be followed by these three

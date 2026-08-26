@@ -6,6 +6,120 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — Tailwind build pass: CDN replaced with a compiled, committed stylesheet
+
+**Decision:** Replaced the Tailwind CDN (`<script src="https://cdn.tailwindcss.com">`
+plus an inline `tailwind.config` `<script>` block, both in `base.html`)
+with a real build: `tailwind.config.js` + `assets/css/input.css` at the
+repo root, compiled via `npm run build:css` into
+`app/static/css/tailwind.css`, which is committed and served as an
+ordinary static file. `base.html` now has a single
+`<link rel="stylesheet" href=".../css/tailwind.css">` where the CDN
+script and both inline `<style>` blocks used to be. No token value
+changed - this is a delivery-mechanism change, not a redesign; every hex
+in `tailwind.config.js`/`assets/css/input.css` is byte-identical to what
+was in `base.html` before. Built output: 18,247 bytes minified, vs. the
+CDN's own runtime script at 407,279 bytes (fetched and measured directly,
+not estimated) - about 22x smaller, and zero runtime JS needed to produce
+styling at all, where the CDN had to download, execute, and inject its
+own stylesheet on every page load.
+
+Railway's deploy pipeline is **unchanged** - still pure Python, no Node.
+The compiled CSS is committed like any other static asset; Node/npm are
+dev-time-only tools (`package.json` is `"private": true`, `node_modules/`
+stays gitignored). This was explicit and non-negotiable going in: this
+project already shipped one broken deploy because a required step (a
+migration) wasn't run against production before the first request landed
+(2026-08-25 "Deploy gap" entry) - adding a Node build step to Railway's
+pipeline would be a second, structurally identical way to create that same
+failure mode, just for CSS instead of schema. Building locally and
+committing the output avoids it entirely: there's no new thing Railway has
+to remember to run.
+
+**The tradeoff, handled explicitly rather than hand-waved:** a committed
+build can go stale exactly the way the migration did - correct source,
+correct config, but the compiled file wasn't regenerated before a push. Two
+concrete mitigations, both shipped in this same pass, not deferred:
+`DEPLOYMENT.md` gained a **Pre-deploy checklist** (new section - the
+existing Post-deploy checklist covers the migration step, which happens
+*after* a push against the live database; this is a *before-push* concern,
+a different moment in the pipeline) requiring `npm run build:css` +
+`npm run check:css` before any push touching a template or the Tailwind
+config. `check:css` (`scripts/check-css-stale.js`) is the forgetting-proof
+half of that - it rebuilds into a scratch file and fails loudly if the
+result differs from what's actually committed, rather than relying on
+anyone eyeballing a diff or remembering the step exists.
+
+Two real risks were checked before configuring the content scanner, not
+assumed away: (1) whether any Tailwind class name in this codebase is
+built dynamically (string concatenation, a status→class dict, `"bg-" ~
+var` in Jinja) - a scanner that regexes file contents for class-shaped
+tokens cannot see those, and they get silently purged. Audited every
+`.py` file and every template for this pattern; found none - every
+status/semantic→class mapping in this app is a complete-literal
+`{% if/elif/else %}` branch (confirmed independently, not just taken on an
+agent's word - grepped `app/**/*.py` directly for Tailwind-shaped tokens
+and found only a false-positive comment). No safelist entries were needed.
+(2) Whether removing the CDN's `'unsafe-inline'` style-src allowance would
+break the app's own pre-existing inline `style="..."` attributes (CSP's
+style-src governs those too, not just injected `<style>` tags/CDN
+behavior - a distinction the original CSP comment didn't need to draw
+since 'unsafe-inline' covered both anyway). Found 8 sites; several dynamic
+ones (a computed match-score percentage as a bar width, an animation
+delay) can't be pre-baked into a static compiled stylesheet. Resolved via
+CSP Level 3's `style-src-attr` directive, kept separately `'unsafe-inline'`
+while `style-src` itself (governing `<style>` elements and `<link>`
+stylesheets - the CDN's actual attack surface) now has no inline allowance
+at all - see `app/security_headers.py`'s updated module docstring for the
+full reasoning and the graceful-degradation caveat for pre-2022-era
+browsers.
+
+**Reason:** Four benefits, all real, not just "best practice" cargo-culting:
+smaller/faster (measured, above), the CSP hardening the CDN was blocking
+(`style-src` genuinely has no inline allowance now, not just a nominally
+narrower one), no runtime FOUC risk (a native `<link rel="stylesheet">` is
+render-blocking by default, which is strictly better for this than the old
+CDN script's download-execute-inject sequence), and config that lives in a
+real, diffable file instead of a `<script>` block inside a Jinja template.
+
+**Alternatives considered:** Adding the Tailwind build to Railway's deploy
+pipeline (`nixpacks`/buildpack Node+Python multi-stage, or a Railway build
+command) - rejected per explicit instruction and for the reason above: it
+would be a second way to reproduce the exact class of failure the
+2026-08-25 migration incident already demonstrated, and this project has
+no other Node dependency that would justify carrying that risk. Tailwind
+v4's CSS-native `@theme` config - rejected for this pass: v4 replaces the
+JS `tailwind.config.js` object model with CSS-first configuration, which
+would mean rewriting (not just relocating) every token definition in a
+pass explicitly scoped to "how Tailwind is delivered, not how tokens
+work." Pinned to `tailwindcss@^3` instead, porting the existing
+`theme.extend` object verbatim. Leaving `style-src` with a blanket
+`'unsafe-inline'` "to be safe" - rejected as not actually safer: it would
+have kept the exact vector (arbitrary injected stylesheets) this pass
+exists to close, for zero benefit once the CDN was gone.
+
+**Consequences:** `package.json`/`tailwind.config.js`/`assets/css/input.css`/
+`scripts/check-css-stale.js` are new; `app/static/css/tailwind.css` is
+committed and must be kept in sync per the pre-deploy checklist above.
+`app/templates/base.html`'s `<head>` is substantially shorter (one `<link>`
+instead of a CDN `<script>` + two inline `<style>` blocks + a config
+`<script>`). `app/security_headers.py`'s CSP changed: `script-src` no
+longer allowlists `cdn.tailwindcss.com`; `style-src` lost `'unsafe-inline'`;
+`style-src-attr 'unsafe-inline'` is new. One existing test
+(`test_csp_allows_tailwind_cdn_and_fonts_but_nothing_broader`) asserted the
+old CDN-allowing policy and was updated to assert the new one, plus one new
+test asserting `style-src` has no inline allowance while `style-src-attr`
+does. Full pytest suite: 443 passed / 3 skipped (441 + 1 renamed + 1 new),
+no schema change. Verified via a real Playwright pass (not just the test
+suite): all six screens, both themes, zero console errors or CSP
+violations at any point across the whole session. Shipped on a branch
+(`tailwind-build-pass`), not master - Railway deploys from master, and a
+wrong or missing compiled stylesheet would mean the live app serves
+unstyled, so this waits for an explicit decision to merge rather than
+deploying itself.
+
+---
+
 ## 2026-08-26 — Theme pass browser verification: 3 real bugs found and fixed
 
 **Decision:** Closes the disclosed gap in the 2026-08-25 theme-pass entry
