@@ -103,7 +103,7 @@
     {% if current_user.is_admin %}
     <div class="pt-4 mt-4 border-t {% if themed %}border-line{% else %}border-white/10{% endif %}">
       <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide {% if themed %}text-t2{% else %}text-ink-t2{% endif %}">Admin</p>
-      {% for endpoint, label in [('admin.overview', 'Admin Dashboard'), ('admin.codes', 'Invitation Codes'), ('admin.users', 'Users'), ('admin.job_sources', 'Job Sources'), ('admin.ai_usage', 'AI Usage')] %}
+      {% for endpoint, label in [('admin.overview', 'Admin Dashboard'), ('admin.codes', 'Invitation Codes'), ('admin.users', 'Users'), ('admin.job_sources', 'Job Sources'), ('admin.ai_usage', 'AI Usage'), ('admin.components', 'Components')] %}
       {# Original behavior, preserved: only "Admin Dashboard" ever shows
          active, and it does so for the whole admin blueprint (not just the
          exact overview page) - the other four links never highlight. #}

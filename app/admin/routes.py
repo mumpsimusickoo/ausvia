@@ -128,3 +128,14 @@ def ai_usage():
         "output_tokens": db.session.query(db.func.coalesce(db.func.sum(AIUsage.output_tokens), 0)).scalar(),
     }
     return render_template("admin/ai_usage.html", entries=entries, totals=totals)
+
+
+@bp.route("/components")
+def components():
+    """Component layer pass, 2026-08-25: living reference for every macro in
+    app/templates/_components.html - not a real product screen, no data
+    reads/writes. Admin-only (this blueprint's before_request guard) so it
+    can't ship to real users by accident, same as every other page here -
+    deliberately not a separate DEBUG-only route, since that would exempt
+    it from the auth check entirely rather than just from the nav."""
+    return render_template("admin/components.html")

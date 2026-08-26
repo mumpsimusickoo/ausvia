@@ -563,14 +563,25 @@ for a redesign pass, started 2026-08-24.
       space for it already sits beside the new theme toggle), German body
       copy for AI-generated prose per the bundle's own bilingual rule -
       not yet scoped or started.
-- [ ] **Component layer and remaining screen re-layouts** - buttons,
-      inputs, status pills, chips, the Intelligence surface, and the
-      per-screen redesigns beyond tokens/logo/theme - not yet scoped or
-      started. The named token layer (`text-display`/`text-title`/
-      `text-section`/etc., `rounded-panel`, `shadow-hairline`/
-      `shadow-overlay`) is now available for it; adopting those tokens on
-      existing headings/cards site-wide is itself part of this
-      not-yet-started work.
+- [x] **Component layer pass** - 2026-08-26, build-only: 11 macros
+      (`btn`, `arrow_link`, `status_pill`, `chip_source`,
+      `chip_attribute`, `chip_coverage`, `match_band`, `empty_state`,
+      `notice`, `intelligence_surface`, `progress_bar`) in the new
+      `app/templates/_components.html`, every value read from the
+      bundle's own Foundations swatches, demonstrated at
+      `/admin/components` (admin-only). No existing call site migrated -
+      nothing in the live app changed appearance, by design. One real
+      accessibility bug caught and fixed (Ready status pill's dark-mode
+      text failed AA by a hair - see `DECISIONS.md`'s 2026-08-26 entry).
+      Full detail: `DESIGN_SYSTEM.md` "Component layer - 2026-08-26 pass".
+- [ ] **Screens pass** - migrate the ~180 existing card/badge/button/
+      empty-state/match-score occurrences onto the component-layer macros
+      above, plus the remaining per-screen re-layouts beyond
+      tokens/logo/theme/components. Not yet scoped or started. The named
+      token layer (`text-display`/`text-title`/`text-section`/etc.,
+      `rounded-panel`, `shadow-hairline`/`shadow-overlay`) is now
+      available for it; adopting those tokens on existing headings/cards
+      site-wide is itself part of this not-yet-started work.
 
 ## Explicitly not scheduled
 

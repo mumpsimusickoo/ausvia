@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% from "_components.html" import btn, arrow_link, status_pill, chip_source, chip_attribute, chip_coverage, match_band, empty_state, notice, intelligence_surface, progress_bar %}
+{% block title %}Components — Admin{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-t1">Component layer</h1>
+<p class="mt-1 text-sm text-t2 mb-8 max-w-2xl">
+  Every macro in <code class="font-mono text-xs bg-raised px-1.5 py-0.5 rounded">app/templates/_components.html</code>,
+  every variant and state. Nothing on this page is wired to real data or a real
+  route — it exists to review the component layer pass and as a living reference
+  for the screens pass that migrates real call sites to these macros. Toggle the
+  theme (top right) to check both.
+</p>
+
+{# ============================== BUTTONS ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-t1 mb-1">Buttons</h2>
+  <p class="text-sm text-t2 mb-4">Height 36 (compact 30), radius 8. Tab through these to check the focus ring.</p>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2">Full height (36px)</p>
+  <div class="flex flex-wrap gap-3 mb-5">
+    {{ btn('Primary', variant='primary') }}
+    {{ btn('Secondary', variant='secondary') }}
+    {{ btn('Tertiary', variant='tertiary') }}
+    {{ btn('Destructive', variant='destructive') }}
+    {{ btn('Disabled', variant='disabled') }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2">Compact (30px) — bundle's own default for Tertiary/Destructive</p>
+  <div class="flex flex-wrap items-center gap-3">
+    {{ btn('Primary', variant='primary', compact=true) }}
+    {{ btn('Secondary', variant='secondary', compact=true) }}
+    {{ btn('Neu erzeugen', variant='tertiary', compact=true) }}
+    {{ btn('Löschen', variant='destructive', compact=true) }}
+    {{ btn('Disabled', variant='disabled', compact=true) }}
+  </div>
+</section>
+
+{# ============================== ARROW LINK vs. TERTIARY ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-t1 mb-1">Arrow link vs. tertiary button</h2>
+  <p class="text-sm text-t2 mb-4">Different jobs, both real — arrow_link for navigational "go here," tertiary btn for in-context actions.</p>
+  <div class="flex flex-wrap items-center gap-6">
+    {{ arrow_link('Alle ansehen', '#') }}
+    {{ arrow_link('Profil vervollständigen', '#') }}
+    {{ btn('Neu erzeugen', variant='tertiary', compact=true) }}
+    {{ btn('Regenerate', variant='tertiary', compact=true) }}
+  </div>
+</section>
+
+{# ============================== STATUS PILLS ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-t1 mb-1">Status pills — all ten</h2>
+  <p class="text-sm text-t2 mb-4">Application.APPLICATION_STATUSES verbatim. Dot + label + fill carry state together — never color alone.</p>
+  <div class="flex flex-wrap gap-2.5">
+    {% for status in ['preparing', 'ready', 'sent', 'follow_up', 'interview', 'offer', 'accepted', 'rejected', 'withdrawn', 'expired'] %}
+    {{ status_pill(status) }}
+    {% endfor %}
+  </div>
+</section>
+
+{# ============================== CHIPS ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-t1 mb-1">Chips</h2>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 mt-4">Source — Plex Mono, tracked</p>
+  <div class="flex flex-wrap gap-2">
+    {{ chip_source('Arbeitsagentur') }}
+    {{ chip_source('Adzuna') }}
+    {{ chip_source('Manual import') }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 mt-5">Attribute — read-only (removable=false, the default)</p>
+  <div class="flex flex-wrap gap-2">
+    {{ chip_attribute('Primary CV', highlight=true) }}
+    {{ chip_attribute('SPS · fortgeschritten') }}
+    {{ chip_attribute('Deutsch · B2') }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 mt-5">Attribute — removable (the existing profile skill/language shape)</p>
+  <div class="flex flex-wrap gap-2">
+    {{ chip_attribute('PLC · advanced', removable=true, remove_action='#') }}
+    {{ chip_attribute('German · B1', removable=true, remove_action='#') }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 mt-5">Coverage — a legend item in the bundle, not a pill (see note below)</p>
+  <div class="flex flex-wrap gap-5">
+    {{ chip_coverage('erfuellt') }}
+    {{ chip_coverage('teilweise') }}
+    {{ chip_coverage('fehlt') }}
+    {{ chip_coverage('nicht_bewertet') }}
+  </div>
+  <p class="text-xs text-t3 mt-2">"Nicht bewertet" ≠ "Fehlt" — the posting never asked, not a gap.</p>
+</section>
+
+{# ============================== MATCH BAND ============================== #}
+<section class="mb-6">
+  <h2 class="font-semibold text-t1 mb-1 px-1">Match band</h2>
+  <p class="text-sm text-t2 mb-4 px-1">Replaces the five stacked bars. Segment width = fixed weight (app/ai/matching.py's CATEGORY_WEIGHTS); fill = achieved. The 0% Start segment is the honest-absence case — empty groove, percentage in warn, no fill animation.</p>
+  {% call match_band({'skills': 75, 'language': 100, 'education': 100, 'location': 100, 'start_date': 0}, score=83, title='Sehr gute Passung', narrative='Vier von fünf Kriterien vollständig erfüllt. Der Ausbildungsbeginn liegt ein Jahr nach deinem Wunschtermin.') %}
+    <p class="text-sm text-t2">Breakdown detail slot — the screens pass fills this with the real strengths/gaps list (jobs/detail.html already has one); this demo just shows the &lt;details&gt; disclosure works.</p>
+  {% endcall %}
+</section>
+
+{# ============================== EMPTY STATE ============================== #}
+<section class="mb-6">
+  <h2 class="font-semibold text-t1 mb-1 px-1">Empty state</h2>
+  <p class="text-sm text-t2 mb-4 px-1">Macro only — the app's 20 existing empty states keep their current (much more minimal) copy until the screens pass migrates them deliberately. One example, not twenty.</p>
+  {{ empty_state('Noch keine Unterlagen', 'Lade Lebenslauf, Zeugnis und Sprachnachweis hoch — Originale werden nie verändert.', action_label='Datei wählen', action_href='#') }}
+</section>
+
+{# ============================== NOTICES ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
+  <h2 class="font-semibold text-t1 mb-1">Notices</h2>
+  <p class="text-sm text-t2 mb-4">partial_failure takes the same (source, message) shape jobs/search.html's ingest_errors already produces.</p>
+  <div class="space-y-2.5">
+    {{ notice('success', message='Deine Bewerbung ist freigegeben. Das PDF-Paket liegt bereit.') }}
+    {{ notice('partial_failure', failures=[('Jooble', 'Zeitüberschreitung'), ('Adzuna', 'HTTP 503')], note='Andere Quellen liefen normal weiter.') }}
+    {{ notice('info', message='Ohne konfigurierten Provider steht das offen da: KI-Text nicht verfügbar, weil kein Provider konfiguriert ist.') }}
+  </div>
+</section>
+
+{# ============================== INTELLIGENCE SURFACE ============================== #}
+<section class="mb-6">
+  <h2 class="font-semibold text-t1 mb-1 px-1">Intelligence surface</h2>
+  <p class="text-sm text-t2 mb-4 px-1">3px brand edge, left only, radius on the right only. Genuinely new — nothing like this exists anywhere in the app today.</p>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 px-1">Not edited — tint fill, reliability badge, regenerate action</p>
+  <div class="mb-5">
+    {{ intelligence_surface(
+      'Deine Elektrotechnik-Ausbildung und die SPS-Kenntnisse decken drei der vier genannten Anforderungen ab. Was fehlt, ist Hydraulik — das lässt sich im Anschreiben offen ansprechen, statt es zu umgehen.',
+      provider='Gemini', model='2.5-Flash', reliability='high',
+      provenance='Stützt sich auf: dein Profil, diese Anzeige, den berechneten Score — 21.08.2026. Keine neuen Fakten über das Unternehmen.',
+      regenerate_href='#'
+    ) }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 px-1">No reliability data — the slot only GmailMessage.classification_confidence can fill today</p>
+  <div class="mb-5">
+    {{ intelligence_surface(
+      'Ohne konfigurierten Provider steht das offen da: KI-Text nicht verfügbar, weil kein Provider konfiguriert ist.',
+      provider='Gemini', model='2.5-Flash'
+    ) }}
+  </div>
+
+  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-2 px-1">Edited — tint drops to neutral, edge goes line2, provenance disappears</p>
+  <div>
+    {{ intelligence_surface(
+      '… mein Fachabitur habe ich im Juni 2026 abgeschlossen und arbeite seit zwei Jahren an eigenen Web-Projekten.',
+      edited_at='20.08. um 14:32'
+    ) }}
+  </div>
+</section>
+
+{# ============================== PROGRESS BAR ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6">
+  <h2 class="font-semibold text-t1 mb-4">Progress bar</h2>
+  {{ progress_bar(78, label='Profil vollständig') }}
+</section>
+{% endblock %}

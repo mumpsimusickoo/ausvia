@@ -6,6 +6,83 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — Component layer pass: macros built, three decisions locked in
+
+**Decision:** Built `app/templates/_components.html` (11 macros: `btn`,
+`arrow_link`, `status_pill`, `chip_source`, `chip_attribute`,
+`chip_coverage`, `match_band`, `empty_state`, `notice`,
+`intelligence_surface`, `progress_bar`), demonstrated at `/admin/components`
+(admin-only). Build-only — no existing call site touched, nothing in the
+live app changed appearance. Full detail (contrast measurements,
+component reference table, ambiguity resolutions) in `DESIGN_SYSTEM.md`'s
+"Component layer — 2026-08-26 pass" section; this entry records the three
+decisions made going in and one real bug the pass's own contrast
+measurement caught.
+
+**1. Arrow links and tertiary buttons both exist, as separate components.**
+`AUSVIA_2_0_COMPONENT_AUDIT.md` had framed the app's 35+ existing arrow
+links vs. the bundle's tertiary-button spec as a divergence to reconcile.
+That read was wrong: the bundle itself uses arrow links too (8 of them —
+"Paket öffnen →", "Alle ansehen →", "Profil vervollständigen →", etc.) for
+navigational "go here" actions, while tertiary buttons are in-context
+actions ("Neu erzeugen", "Regenerate"). Different jobs, both real, both
+built as separate macros. This corrects the audit's framing, not a new
+call.
+
+**2. `match_band()` replaces the five stacked bars.** A real visual
+change to a signature dashboard/job-detail feature, not a pure addition.
+Segment *width* encodes category weight, read from
+`app/ai/matching.py`'s `CATEGORY_WEIGHTS` (never guessed/hardcoded in the
+macro). Segment *fill* encodes achieved proportion. A 0%-achieved segment
+renders as a visible empty groove with its percentage in `warn`, not
+hidden or collapsed — the bundle's own honest-absence pattern, confirmed
+by reading its construction directly (`h-full bg-brand ... width:
+{achieved}%`, no fill div at all when a category is unevaluated).
+Migrating the two live call sites (`jobs/detail.html`,
+`main/dashboard.html`) onto this macro is the screens pass's job, not
+this one.
+
+**3. Empty state: macro only, not the 20 copy sets.** Built
+`empty_state(heading, guidance, action_label, action_href)` and
+demonstrated it with one example ("Noch keine Unterlagen"). The app's 20
+existing empty states keep their current, more minimal copy until the
+screens pass migrates them deliberately, one at a time — writing 20 sets
+of German UI copy is a content decision, not a component-layer one.
+
+**Real bug caught by measurement, not assumed:** the Ready status pill's
+`text-brand` on `bg-tint` measures 4.45:1 in dark mode — fails AA (4.5:1)
+by a hair, despite passing in light mode (4.90:1). Fixed by using
+`brand-hover` (an existing theme-aware token) for that state's label
+instead of introducing a new one: 7.23:1 light / 7.34:1 dark. Caught
+because this pass measured every new pairing rather than assuming the
+existing `brand`/`tint` combination — already AA-clean elsewhere in the
+app — would carry over safely to a new, smaller-text context.
+
+**Correction to a prior claim:** `AUSVIA_2_0_COMPONENT_AUDIT.md` stated
+the existing `.ausvia-bar-fill` 12px clip-path shear was "already verified
+bundle-accurate." Re-checked directly this pass by searching the unpacked
+bundle for `clip-path`/`polygon`: zero matches anywhere in the file. The
+shear has no bundle counterpart — it's a real, separate, earlier design
+decision (visual direction 1a, "Counterform"), kept deliberately in
+`progress_bar()` rather than reverted, since this pass wasn't asked to
+undo an already-shipped signature. The audit's claim was inaccurate; this
+entry and `DESIGN_SYSTEM.md` both now say so.
+
+**Alternatives considered:** using a component library (Flowbite, etc.)
+for any of the ten pieces — not pursued; every component here is a
+small, bundle-spec-driven Jinja macro with no interactive/JS behavior
+needing a library, and the pass's own instructions were to stop and ask
+before reaching for one rather than assume it saves effort.
+
+**Consequences:** `app/admin/routes.py` gained one new route
+(`/components`, reusing the blueprint's existing admin-only
+`before_request` guard — no new auth pattern). `tailwind.config.js`'s
+existing content glob already covered the two new template files, so no
+config change was needed (confirmed, not assumed). Full pytest suite
+unchanged at 443 passed / 3 skipped.
+
+---
+
 ## 2026-08-26 — Tailwind build pass: CDN replaced with a compiled, committed stylesheet
 
 **Decision:** Replaced the Tailwind CDN (`<script src="https://cdn.tailwindcss.com">`

@@ -1,6 +1,15 @@
 # Design System — AUSVIA
 
-Status: **Theme pass implemented**, 2026-08-25 — see "Theme architecture —
+Status: **Component layer pass implemented**, 2026-08-26 — see "Component
+layer — 2026-08-26 pass" below. Adds a documented macro library
+(`app/templates/_components.html`, 11 macros) demonstrated at
+`/admin/components` (admin-only). Build-only: no existing template call
+site was touched, nothing in the live app changed appearance. Migrating
+the ~180 existing card/badge/button/empty-state occurrences onto these
+macros is the next (screens) pass, not this one.
+
+Prior status, still accurate for everything it covers: **Theme pass
+implemented**, 2026-08-25 — see "Theme architecture —
 2026-08-25 pass" below. This supersedes the foundation-tokens pass's "fixed
 dark surface, no toggle" decision: the app now has a real light/dark theme
 toggle (Porzellan/Tinte), built on CSS custom properties. See
@@ -801,6 +810,103 @@ a stroked hero line instead of a true counterform cut, and a current-station
 ring too close in weight to the completed markers. All three are corrected
 below with exact, hardcoded values (not re-derived from a ratio) — see the
 per-section notes and the two new `DECISIONS.md` entries dated 2026-08-12.
+
+## Component layer — 2026-08-26 pass
+
+Every value below was read directly from the unpacked bundle
+(`AUSVIA_2_0_standalone.html`'s Foundations screen, section 05 —
+BAUSTEINE), not from `AUSVIA_2_0_SCREEN_INVENTORY.md`'s paraphrase or from
+this doc's own `AUSVIA_2_0_COMPONENT_AUDIT.md`. Build-only pass: macros
+live in `app/templates/_components.html`, deliberately separate from
+`_macros.html` (form-field-specific, stays that way), and are demonstrated
+at `/admin/components` — no existing call site migrated yet.
+
+### Component reference
+
+| Macro | Params | Variants / states | When to use |
+|---|---|---|---|
+| `btn(label, variant, href, type, compact, disabled, extra_classes, name, value)` | — | primary, secondary, tertiary, destructive, disabled; full (36px) or `compact=true` (30px) | In-context actions. `href` renders an `<a>`, otherwise a `<button>`. |
+| `arrow_link(label, href, size)` | — | one shape | Navigational "go look at X" — separate component from tertiary `btn`, not a duplicate (see Decisions). |
+| `status_pill(status)` | takes an `Application.APPLICATION_STATUSES` value | all 10 states | Any place an application status renders. Always carries a dot. |
+| `chip_source(label)` | — | one shape | Job-source provenance ("ARBEITSAGENTUR", "ADZUNA", "MANUAL IMPORT"). |
+| `chip_attribute(label, highlight, removable, remove_action)` | `remove_action` required if `removable=true` | highlight / plain; removable / read-only (default) | Read-only descriptive tags ("Primary CV") or removable ones (profile skills/languages — POST+CSRF). |
+| `chip_coverage(state)` | `state`: `erfuellt`/`teilweise`/`fehlt`/`nicht_bewertet` | 4 states | Requirement-coverage legend, not a content badge — see Decisions for the shape/naming note. |
+| `match_band(category_scores, score, skipped_categories, title, narrative)` | `category_scores` dict keyed like `CATEGORY_WEIGHTS` (`skills`/`language`/`education`/`location`/`start_date`), each 0–100 or absent | 0%-achieved segments render as an empty groove with a warn-colored label | Replaces the five stacked bars in `jobs/detail.html` / `main/dashboard.html`. Pass a `{% call %}` block for the "Aufschlüsselung anzeigen" detail. |
+| `empty_state(heading, guidance, action_label, action_href)` | `action_label`/`action_href` optional | one shape | Any of the app's 20 empty states, migrated one at a time in the screens pass — this pass built the macro only. |
+| `notice(variant, message, failures, note)` | `variant`: `success`/`partial_failure`/`info`; `failures` is a `(source, reason)` list for `partial_failure` | 3 variants | `partial_failure` takes the exact shape `jobs/search.html`'s `ingest_errors` already produces — visual upgrade to already-wired data. |
+| `intelligence_surface(text, provider, model, reliability, generated_at, provenance, edited_at, regenerate_href)` | `reliability`: `high`/`medium`/`low`; set `edited_at` to switch to the edited construction | not-edited (tint fill, brand edge, provenance footer) vs. edited (neutral fill, line2 edge, no provenance) | Any AI-generated text block (cover letters, follow-ups, reply drafts). Reliability slot only `GmailMessage.classification_confidence` can fill today. |
+| `progress_bar(percent, label)` | — | one shape | Profile completeness and any other single-value completion bar. Uses the existing `.ausvia-bar-fill` shear, not new. |
+
+### Contrast — new pairings measured
+
+The four tinted status pills (Sent/`ok`, Follow-up/`warn`, Interview/
+`info`, Rejected/`err`, all text-on-own-tint) reuse pairings already in
+the table above — nothing new to measure there. Preparing (`t2` on `page`)
+and Withdrawn/Expired (`t3` on `card`, effectively — border/text only,
+transparent fill) also reuse existing rows. Genuinely new pairings:
+
+| Pairing | Light | Dark |
+|---|---|---|
+| Offer (`on-fill` on solid `ok`) | 6.06:1 | 8.16:1 |
+| Accepted (`on-fill` on solid `brand`) | 5.38:1 (= primary button, same tokens) | 5.22:1 (= primary button, same tokens) |
+| Ready (`brand` on `tint`) | 4.90:1 — passes | **4.45:1 — fails AA** |
+
+Ready's dark-mode pairing was a real, caught-by-measurement failure — not
+theoretical. Fixed in the macro by switching that one state's label color
+to `brand-hover` (already an existing theme-aware token, normally used for
+button hover) instead of `brand`: 7.23:1 light / 7.34:1 dark, comfortably
+clearing AA in both themes without inventing a new token. Every other
+pairing above passes AA (4.5:1) in both themes as measured, no assumptions.
+
+### Ambiguities found resolving the bundle's own spec against itself
+
+- **Status-pill dot:** the bundle states "Zustand nie nur über Farbe"
+  (state never through color alone) as a general principle, but its own
+  literal swatch only puts a dot on 7 of the 10 states (Offer, Accepted,
+  Withdrawn, Expired have none). Built with a dot on all 10, per the
+  stated principle rather than the inconsistent example.
+- **Source chip:** the bundle's own canonical Foundations swatch
+  ("QUELLEN, CHIPS, ABDECKUNG") uses `t2` text on a `line2` border,
+  radius 4 — but an inline job-card usage elsewhere in the same bundle
+  file uses `t3` on `line` instead, for what reads as the same component.
+  Built to the canonical swatch, not the drifted inline example.
+- **Coverage "chip":** named a chip in the screen inventory, but the
+  bundle's actual construction (Foundations 05) is a small square-swatch
+  legend item, not a pill — built to what the bundle shows, not what the
+  name implies. Kept "not evaluated" as a real fourth state, distinct from
+  "fehlt" (missing) — the posting never asked, that's not a gap.
+- **Empty-state action height:** the bundle's own empty-state example uses
+  a 32px button, a third height outside the two-height (36/30) button
+  system this pass otherwise holds to. Used `compact=true` (30px) instead
+  of introducing a one-off third tier for a single example.
+- **on-fill vs. literal white:** the bundle's swatches literally specify
+  `#FFFFFF` for label-on-filled-surface (primary buttons, Offer/Accepted
+  pills). Per the theme pass's own prior measurement, white-on-fill fails
+  AA at rest in dark mode for every semantic fill (2.29–3.66:1) — this
+  pass reuses the `on-fill` token derived then, not the bundle's literal
+  value, consistent with the 27 existing primary-button call sites.
+- **Progress-bar audit correction:** `AUSVIA_2_0_COMPONENT_AUDIT.md`
+  (§7) stated the existing `.ausvia-bar-fill` 12px clip-path shear was
+  "already verified bundle-accurate." Re-checked directly this pass
+  (searched the unpacked bundle for `clip-path`/`polygon`): zero matches
+  anywhere in the file. The shear is a real, separate, earlier design
+  decision (visual direction 1a, "Counterform") with no bundle
+  counterpart at all — kept deliberately in `progress_bar()` rather than
+  reverted, since this pass wasn't asked to undo an already-shipped
+  signature just because the bundle happens to use a plainer bar in this
+  one spot. The audit's claim was inaccurate and is corrected here.
+
+### `render_field()` — confirmed against spec, not rebuilt
+
+Out of scope for a rebuild per this pass's own instructions; confirmed
+instead. The bundle has no dedicated form-field swatch in its Foundations
+component reference at all (search for a canonical input construction
+in the unpacked bundle returns nothing beyond one special-case landing
+input). Per `AUSVIA_2_0_COMPONENT_AUDIT.md` §7's comparison against the
+bundle's general Inputs spec (radius 8, 2px focus ring, error rendered
+beneath the field): `render_field()` already matches on all three points
+and needed no changes. The 8 raw form controls outside it (audit §5)
+remain a separate, already-identified gap for the screens pass.
 
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 

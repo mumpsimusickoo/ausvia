@@ -330,16 +330,49 @@ for a redesign pass. Status:
   session - verified via CSS values, contrast math, and confirmed
   template rendering (no Jinja errors, expected classes present in
   output) instead of a screenshot check.
-- **Next actual step:** the i18n pass (English default, language
-  switcher - reserved space for it already sits beside the new theme
-  toggle) and the component layer (buttons, inputs, status pills, chips,
-  the Intelligence surface) plus the remaining per-screen re-layouts -
-  **not yet scoped or started.** The token layer shipped across the
-  tokens/logo/theme passes (named font sizes, `rounded-panel`,
+- **Component layer pass done, 2026-08-26** - build-only: 11 documented
+  Jinja macros (`btn`, `arrow_link`, `status_pill`, `chip_source`,
+  `chip_attribute`, `chip_coverage`, `match_band`, `empty_state`,
+  `notice`, `intelligence_surface`, `progress_bar`) in a new
+  `app/templates/_components.html`, every value read directly from the
+  bundle's own Foundations-screen swatches rather than the screen
+  inventory's paraphrase. Demonstrated at `/admin/components`
+  (admin-only, reuses the existing blueprint's auth guard - no new auth
+  pattern). Deliberately did not touch any of the ~180 existing card/
+  badge/button/empty-state call sites - migration is the screens pass's
+  job; this pass's own success criterion was that nothing in the live app
+  changes appearance. `match_band()` replaces the five stacked
+  match-score bars as a real, decided visual change (segment width =
+  fixed category weight from `app/ai/matching.py`'s `CATEGORY_WEIGHTS`,
+  fill = achieved proportion, a 0%-achieved segment renders as a visible
+  empty groove flagged in `warn` rather than hidden - the bundle's own
+  honest-absence pattern). Corrected one prior claim along the way: the
+  component audit had called the existing `.ausvia-bar-fill` shear
+  "already verified bundle-accurate" - re-checked directly this pass
+  (searched the unpacked bundle for `clip-path`/`polygon`, found none),
+  it has no bundle counterpart at all and is a separate, earlier design
+  decision, kept deliberately rather than reverted. Measuring contrast on
+  every new pairing (not assuming the existing brand/tint combination
+  would carry over) caught one real AA failure before it shipped: the
+  Ready status pill's label read at 4.45:1 in dark mode against the 4.5:1
+  threshold - fixed by reusing the existing `brand-hover` token instead
+  of inventing a new one (7.23:1 light / 7.34:1 dark). `render_field()`
+  was confirmed against the bundle's Inputs spec (radius 8, 2px focus
+  ring, error beneath field) rather than rebuilt, per this pass's own
+  scope. Full detail: `DESIGN_SYSTEM.md` "Component layer - 2026-08-26
+  pass", `DECISIONS.md`'s 2026-08-26 entry. Full pytest suite: 443 passed
+  / 3 skipped, unchanged - templates/CSS only, no schema change.
+- **Next actual step:** the screens pass - migrating the ~180 existing
+  card/badge/button/empty-state/match-score occurrences onto the
+  component-layer macros above - and the i18n pass (English default,
+  language switcher - reserved space for it already sits beside the theme
+  toggle) - **neither yet scoped or started.** The token layer shipped
+  across the tokens/logo/theme passes (named font sizes, `rounded-panel`,
   `shadow-hairline`/`shadow-overlay`, the full color table incl. `card`/
-  `on-fill`) is available for it; actually adopting those tokens on
-  existing headings/cards/screens site-wide is itself part of that
-  not-yet-started work, not something these passes did.
+  `on-fill`) and the component layer shipped this pass are both available
+  for the screens pass; actually adopting them on existing headings/
+  cards/screens site-wide is that not-yet-started work, not something
+  this pass did.
 
 ## Security posture
 
@@ -458,8 +491,10 @@ when explicitly opted into.
 ## Recommended next step
 
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
-its foundation-tokens pass is done (2026-08-25); the next concrete step is
-the screens/components pass, not yet scoped or started. Everything else
+its tokens, logo, theme, and component-layer passes are done (2026-08-25/
+2026-08-26); the next concrete step is the screens pass (migrating
+existing call sites onto the component-layer macros), not yet scoped or
+started. Everything else
 from Phases 1-8 plus everything documented in `ROADMAP.md` since is
 complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in
