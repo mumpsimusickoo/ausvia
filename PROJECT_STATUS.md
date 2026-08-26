@@ -389,10 +389,9 @@ for a redesign pass. Status:
   that none of these three currently has a save/edit route at all
   (generate/regenerate-only today), so these three columns ship
   unpopulated too, ready for the screens pass to wire a save route onto
-  directly. Migration `5b4fe35a6528` (down-revision `5405dd108168`) -
-  **explicitly not applied to Railway's production database by this
-  pass**, per `DEPLOYMENT.md`'s Post-deploy checklist; needs `flask db
-  upgrade` run against production manually. Full detail: `DECISIONS.md`'s
+  directly. Migration `5b4fe35a6528` (down-revision `5405dd108168`),
+  applied to Railway's production database by the user, 2026-08-26, per
+  `DEPLOYMENT.md`'s Post-deploy checklist. Full detail: `DECISIONS.md`'s
   two 2026-08-26 schema-pass entries, `DESIGN_SYSTEM.md`'s "Reliability -
   where the value comes from". Full pytest suite: 452 passed / 3 skipped
   (9 new tests covering nullable defaults and non-population for both
@@ -407,10 +406,7 @@ for a redesign pass. Status:
   tokens/logo/theme passes, the component layer, and this schema pass are
   all available for the screens pass; actually adopting them on existing
   headings/cards/screens site-wide is that not-yet-started work, not
-  something this pass did. **Reminder for whoever picks up the screens
-  pass:** the 2026-08-26 schema migration must be run against production
-  (`flask db upgrade`) before or alongside that work if it touches any of
-  the seven new columns - it has not been applied yet.
+  something this pass did.
 
 ## Security posture
 
@@ -530,14 +526,11 @@ when explicitly opted into.
 
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
 its tokens, logo, theme, component-layer, and reliability/edit-tracking
-schema passes are done (2026-08-25/2026-08-26); the next concrete step is
-the screens pass (migrating existing call sites onto the component-layer
-macros and wiring the new schema columns into real Intelligence surfaces
-and save routes), not yet scoped or started. **The 2026-08-26 schema
-migration (`5b4fe35a6528`) still needs to be run against Railway's
-production database** - flagged here so it isn't missed the way
-`job_radar_status` was; see `DECISIONS.md`'s 2026-08-26 entries. Everything
-else
+schema passes are done (2026-08-25/2026-08-26, migration `5b4fe35a6528`
+applied to production); the next concrete step is the screens pass
+(migrating existing call sites onto the component-layer macros and wiring
+the new schema columns into real Intelligence surfaces and save routes),
+not yet scoped or started. Everything else
 from Phases 1-8 plus everything documented in `ROADMAP.md` since is
 complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in

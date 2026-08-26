@@ -6,8 +6,8 @@ comes from" subsection below for what actually changed here (no new
 component, no macro touched). Adds a `reliability` column to the six
 AI-backed models feeding the Intelligence component and `edited_at` to
 three more feeding the "you edited this" state, per `DECISIONS.md`'s two
-2026-08-26 schema-pass entries. Migration pending against production - see
-that same entry.
+2026-08-26 schema-pass entries. Migration `5b4fe35a6528` applied to
+production the same day.
 
 Prior status, still accurate: **Component layer pass implemented**,
 2026-08-26 — see "Component layer — 2026-08-26 pass" below. Adds a

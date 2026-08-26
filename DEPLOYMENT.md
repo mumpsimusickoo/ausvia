@@ -211,11 +211,9 @@ to actually find it. Full incident writeup: `DECISIONS.md`'s 2026-08-25
 This matters more than it might look like from one incident: the
 AUSVIA 2.0 reliability/edit-tracking schema pass (2026-08-26) added ten
 columns across six models in one migration (`5b4fe35a6528`) - ten more
-chances to repeat this exact failure. That migration is pushed and has
-**not** been run against Railway as of this writing - the checklist above
-is what closes that gap, not a note in this file. See `DECISIONS.md`'s
-2026-08-26 entries and `PROJECT_STATUS.md`'s "Recommended next step" for
-the explicit reminder.
+chances to repeat this exact failure. The checklist above is what closed
+that gap this time: the user ran it against Railway the same day, per
+`DECISIONS.md`'s 2026-08-26 entries.
 
 ## Known gaps / things to decide before going live
 

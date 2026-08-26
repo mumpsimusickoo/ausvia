@@ -589,9 +589,9 @@ for a redesign pass, started 2026-08-24.
       suggestion), matching cover-letter/email's exact mechanism - all
       three ship unpopulated too, since none of those three features has
       a save/edit route yet (generate-only today; wiring that is screens-
-      pass work). Migration `5b4fe35a6528` - **not yet applied to
-      production**, pending manually via Railway's console. Full pytest
-      suite: 452 passed / 3 skipped (9 new tests). Full detail:
+      pass work). Migration `5b4fe35a6528`, applied to production via
+      Railway's console, 2026-08-26. Full pytest suite: 452 passed / 3
+      skipped (9 new tests). Full detail:
       `DECISIONS.md`'s two 2026-08-26 schema-pass entries,
       `DESIGN_SYSTEM.md`'s "Reliability - where the value comes from".
 - [ ] **Screens pass** - migrate the ~180 existing card/badge/button/
