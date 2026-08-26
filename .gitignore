@@ -15,3 +15,7 @@ node_modules/
 AUSVIA_Session_Chat_Export.pdf
 screenshots/*.lnk
 .vscode/
+
+# Claude Code
+.claude/settings.local.json
+.claude/hooks/node_modules/
