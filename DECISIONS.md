@@ -6,6 +6,100 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-26 — graphify: kept dev-only, split into requirements-dev.txt; honest evaluation
+
+**Decision:** `graphifyy` (PyPI name; imports as `graphify`) was found installed
+in the venv but untracked, along with ~30 transitive deps (networkx, numpy,
+rapidfuzz, tree-sitter + ~20 per-language grammars). Resolved the
+divergence explicitly rather than leaving it accidental: added a new
+`requirements-dev.txt` (`graphifyy==0.9.50`, installed on top of
+`requirements.txt` for local dev only) and a new test,
+`tests/test_no_dev_only_imports.py`, that AST-parses every file under
+`app/` and fails if any of them import `graphify`/`graphifyy` - so a
+future accidental import breaks the local test suite instead of only
+showing up as a production 500 the way the 2026-08-25 Job Radar migration
+gap did. `graphify-out/` (the generated graph output) is gitignored, never
+committed.
+
+**Why a new file instead of reusing the existing dev-only pattern:**
+`requirements.txt` already carries a few dev-only packages inline
+(`pytest`, `websocket-client`, `moto`), each just commented as dev-only in
+place - that's the project's established convention, and normally the
+right call (see the small-dev-tool precedent). `graphifyy` doesn't fit
+that precedent by size: it drags in ~30 packages via transitive deps for a
+tool nothing in `app/` will ever call. Every one of those 30 packages
+would still get installed on every Railway deploy if added to
+`requirements.txt` directly - Railway installs the whole file regardless
+of whether a given line is "dev-only" in a comment - so that's a real,
+avoidable build-time cost for zero production benefit, not a cosmetic
+concern. Splitting it into a separate file that Railway's install command
+never references removes that cost entirely rather than just labeling it.
+
+**What I deliberately did NOT do:** `graphify install` was not run. That
+subcommand copies a "skill" file into `.claude/skills/`, registers itself
+in `~/.claude/CLAUDE.md` (a file outside this project, shared by every
+Claude Code session on this machine), and can install a Claude Code
+PreToolUse hook that intercepts/gates the agent's own Bash/Grep/Read tool
+calls. None of that was asked for - the task was "build the code graph and
+tell me what it gives you," not "wire graphify into how future sessions
+behave by default." `graphify extract . --code-only` (the plain AST build,
+no LLM, no network calls beyond what `--code-only` explicitly skips) was
+run instead, entirely inside this project directory. If a hook-gated,
+always-on setup is wanted later, that's a separate, explicit decision -
+not a side effect of "try the tool out."
+
+**Honest evaluation - what it actually indexes:** AST-only, it parsed 187
+Python/JSON/JS files into 1529 nodes / 4492 edges / 97 communities in a
+few seconds. **It does not index templates at all** - zero `.html` files
+in the graph, confirmed directly (`source_file` extensions present:
+`py`, `json`, `js` only; no tree-sitter grammar for Jinja/HTML is even in
+the dependency list). `render_template("jobs/detail.html", ...)` calls in
+`app/jobs/routes.py` produce no template-side node or edge - the graph is
+blind to the exact "route → template" and "template → macro" relationships
+that make up half of what a screens-pass file like Job Detail actually
+touches. It also doesn't index at column/attribute granularity: `JobMatch`
+is one node; `narrative_reliability` is not a node at all, so "what reads
+this column" isn't a question the graph can answer - only "what
+imports/calls the class" can.
+
+**What it's actually good for, verified with real tomorrow-relevant
+queries, not assumed:** `graphify explain "generate_narrative"` correctly
+separated callers (`narrative()` in `jobs/routes.py:145`, plus the schema
+pass's own new test file) from callees (`get_provider`, `record_usage`,
+`build_match_narrative_prompt`, `_match_result_from_cached`), each with an
+exact file:line, in about a second. `graphify path "jobs/routes.py:narrative"
+"generate_narrative"` returned the exact one-hop call edge. Both are
+faster to read than the equivalent grep-and-cross-reference, *once you
+already know the qualified symbol name* - `graphify path "detail"
+"generate_narrative"` and `graphify path "narrative" "matching.py"` both
+hit ambiguous-match warnings and returned nothing useful, because this
+codebase has several functions named `detail`/`narrative` across
+blueprints and the CLI picks one silently rather than disambiguating. The
+free-text `graphify query "<question>"` BFS mode was the weakest part
+tested: a realistic question ("how does the job detail route compute and
+cache the match score") returned 460 matched nodes truncated to 67, an
+unranked mix of genuinely relevant nodes (`JobMatch`, `get_or_compute_match`)
+and noise (`SavedJob`, `run_job_radar`, unrelated test files) - sifting
+that list took longer than a targeted grep would have.
+
+**Conclusion:** worth keeping for exactly one thing tomorrow -
+`graphify explain`/`graphify path` against an *already-known* Python
+symbol, to jump straight to real callers/callees with file:line instead of
+manually cross-referencing grep hits. Not a replacement for grep on the
+template side (it can't see templates at all) or for exploratory
+free-text questions (the query mode is noisier than a good grep). Re-run
+`graphify update .` (AST-only, ~17s for the whole repo on an incremental
+pass, confirmed by timing it) after edits to keep it current - it will not
+warn when it's stale.
+
+**Consequences:** `requirements-dev.txt` (new), `tests/test_no_dev_only_imports.py`
+(new, passing), `.gitignore` gained `graphify-out/`. `requirements.txt`
+itself is untouched - production install is unaffected. Full pytest suite
+confirmed green after the addition (453 passed / 3 skipped: 452 + this
+one new test).
+
+---
+
 ## 2026-08-26 — Schema pass: reliability field, mostly left unpopulated by design
 
 **Decision:** Added a nullable `reliability` column (`db.String(20)`, values

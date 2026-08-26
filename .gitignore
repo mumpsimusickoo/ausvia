@@ -19,3 +19,6 @@ screenshots/*.lnk
 
 # Claude Code
 .claude/
+
+# graphify (dev-only code graph, see requirements-dev.txt, DECISIONS.md)
+graphify-out/

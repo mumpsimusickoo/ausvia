@@ -1,0 +1,15 @@
+# Local dev-only tooling. Railway installs only from requirements.txt, so
+# nothing here ever ships - that's deliberate, not an oversight (see
+# DECISIONS.md's 2026-08-26 "graphify" entry). Install on top of the base
+# app requirements:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# graphifyy pulls in networkx, numpy, rapidfuzz, tree-sitter, and ~20
+# per-language tree-sitter grammars as transitive deps (~30 packages
+# total) for a local code-graph CLI - not a library anything under app/
+# imports (enforced by tests/test_no_dev_only_imports.py). Kept out of
+# requirements.txt itself, unlike the small dev-only entries already living
+# there (pytest, websocket-client, moto), specifically because of that
+# size: 30 unused packages in the file every Railway deploy installs from
+# is a real, avoidable slowdown for zero production benefit.
+graphifyy==0.9.50
