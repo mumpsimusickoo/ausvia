@@ -1,14 +1,22 @@
 # Design System — AUSVIA
 
-Status: **Screens pass 1 (Job Detail) implemented**, 2026-08-27 — the
-first real screen rebuilt on the component layer. See "Job Detail —
-2026-08-27 pass" below for what changed on the screen itself, and the
-updated component reference table for two new macro variants
+Status: **Screens pass 2 (Application Detail) implemented**, 2026-08-27 —
+the densest screen in the bundle, second real screen on the component
+layer. See "Application Detail — 2026-08-27 pass" below: the eight-
+station journey (extended from six), an accessible tab bar (new
+interaction pattern for this app), and `intelligence_surface()`'s new
+editable body-slot. Full detail: `DECISIONS.md`'s second 2026-08-27
+entry.
+
+Prior status, still accurate: **Screens pass 1 (Job Detail) implemented**,
+2026-08-27 — the first real screen rebuilt on the component layer. See
+"Job Detail — 2026-08-27 pass" below for what changed on the screen
+itself, and the component reference table for two macro variants
 (`chip_attribute`'s `gap` tone, `chip_coverage`'s `label` override) plus
 an English-copy retrofit to `match_band`/`chip_coverage`/`notice`/
 `intelligence_surface` (built with German strings hardcoded during the
 component pass, corrected now that a real English screen actually calls
-them). Full detail: `DECISIONS.md`'s 2026-08-27 entry.
+them). Full detail: `DECISIONS.md`'s first 2026-08-27 entry.
 
 Prior status, still accurate: **Schema pass implemented**, 2026-08-26 —
 backend only, see
@@ -854,7 +862,7 @@ at `/admin/components` — no existing call site migrated yet.
 | `match_band(category_scores, score, skipped_categories, title, narrative)` | `category_scores` dict keyed like `CATEGORY_WEIGHTS` (`skills`/`language`/`education`/`location`/`start_date`), each 0–100 or absent | 0%-achieved segments render as an empty groove with a warn-colored label | Replaces the five stacked bars in `jobs/detail.html` / `main/dashboard.html`. Pass a `{% call %}` block for the "Aufschlüsselung anzeigen" detail. |
 | `empty_state(heading, guidance, action_label, action_href)` | `action_label`/`action_href` optional | one shape | Any of the app's 20 empty states, migrated one at a time in the screens pass — this pass built the macro only. |
 | `notice(variant, message, failures, note)` | `variant`: `success`/`partial_failure`/`info`; `failures` is a `(source, reason)` list for `partial_failure` | 3 variants | `partial_failure` takes the exact shape `jobs/search.html`'s `ingest_errors` already produces — visual upgrade to already-wired data. |
-| `intelligence_surface(text, provider, model, reliability, generated_at, provenance, edited_at, regenerate_href)` | `reliability`: `high`/`medium`/`low`; set `edited_at` to switch to the edited construction | not-edited (tint fill, brand edge, provenance footer) vs. edited (neutral fill, line2 edge, no provenance) | Any AI-generated text block (cover letters, follow-ups, reply drafts). See "Reliability — where the value comes from" below for which surfaces can fill the slot. |
+| `intelligence_surface(text=None, provider, model, reliability, generated_at, provenance, edited_at, regenerate_href)` | `reliability`: `high`/`medium`/`low`; set `edited_at` to switch to the edited construction; omit `text` and pass a `{% call %}` body instead for editable content (added 2026-08-27, Application Detail pass) | not-edited (tint fill, brand edge, provenance footer) vs. edited (neutral fill, line2 edge, no provenance); read-only (`text`) vs. editable (`{% call %}` body - a form/textarea, not contenteditable) | Any AI-generated text block. Read-only for regenerate-only content (Job Detail's match narrative/tips); the `{% call %}` body for anything with a real save mechanism (cover letter, email, interview prep, CV statement, reply suggestion - all in Application Detail). See "Reliability — where the value comes from" below for which surfaces can fill the reliability slot. |
 
 ### Reliability — where the value comes from (2026-08-26 schema pass)
 
@@ -1005,6 +1013,63 @@ accident** — a skill gap is always err-toned in the tag cloud
 breakdown below, because `_score_skills()` never distinguishes required
 vs. preferred skills. Documented in `DECISIONS.md` rather than papering
 over with a severity parameter for one page's minor inconsistency.
+
+## Application Detail — 2026-08-27 pass
+
+Second real screen on the component layer, and the densest one in the
+bundle. Bundle structure, English copy — see `DECISIONS.md` for the
+Reply station's dating logic and why the existing vertical Wayfinding
+journey (visual direction 1c, not the bundle's own horizontal row for
+this screen) was kept and extended rather than replaced.
+
+**Components used:** `btn`, `arrow_link`, `status_pill` (its first real
+call site — `Application.APPLICATION_STATUSES` verbatim), `chip_attribute`
+(the contained-documents rail list), `intelligence_surface` (five real
+call sites now: cover letter, email, interview prep, CV profile
+statement, reply suggestion — all using the new `{% call %}` editable
+body). `chip_coverage`, `match_band`, `chip_source`, `empty_state`,
+`notice`, `progress_bar` weren't needed by this screen.
+
+**The eight-station journey:** Discovered (`Job.discovered_at`, always
+dated) and Matched (`JobMatch.computed_at`, pending only if no JobMatch
+row exists yet) are new leading stations; Prepared/Approved rename
+Preparing/Ready; Sent/Interview/Offer are unchanged; Reply is genuinely
+new. Full dating/skip logic in `DECISIONS.md`. The marker construction
+itself (ring sizes, dashed-vs-solid skip/future distinction) is
+unchanged from the Phase 7 accessibility remediation.
+
+**Accessible tab bar (new interaction pattern for this app):** real
+`role="tablist"`/`tab`/`tabpanel`, roving `tabindex`, arrow-key/Home/End
+navigation, active tab remembered in `sessionStorage` across a save/
+generate redirect. Five tabs — Cover letter, Email, Documents *N*,
+Replies *N*, Interview prep — matching the bundle's own five exactly; CV
+profile statement is real functionality but isn't one of the bundle's
+five tabs (and isn't named anywhere in the bundle's Application Detail
+screen at all), so it stayed a standalone section rather than becoming
+an invented sixth tab.
+
+**`intelligence_surface()`'s new `{% call %}` body slot** is what makes
+five different editable AI features share one component: pass no `text`,
+supply a form (typically a pre-filled `<textarea>` + a real "Save edits"
+submit — the same mechanism cover letter/email already used before this
+pass, not contenteditable) as the call block instead. Read-only surfaces
+(Job Detail's match narrative/improvement tips) keep using the plain
+`text` param unchanged.
+
+**Classification confidence — the one reliability badge with a real
+value:** `GmailMessage.classification_confidence` (the schema pass's one
+surface with a genuine self-report mechanism) renders as
+`RELIABILITY HIGH`/`MEDIUM`/`LOW` in the Replies tab, confirmed with real
+data via Playwright — the other four reliability columns feeding this
+screen's `intelligence_surface()` calls all still render with the badge
+correctly absent (null by design, unchanged from the schema pass).
+
+**Two real 375px overflow bugs found by the required mobile check, both
+fixed — see `DECISIONS.md` for the full explanation:** a `grid` missing
+its base `grid-template-columns` (only had the `lg:` override), and the
+tab bar's 24px gap alone exceeding a 328px mobile column before
+`flex-wrap` had a chance to help. The grid bug was copied forward from
+`jobs/detail.html`'s identical construction and fixed there too.
 
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 

@@ -608,7 +608,27 @@ for a redesign pass, started 2026-08-24.
       mobile check and fixed: `match_band()`'s segment labels lacked
       `truncate`. 12 new tests. Full detail: `DECISIONS.md`'s 2026-08-27
       entry, `DESIGN_SYSTEM.md`'s "Job Detail - 2026-08-27 pass".
-- [ ] **Screens pass 2+** - the remaining ~170 existing card/badge/button/
+- [x] **Screens pass 2: Application Detail** - 2026-08-27, densest screen
+      in the bundle. Extended the vertical Wayfinding journey from six
+      stations to eight (Discovered/Matched new leading stations, Reply
+      genuinely new - dates from the earliest tracked Gmail reply, shows
+      an honest "Skipped." when the route passed it with none); added
+      the header line naming the next event with a countdown; built an
+      accessible tab bar (real ARIA tabs, keyboard-navigable - a new
+      interaction pattern for this app) for Cover letter/Email/Documents/
+      Replies/Interview prep, matching the bundle's own five exactly;
+      wired the three save routes the schema pass had flagged as missing
+      (interview prep, CV statement, reply suggestion - all straightforward,
+      mirroring cover letter/email's existing mechanism); confirmed
+      `classification_confidence` is the one reliability badge in the app
+      that renders a real value today. `intelligence_surface()` gained an
+      editable `{% call %}` body slot to carry all five editable AI
+      features on one component. Two real 375px overflow bugs caught and
+      fixed (one copied forward into `jobs/detail.html` too - see
+      `DECISIONS.md`). 23 new tests. Full detail: `DECISIONS.md`'s second
+      2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Application Detail -
+      2026-08-27 pass".
+- [ ] **Screens pass 3+** - the remaining ~150 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components.
       Not yet scoped or started. The named token layer

@@ -6,6 +6,140 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-27 — Screens pass 2 (Application Detail): non-obvious calls
+
+**The Reply station's dating logic, since it's genuinely new (not a
+rename of an existing station like Prepared/Approved):** dates from the
+*earliest* `GmailMessage.received_at` for the application (the real email
+timestamp, not when AUSVIA happened to check for it), falling back to the
+`reply_detected` `ApplicationEvent`'s `created_at` only if no message has
+a `received_at` set. A reply's mere existence is real evidence the route
+has passed this point - so a detected reply now bumps the journey's
+`current_idx` forward even when `Application.status` was never manually
+changed past "sent" (Gmail reply detection doesn't touch `status` at all -
+see `app/integrations/gmail_reply_tracking.py`). This is the same
+evidence-over-status-string principle the six-station route already
+applied in its terminal (rejected/withdrawn/expired) branch; this pass
+found the non-terminal branch was missing the equivalent bump and added
+it - caught by a test that added real `GmailMessage` rows without also
+advancing status, not assumed correct.
+
+**Reply's "skipped" case:** when the route has passed Reply's position
+(via status or another later event) with no reply ever detected - e.g. an
+interview arranged by phone, or a manual status correction - the station
+shows a real, honest "Skipped." rather than looking either reached or
+not-reached. Mirrors the exact skip-detection pattern the old
+`follow_up` station used (and the same accessibility-tested dashed-ring
+marker construction, unchanged - see `tests/
+test_status_route_accessibility.py`).
+
+**`follow_up` (the status value) maps onto Reply's station index, not a
+station of its own:** `follow_up` is a real `Application.status` (a
+reminder state a user sets manually) that predates this pass and stays -
+but the bundle's eight stations don't include it as a stop on the route.
+Since conceptually "following up because you haven't heard back" and
+"waiting for/tracking a reply" occupy the same point in the journey,
+`STATUS_TO_STATION_INDEX["follow_up"]` resolves to Reply's index rather
+than inventing a ninth station or dropping the status value.
+
+**Kept the app's own vertical Wayfinding journey (visual direction 1c)
+instead of the bundle's horizontal row for this same screen.** The bundle
+draws Application Detail's journey as a horizontal scrolling strip of
+stations with a different marker language (11px/13px dots, no ring-vs-
+fill distinction). This app's vertical tracker is a real, deliberate,
+already-accessibility-hardened construction (Phase 7 remediation: dashed-
+vs-solid rings so "skipped" and "not reached" survive grayscale/
+colorblind rendering, sizes-not-just-color for the current marker) - the
+task's own framing ("the eight-station journey... each with its real
+date, and a header line naming the next event") describes *station data*,
+not a layout mandate, so extending the six-station data to eight within
+the existing, considered component was the read here, not silently
+discarding accessibility work that was never asked to be revisited. The
+new piece genuinely missing before this pass - the header line naming the
+next event with a countdown - was added on top of the existing marker
+construction, not copied from the bundle's own header styling.
+
+**The three previously-missing save routes were straightforward, wired as
+asked, no design gap found:** `save_interview_prep`, `save_cv_profile_statement`,
+`save_reply_suggestion` all mirror `save_cover_letter`/`save_email`
+exactly - fetch-or-create the row, set the content field, `edited_at`
+only on an *existing* row (never on first creation, which is generation's
+job, not editing's), log an event, redirect. No new mechanism, no UI
+decision beyond what `intelligence_surface()`'s existing `{% call %}`
+slot (see below) already provides.
+
+**`intelligence_surface()` gained a body-slot (`{% call %}`) for editable
+content**, alongside the existing plain-`text` mode: cover letter, email,
+interview prep, CV statement, and reply suggestion are all genuinely
+editable (a pre-filled textarea + a real "Save edits" submit - the
+established mechanism, not contenteditable), unlike Job Detail's match
+narrative/improvement tips (regenerate-only, nothing to save). Passing no
+`text` and supplying the form via `{% call intelligence_surface(...) %}`
+renders `caller()` in place of the plain paragraph, so every one of these
+surfaces gets the tint/reliability/edited-badge chrome for free without
+forcing read-only and editable content through the same fixed shape. The
+header's own Regenerate control was also decoupled from the edited/not-
+edited branch (previously hidden once edited) - the bundle's own edited-
+state example shows both "Neu erzeugen" and "Speichern" available at
+once, and there's no reason "discard my edit, generate fresh" shouldn't
+stay offered after an edit.
+
+**`_application_digest_item` in `app/priority_digest.py` was renamed
+public** (dropped the leading underscore) since the Next Step rail card
+now calls it directly for one application, not just
+`compute_priority_digest()` internally for the whole-user list - a real
+second caller, not speculative future-proofing.
+
+**PDF package page count/size are computed live, not stored:** no schema
+change: `PdfReader(...).pages` and `os.path.getsize(...)` read the file
+directly at render time, the same way `download_package()`/`delete()`
+already touch `package_storage_path` directly (confirmed local-disk-only,
+never S3-routed - see that route's own comment). The package's "date" is
+the `approved` `ApplicationEvent`'s timestamp - there's no separate
+"package built at" column.
+
+**Accessible tab bar, not styled divs:** real `role="tablist"`/`role="tab"`/
+`role="tabpanel"`, `aria-selected`, roving `tabindex` (0 on the active tab,
+-1 on the rest), and a nonce'd nine-line script for click + arrow-key/
+Home/End navigation - the bundle's own tab markup is plain unstyled spans
+with click stubs (`sc-camel-on-click`), since it's a static mockup, not a
+real interaction to copy. Active tab is remembered in `sessionStorage`
+(keyed per application ID) so a save/generate POST redirecting back to
+this same page reopens on the tab the user was just working in, instead
+of silently resetting to "Cover letter" and hiding whatever they'd just
+acted on - verified end-to-end with Playwright (edited a reply, saved,
+confirmed the Replies tab was still selected after the redirect), not
+just asserted from reading the script.
+
+**Two real bugs found by the required 375px check, both fixed, both
+pre-existing patterns copied forward from Job Detail:**
+1. A `grid` with no *base* `grid-template-columns` (only `lg:grid-cols-
+   [1fr_330px]`) lets its single implicit column size to its content's
+   max-content width instead of filling the container - invisible in a
+   screenshot at a glance (every individual piece still looked fine),
+   only caught by checking `document.documentElement.scrollWidth`
+   numerically. The five-tab flex row's unwrapped width was what actually
+   exposed it here; `jobs/detail.html` has the identical construction
+   (copied from there first) and got the same `grid-cols-1` fix.
+2. The tab bar's `gap-6` (24px, matching the bundle's own spacing) meant
+   the first four tabs alone already summed past a 328px mobile column
+   before `flex-wrap` ever got to "Interview prep" - `flex-wrap` breaks a
+   row once an item doesn't fit, it doesn't shrink items already placed
+   on an overflowing row. Fixed with `gap-4 sm:gap-6`.
+
+**Consequences:** `app/templates/applications/detail.html` rewritten;
+`app/applications/status_route.py` extended to eight stations;
+`app/applications/routes.py` gained three save routes plus
+`package_info`/`next_step`/`gmail_connection` context; three new
+`FlaskForm`s in `app/applications/forms.py`; `app/templates/_components.html`'s
+`intelligence_surface()` gained the body-slot and decoupled Regenerate.
+23 new tests across three files (`tests/test_status_route_stations.py`,
+`tests/test_application_edit_save_routes.py`,
+`tests/test_application_detail_screen.py`). Full pytest suite: see
+`PROJECT_STATUS.md` for the final count.
+
+---
+
 ## 2026-08-27 — Screens pass 1 (Job Detail): non-obvious calls
 
 **Decision, "Duration" fact tile dropped:** the bundle's Job Detail fact-

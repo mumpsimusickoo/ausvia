@@ -1,224 +1,46 @@
 {% extends "base.html" %}
 {% from "_macros.html" import render_field %}
+{% from "_components.html" import btn, arrow_link, status_pill, chip_attribute, intelligence_surface %}
 {% block title %}Application — {{ application.job.title }}{% endblock %}
 {% block content %}
-{# Phase 7 remediation (QA finding B3/W9): flex-wrap so a long job title
-   plus the status pill can't force horizontal overflow on narrow viewports. #}
-<div class="flex flex-wrap items-center justify-between gap-2">
-  <div>
-    <h1 class="text-2xl font-bold text-t1">{{ application.job.title }}</h1>
-    <p class="mt-1 text-t2">
-      {% if application.job.company_id %}<a href="{{ url_for('companies.detail', company_id=application.job.company_id) }}" class="hover:text-brand hover:underline">{{ application.job.company_name }}</a>{% else %}{{ application.job.company_name or "Unknown company" }}{% endif %}
-    </p>
-  </div>
-  <span class="rounded-full bg-line px-3 py-1 text-sm font-medium text-t2">{{ application.status.replace('_', ' ')|title }}</span>
-</div>
-<p class="mt-2 text-sm">
-  <a href="{{ url_for('jobs.detail', job_id=application.job.id) }}" class="text-brand hover:underline">View job posting &rarr;</a>
-</p>
-
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-t1">Cover letter (Anschreiben)</h2>
-    <form method="post" action="{{ url_for('applications.generate_cover_letter_route', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand hover:underline">{{ "Regenerate" if application.cover_letter else "Generate" }}</button>
-    </form>
-  </div>
-  {% if application.cover_letter %}
-  <p class="text-xs text-t2 mb-2">
-    Source: {{ application.cover_letter.source }}{% if application.cover_letter.provider %} ({{ application.cover_letter.provider }}){% endif %} ·
-    {% if application.cover_letter.validated %}<span class="text-ok">Validated</span>{% else %}<span class="text-warn">Needs review</span>{% endif %}
-    {% if application.cover_letter.validation_notes %} — {{ application.cover_letter.validation_notes }}{% endif %}
-  </p>
-  <form method="post" action="{{ url_for('applications.save_cover_letter', application_id=application.id) }}">
-    {{ cover_letter_form.hidden_tag() }}
-    <label for="cover-letter-content" class="sr-only">Cover letter text</label>
-    <textarea id="cover-letter-content" name="content" rows="16" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm font-mono">{{ application.cover_letter.content }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
-  </form>
-  {% else %}
-  <p class="text-sm text-t2">No cover letter yet.</p>
-  {% endif %}
-</section>
-
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-t1">Application email</h2>
-    <form method="post" action="{{ url_for('applications.generate_email_route', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand hover:underline">{{ "Regenerate" if application.email else "Generate" }}</button>
-    </form>
-  </div>
-  {% if application.email %}
-  <form method="post" action="{{ url_for('applications.save_email', application_id=application.id) }}">
-    {{ email_form.hidden_tag() }}
-    {{ render_field(email_form.subject) }}
-    <label for="email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
-    <textarea id="email-body" name="body" rows="8" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.email.body }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
-  </form>
-  {% else %}
-  <p class="text-sm text-t2">No email drafted yet.</p>
-  {% endif %}
-</section>
-
-{% if application.status in ("sent", "follow_up") or application.follow_up_email %}
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-t1">Follow-up email</h2>
-    {% if application.status in ("sent", "follow_up") %}
-    <form method="post" action="{{ url_for('applications.generate_followup_email_route', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand hover:underline">{{ "Regenerate" if application.follow_up_email else "Draft a follow-up" }}</button>
-    </form>
-    {% endif %}
-  </div>
-  {% if application.follow_up_email %}
-  <p class="text-xs text-t2 mb-2">
-    Source: {{ application.follow_up_email.source }}{% if application.follow_up_email.provider %} ({{ application.follow_up_email.provider }}){% endif %}
-  </p>
-  <form method="post" action="{{ url_for('applications.save_followup_email', application_id=application.id) }}">
-    {{ followup_email_form.hidden_tag() }}
-    {{ render_field(followup_email_form.subject) }}
-    <label for="followup-email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
-    <textarea id="followup-email-body" name="body" rows="6" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.follow_up_email.body }}</textarea>
-    <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Save edits</button>
-  </form>
-  {% else %}
-  <p class="text-sm text-t2">No follow-up drafted yet.</p>
-  {% endif %}
-</section>
-{% endif %}
-
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-1">
-    <h2 class="font-semibold text-t1">Interview prep</h2>
-  </div>
-  <p class="text-xs text-t2 mb-4">Likely questions and talking points for this specific role, grounded in your profile and the real job/company facts - most useful once you've got an interview, but available any time you want to prepare.</p>
-  {% if interview_prep and interview_prep.prep_text %}
-  <p class="text-sm text-t2 whitespace-pre-line">{{ interview_prep.prep_text }}</p>
-  {% if interview_prep.provider %}<p class="mt-2 text-xs text-t2">Generated by {{ interview_prep.provider }}.</p>{% endif %}
-  <form method="post" action="{{ url_for('applications.generate_interview_prep_route', application_id=application.id) }}" class="mt-3">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="text-sm font-medium text-brand hover:underline">Regenerate</button>
-  </form>
-  {% else %}
-  <form method="post" action="{{ url_for('applications.generate_interview_prep_route', application_id=application.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="text-sm font-medium text-brand hover:underline">Generate interview prep</button>
-  </form>
-  {% endif %}
-</section>
-
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-1">
-    <h2 class="font-semibold text-t1">CV profile statement</h2>
-  </div>
-  <p class="text-xs text-t2 mb-4">A short, job-specific summary paragraph ("Kurzprofil") for the top of your CV, grounded only in your real profile and this job posting. Review this text before adding it to your CV - AUSVIA only uses information from your profile and this job posting, never invented experience or skills.</p>
-
-  {% if match and match.strengths %}
-  <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Skills this posting values that you already have</p>
-  <ul class="text-sm text-t2 mb-4 list-disc list-inside">
-    {% for strength in match.strengths %}
-    <li>{{ strength }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
-  {% if cv_profile_statement and cv_profile_statement.statement_text %}
-  <p class="text-sm text-t2 whitespace-pre-line">{{ cv_profile_statement.statement_text }}</p>
-  {% if cv_profile_statement.provider %}<p class="mt-2 text-xs text-t2">Generated by {{ cv_profile_statement.provider }}.</p>{% endif %}
-  <form method="post" action="{{ url_for('applications.generate_cv_profile_statement_route', application_id=application.id) }}" class="mt-3">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="text-sm font-medium text-brand hover:underline">Regenerate</button>
-  </form>
-  {% else %}
-  <form method="post" action="{{ url_for('applications.generate_cv_profile_statement_route', application_id=application.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button class="text-sm font-medium text-brand hover:underline">Generate CV profile statement</button>
-  </form>
-  {% endif %}
-</section>
-
-<section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <h2 class="font-semibold text-t1 mb-3">Documents to include</h2>
-  <form method="post" action="{{ url_for('applications.select_documents', application_id=application.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="space-y-2">
-      {% for doc in documents %}
-      <label class="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="document_ids" value="{{ doc.id }}" {% if doc.id in selected_ids %}checked{% endif %} class="rounded border-line2 text-brand">
-        {{ doc.original_filename }} <span class="text-t2">({{ doc.doc_type.replace('_', ' ') }})</span>
-      </label>
-      {% else %}
-      <p class="text-sm text-t2">No documents in your library yet. <a href="{{ url_for('documents.list_documents') }}" class="text-brand hover:underline">Upload some</a>.</p>
-      {% endfor %}
-    </div>
-    <button type="submit" class="mt-3 rounded-lg border border-line2 px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">Save selection</button>
-  </form>
-</section>
-
-<section class="mt-6 rounded-xl border border-tint2 bg-tint p-6">
-  <h2 class="font-semibold text-brand mb-2">Review and approve</h2>
-  <p class="text-sm text-brand mb-4">Nothing is ever sent automatically. Review the cover letter, email, and documents above, then approve to build the final PDF package.</p>
-  <div class="flex flex-wrap gap-3">
-    <form method="post" action="{{ url_for('applications.approve', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Approve application</button>
-    </form>
-    {% if application.package_storage_path %}
-    <a href="{{ url_for('applications.download_package', application_id=application.id) }}" class="rounded-lg border border-tint2 bg-card px-4 py-2 text-sm font-semibold text-brand hover:bg-tint">Download PDF package</a>
-    {% endif %}
-    {% if application.status == "ready" %}
-    <form method="post" action="{{ url_for('applications.mark_sent', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">I sent this myself — mark as sent</button>
-    </form>
-    <form method="post" action="{{ url_for('applications.create_gmail_draft', application_id=application.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">Create Gmail draft (optional)</button>
-    </form>
-    {% endif %}
-  </div>
-</section>
-
 {#
-  Application status - visual direction 1c (Wayfinding), not 1a. A single
-  vertical route of fixed stations (Preparing/Ready/Sent/Follow-up/
-  Interview/Offer, matching Application.APPLICATION_STATUSES) replaces the
-  old status <select> + separate timeline list. Every marker state and
-  description is computed server-side in app/applications/status_route.py
-  from data that already existed (status, ApplicationEvent log, contact/
-  interview/follow-up fields) - this is a display change, not a new data
-  source. See LOGO.md / DECISIONS.md for why this direction (not 1a) was
-  used here specifically.
-
-  Marker states (correction pass 2026-08-12, ring style added in the Phase 7
-  remediation pass 2026-08-12 - must differ by size AND ring weight AND
-  fill/style, not color alone, so the current station is unmistakable even
-  at small sizes / for colorblind users):
-    current   - 24px circle, 4px solid ink ring, 10px brand-teal core dot
-    completed - 14px circle, solid brand teal, no ring
-    skipped   - 14px circle, white fill, 2px DASHED brand-teal ring
-    future    - 14px circle, white fill, 2px solid ink/20% ring
-  (was "Signal Blue" pre-2.0 - foundation-tokens pass, 2026-08-25, renamed
-  the color, not the component; sizes/ring-weight/fill logic unchanged.)
-  skipped vs. future previously differed only by ring color (QA finding
-  W4) - the dashed-vs-solid ring style is a shape cue that survives
-  grayscale/colorblind rendering; the description text next to each
-  marker ("Skipped." vs "Not reached yet.") already carried this
-  distinction for screen-reader users.
-  The connector rail below each marker uses a CSS grid row (24px marker
-  column + 1fr content column) so the rail's height auto-matches however
-  tall that row's description text actually is, rather than a hand-tuned
-  absolute-positioned guess.
+  Screens pass 2, 2026-08-27 - Application Detail. Densest screen in the
+  bundle. Bundle structure, English copy - see DECISIONS.md for the
+  Reply-station dating logic and why the existing vertical Wayfinding
+  presentation (visual direction 1c) was kept instead of the bundle's own
+  horizontal journey row for this same screen.
 #}
+<div class="text-xs text-t3">
+  <a href="{{ url_for('applications.list_applications') }}" class="hover:text-brand hover:underline">Applications</a> / {{ application.job.company_name or "Unknown company" }}
+</div>
+<div class="flex flex-wrap items-end justify-between gap-6 mt-3 pb-6 border-b border-line">
+  <div class="flex-1 min-w-0">
+    <h1 class="font-display font-semibold text-2xl md:text-[30px] leading-tight text-t1">{{ application.job.title }}</h1>
+    <div class="text-[15px] text-t2 mt-2">
+      {% if application.job.company_id %}<a href="{{ url_for('companies.detail', company_id=application.job.company_id) }}" class="hover:text-brand hover:underline">{{ application.job.company_name }}</a>{% else %}{{ application.job.company_name or "Unknown company" }}{% endif %}
+      {% if application.job.location %} &middot; {{ application.job.location }}{% endif %}
+      &middot; applied since {{ application.created_at.strftime('%d.%m.%Y') }}
+    </div>
+  </div>
+  <div class="flex items-center gap-3 flex-none">
+    {{ status_pill(application.status) }}
+    {{ btn("View job posting", variant='secondary', href=url_for('jobs.detail', job_id=application.job.id)) }}
+  </div>
+</div>
+
+{# --- Journey: 8-station Wayfinding route, extended from 6 - see
+     DECISIONS.md. Marker construction (sizes/rings/dashed-vs-solid) is
+     unchanged from the Phase 7 accessibility remediation. #}
 <section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
-  <div class="flex items-center justify-between mb-1">
-    <h2 class="font-semibold text-t1">Application status</h2>
-    {% if status_route.terminal_label %}
-    <span class="rounded-full bg-line px-3 py-1 text-xs font-medium text-t2">{{ status_route.terminal_label }}</span>
+  <div class="flex items-center justify-between gap-4 flex-wrap mb-1">
+    <div class="flex items-center gap-3">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">APPLICATION JOURNEY</span>
+      {% if status_route.terminal_label %}
+      <span class="rounded-full bg-line px-3 py-1 text-xs font-medium text-t2">{{ status_route.terminal_label }}</span>
+      {% endif %}
+    </div>
+    {% if status_route.next_event %}
+    <span class="text-xs text-info">{{ status_route.next_event }}</span>
     {% endif %}
   </div>
   <div class="grid pt-6" style="grid-template-columns: 24px 1fr; column-gap: 22px">
@@ -242,11 +64,6 @@
     <div class="flex items-start justify-between gap-6 {% if not loop.last %}pb-[26px]{% endif %}" style="margin-top: -2px">
       <div>
         <p class="{% if s.current %}text-[16px]{% else %}text-[15px]{% endif %} font-semibold {% if s.reached %}text-t1{% else %}text-t2{% endif %}">{{ s.label }}</p>
-        {# Both branches were text-t3/text-t2 before the AA fix below removed
-           text-t3 app-wide (it measured 2.76:1-3.02:1, failing WCAG AA) -
-           now identical, so the conditional is gone. Reached-vs-not is still
-           conveyed by the label line above (text-t1/text-t2) and the
-           connector color; this line no longer double-encodes it. #}
         <p class="text-[13px] text-t2">{{ s.description }}</p>
       </div>
       <span class="shrink-0 text-[13px] text-t2 whitespace-nowrap tabular-nums">{{ s.date_label }}</span>
@@ -255,148 +72,464 @@
   </div>
 </section>
 
-{# --- Secondary zone: status/history/replies are reference material, not
-     the primary generation/approval flow above - visually demoted (no
-     shadow, muted heading, tinted background) so the page reads as one
-     action-focused flow followed by a lighter reference area, rather than
-     seven equal-weight cards in a row. See DESIGN_SYSTEM.md / the Phase
-     5.5+ checkpoint report for why. #}
-<p class="mt-10 mb-3 text-xs font-semibold uppercase tracking-wide text-t2">Status &amp; history</p>
-
-<section class="mt-3 rounded-xl border border-line bg-raised/60 p-5">
-  <h2 class="text-sm font-semibold text-t2 mb-3">Contact &amp; tracking details</h2>
-  <form method="post" action="{{ url_for('applications.update_status', application_id=application.id) }}">
-    {{ status_form.hidden_tag() }}
-    {# The status field itself is intentionally not shown inline here - the
-       route above is now the primary way status is read. A collapsed
-       disclosure below still allows a manual correction (e.g. marking
-       withdrawn/rejected, or fixing a mistake) without it visually
-       competing with the route component. Not a clean 1:1 swap of the old
-       form - flagged in this pass's report. #}
-    <div class="grid gap-4 sm:grid-cols-2">
-      {{ render_field(status_form.contact_person) }}
-      {{ render_field(status_form.contact_email) }}
-      {{ render_field(status_form.interview_date) }}
-      {{ render_field(status_form.follow_up_date) }}
-    </div>
-    {{ render_field(status_form.notes) }}
-    <details class="mb-4">
-      <summary class="cursor-pointer text-sm font-medium text-brand">Manually correct status</summary>
-      <div class="mt-3 max-w-xs">
-        {{ render_field(status_form.status) }}
-      </div>
-    </details>
-    <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Update</button>
-  </form>
-</section>
-
-<section class="mt-3 rounded-xl border border-line bg-raised/60 p-5">
-  <div class="flex items-center justify-between mb-3">
-    <h2 class="text-sm font-semibold text-t2">Gmail replies</h2>
-    {% if gmail_connected %}
-    <form method="post" action="{{ url_for('applications.check_replies', application_id=application.id) }}">
+<section class="mt-6 rounded-xl border border-tint2 bg-tint p-6">
+  <h2 class="font-semibold text-brand mb-2">Review and approve</h2>
+  <p class="text-sm text-brand mb-4">Nothing is ever sent automatically. Review the cover letter, email, and documents below, then approve to build the final PDF package.</p>
+  <div class="flex flex-wrap gap-3">
+    <form method="post" action="{{ url_for('applications.approve', application_id=application.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-sm font-medium text-brand hover:underline">Check for replies</button>
+      {{ btn("Approve application", variant='primary', type='submit') }}
+    </form>
+    {% if application.package_storage_path %}
+    <a href="{{ url_for('applications.download_package', application_id=application.id) }}" class="rounded-lg border border-tint2 bg-card px-4 py-2 text-sm font-semibold text-brand hover:bg-tint">Download PDF package</a>
+    {% endif %}
+    {% if application.status == "ready" %}
+    <form method="post" action="{{ url_for('applications.mark_sent', application_id=application.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ btn("I sent this myself — mark as sent", variant='secondary', type='submit') }}
+    </form>
+    <form method="post" action="{{ url_for('applications.create_gmail_draft', application_id=application.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ btn("Create Gmail draft (optional)", variant='secondary', type='submit') }}
     </form>
     {% endif %}
   </div>
+</section>
 
-  {% if reply_check_task and reply_check_task.is_active %}
-  <p class="mb-3 text-xs text-brand">Checking for replies in the background — refresh to see results.</p>
-  {% elif reply_check_task and reply_check_task.status == "error" %}
-  <p class="mb-3 text-xs text-err">Last check failed: {{ reply_check_task.error_message }}</p>
-  {% endif %}
+{# grid-cols-1 explicit, not just the lg: override: without a base
+   grid-template-columns, an implicit grid's single column sizes to its
+   content's max-content width instead of filling the container - the
+   flex-wrap tab bar's unwrapped width then overflowed the page at 375px
+   even though every individual piece looked fine. Found by the numeric
+   scrollWidth check, not visible in a screenshot at a glance - see
+   DECISIONS.md. Same fix applied to jobs/detail.html's identical
+   construction. #}
+<div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_330px]">
+  <div class="lg:order-1 min-w-0">
 
-  {% if not gmail_connected %}
-  <p class="text-sm text-t2">
-    <a href="{{ url_for('integrations.gmail_status') }}" class="text-brand hover:underline">Connect Gmail</a>
-    to detect replies to this application.
-  </p>
-  {% elif not application.contact_email %}
-  <p class="text-sm text-t2">Add a contact email above to check for replies.</p>
-  {% elif not gmail_messages %}
-  <p class="text-sm text-t2">No messages detected yet.</p>
-  {% else %}
-  <div class="space-y-4">
-    {% for msg in gmail_messages %}
-    <div class="rounded-lg border border-line bg-card p-4">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-sm font-semibold text-t1">{{ msg.subject or "(no subject)" }}</p>
-          <p class="text-xs text-t2">{{ msg.from_address }}{% if msg.received_at %} · {{ msg.received_at.strftime('%d %b %Y %H:%M') }}{% endif %}</p>
-        </div>
-        {% if msg.classified_intent %}
-        <span class="rounded-full bg-line px-2 py-0.5 text-xs font-medium text-t2">
-          {{ msg.classified_intent.replace('_', ' ')|title }} ({{ msg.classification_confidence }} confidence)
-        </span>
-        {% endif %}
-      </div>
-      <p class="mt-2 text-sm text-t2 whitespace-pre-line">{{ (msg.body_text or msg.snippet or "")[:500] }}</p>
+    {# --- Accessible tab bar: real ARIA tabs, roving tabindex, arrow-key
+         navigation. Active tab persists in sessionStorage so a save/
+         generate POST redirecting back to this same page reopens on the
+         tab the user was just working in, instead of resetting to the
+         first tab. #}
+    {# gap-4 not gap-6 below sm: - found by the 375px Playwright check: at
+       the bundle's own 24px gap, the first four tabs alone (before
+       flex-wrap even reaches "Interview prep") already summed past a
+       328px mobile column and pushed the page into horizontal scroll -
+       flex-wrap only breaks a row once an item doesn't fit, it doesn't
+       shrink items already placed on an overflowing row. #}
+    <div role="tablist" aria-label="Application materials" class="flex flex-wrap gap-4 sm:gap-6 border-b border-line" id="app-tabs">
+      <button type="button" role="tab" id="tab-cover-letter" aria-controls="panel-cover-letter" aria-selected="true" tabindex="0" class="text-sm font-semibold text-t1 pb-3 -mb-px border-b-2 border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand rounded-t">Cover letter</button>
+      <button type="button" role="tab" id="tab-email" aria-controls="panel-email" aria-selected="false" tabindex="-1" class="text-sm text-t2 pb-3 -mb-px border-b-2 border-transparent hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand rounded-t">Email</button>
+      <button type="button" role="tab" id="tab-documents" aria-controls="panel-documents" aria-selected="false" tabindex="-1" class="text-sm text-t2 pb-3 -mb-px border-b-2 border-transparent hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand rounded-t">Documents <span class="font-mono text-[11px] text-t3">{{ application.selected_documents|length }}</span></button>
+      <button type="button" role="tab" id="tab-replies" aria-controls="panel-replies" aria-selected="false" tabindex="-1" class="text-sm text-t2 pb-3 -mb-px border-b-2 border-transparent hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand rounded-t">Replies <span class="font-mono text-[11px] text-t3">{{ gmail_messages|length }}</span></button>
+      <button type="button" role="tab" id="tab-interview-prep" aria-controls="panel-interview-prep" aria-selected="false" tabindex="-1" class="text-sm text-t2 pb-3 -mb-px border-b-2 border-transparent hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand rounded-t">Interview prep</button>
+    </div>
 
-      <div class="mt-3 flex flex-wrap items-center gap-3">
-        {% if not msg.classified_intent %}
-        <form method="post" action="{{ url_for('applications.classify_message', application_id=application.id, message_id=msg.id) }}">
+    <div role="tabpanel" id="panel-cover-letter" aria-labelledby="tab-cover-letter" class="pt-5">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs text-t2">
+          {% if application.cover_letter %}Source: {{ application.cover_letter.source }}{% if application.cover_letter.provider %} ({{ application.cover_letter.provider }}){% endif %} ·
+          {% if application.cover_letter.validated %}<span class="text-ok">Validated</span>{% else %}<span class="text-warn">Needs review</span>{% endif %}
+          {% if application.cover_letter.validation_notes %} — {{ application.cover_letter.validation_notes }}{% endif %}{% endif %}
+        </p>
+        <form method="post" action="{{ url_for('applications.generate_cover_letter_route', application_id=application.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-xs font-medium text-brand hover:underline">Classify with AI</button>
+          {{ btn("Regenerate" if application.cover_letter else "Generate", variant='tertiary', type='submit', compact=true) }}
         </form>
-        {% endif %}
-        {% if msg.classification_notes and not msg.classified_intent %}
-        <span class="text-xs text-t2">{{ msg.classification_notes }}</span>
-        {% endif %}
-        {% if not msg.ai_suggested_reply %}
-        <form method="post" action="{{ url_for('applications.suggest_reply', application_id=application.id, message_id=msg.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-xs font-medium text-brand hover:underline">Suggest a reply</button>
-        </form>
-        {% endif %}
       </div>
-
-      {% if msg.ai_suggested_reply %}
-      <form method="post" action="{{ url_for('applications.create_reply_draft', application_id=application.id, message_id=msg.id) }}" class="mt-3">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="reply-text-{{ msg.id }}" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Suggested reply ({{ msg.ai_suggested_reply_provider }}) - edit before sending</label>
-        <textarea id="reply-text-{{ msg.id }}" name="reply_text" rows="5" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
-        <button type="submit" class="mt-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Create reply draft in Gmail</button>
+      {% if application.cover_letter %}
+      {% call intelligence_surface(provider=application.cover_letter.provider, reliability=application.cover_letter.reliability, edited_at=application.cover_letter.edited_at.strftime('%d.%m. at %H:%M') if application.cover_letter.edited_at else None, provenance="Grounded in your profile and this posting - nothing invented.") %}
+      <form method="post" action="{{ url_for('applications.save_cover_letter', application_id=application.id) }}">
+        {{ cover_letter_form.hidden_tag() }}
+        <label for="cover-letter-content" class="sr-only">Cover letter text</label>
+        <textarea id="cover-letter-content" name="content" rows="14" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm font-mono">{{ application.cover_letter.content }}</textarea>
+        {{ btn("Save edits", variant='primary', type='submit', extra_classes='mt-2') }}
       </form>
+      {% endcall %}
+      {% else %}
+      <p class="text-sm text-t2">No cover letter yet.</p>
       {% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-</section>
 
-<section class="mt-6 rounded-xl border border-err/40 bg-card shadow-sm p-6">
-  <h2 class="font-semibold text-t1 mb-2">Delete this application</h2>
-  {% if application.status in ("preparing", "ready") %}
-  <p class="text-sm text-t2 mb-3">Nothing has been sent yet - this only removes draft work in progress.</p>
-  <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" id="delete-application-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="rounded-lg border border-err/50 px-4 py-2 text-sm font-semibold text-err hover:bg-err-tint">Delete application</button>
-  </form>
-  {# CSP-safe: a real listener attached from a nonce'd script, not an
-     inline onsubmit="" attribute - this app's CSP has no 'unsafe-inline'
-     for script-src, and nonces only cover <script> tags, not inline
-     event-handler attributes. #}
-  <script nonce="{{ csp_nonce }}">
-    document.getElementById("delete-application-form").addEventListener("submit", function (e) {
-      if (!confirm("Delete this application? This cannot be undone.")) {
-        e.preventDefault();
-      }
-    });
-  </script>
-  {% else %}
-  <p class="text-sm text-t2 mb-3">
-    This application is past "preparing" and represents real history (dates, correspondence, notes) -
-    type <strong>DELETE</strong> below to permanently remove it.
-  </p>
-  <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" class="flex flex-wrap items-end gap-3">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div>
-      <label for="confirm-delete-text" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Type DELETE to confirm</label>
-      <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
+    <div role="tabpanel" id="panel-email" aria-labelledby="tab-email" class="pt-5" hidden>
+      <div class="flex items-center justify-end mb-3">
+        <form method="post" action="{{ url_for('applications.generate_email_route', application_id=application.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ btn("Regenerate" if application.email else "Generate", variant='tertiary', type='submit', compact=true) }}
+        </form>
+      </div>
+      {% if application.email %}
+      {% call intelligence_surface(provider=application.email.provider, reliability=application.email.reliability, edited_at=application.email.edited_at.strftime('%d.%m. at %H:%M') if application.email.edited_at else None, provenance="Grounded in your profile and this posting - nothing invented.") %}
+      <form method="post" action="{{ url_for('applications.save_email', application_id=application.id) }}">
+        {{ email_form.hidden_tag() }}
+        {{ render_field(email_form.subject) }}
+        <label for="email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
+        <textarea id="email-body" name="body" rows="8" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.email.body }}</textarea>
+        {{ btn("Save edits", variant='primary', type='submit', extra_classes='mt-2') }}
+      </form>
+      {% endcall %}
+      {% else %}
+      <p class="text-sm text-t2">No email drafted yet.</p>
+      {% endif %}
     </div>
-    <button type="submit" class="rounded-lg border border-err/50 px-4 py-2 text-sm font-semibold text-err hover:bg-err-tint">Delete application</button>
-  </form>
-  {% endif %}
-</section>
+
+    <div role="tabpanel" id="panel-documents" aria-labelledby="tab-documents" class="pt-5" hidden>
+      <form method="post" action="{{ url_for('applications.select_documents', application_id=application.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="space-y-2">
+          {% for doc in documents %}
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="document_ids" value="{{ doc.id }}" {% if doc.id in selected_ids %}checked{% endif %} class="rounded border-line2 text-brand">
+            {{ doc.original_filename }} <span class="text-t2">({{ doc.doc_type.replace('_', ' ') }})</span>
+          </label>
+          {% else %}
+          <p class="text-sm text-t2">No documents in your library yet. <a href="{{ url_for('documents.list_documents') }}" class="text-brand hover:underline">Upload some</a>.</p>
+          {% endfor %}
+        </div>
+        {{ btn("Save selection", variant='secondary', type='submit', extra_classes='mt-3') }}
+      </form>
+    </div>
+
+    <div role="tabpanel" id="panel-replies" aria-labelledby="tab-replies" class="pt-5" hidden>
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <p class="text-xs text-t3">
+          {% if gmail_connected %}connected as {{ gmail_connection.google_email or "Gmail" }}{% if reply_check_task and reply_check_task.finished_at %} · last checked {{ reply_check_task.finished_at.strftime('%H:%M') }}{% endif %}{% endif %}
+        </p>
+        {% if gmail_connected %}
+        <form method="post" action="{{ url_for('applications.check_replies', application_id=application.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ btn("Check for replies", variant='tertiary', type='submit', compact=true) }}
+        </form>
+        {% endif %}
+      </div>
+
+      {% if reply_check_task and reply_check_task.is_active %}
+      <p class="mb-3 text-xs text-brand">Checking for replies in the background — refresh to see results.</p>
+      {% elif reply_check_task and reply_check_task.status == "error" %}
+      <p class="mb-3 text-xs text-err">Last check failed: {{ reply_check_task.error_message }}</p>
+      {% endif %}
+
+      {% if not gmail_connected %}
+      <p class="text-sm text-t2">
+        <a href="{{ url_for('integrations.gmail_status') }}" class="text-brand hover:underline">Connect Gmail</a>
+        to detect replies to this application.
+      </p>
+      {% elif not application.contact_email %}
+      <p class="text-sm text-t2">Add a contact email in Contact &amp; tracking details to check for replies.</p>
+      {% elif not gmail_messages %}
+      <p class="text-sm text-t2">No messages detected yet.</p>
+      {% else %}
+      <div class="space-y-4">
+        {% for msg in gmail_messages %}
+        <div class="rounded-lg border border-line bg-card p-4">
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-t1">{{ msg.subject or "(no subject)" }}</p>
+              <p class="text-xs text-t2">{{ msg.from_address }}{% if msg.received_at %} · {{ msg.received_at.strftime('%d %b %Y %H:%M') }}{% endif %}</p>
+            </div>
+            {% if msg.classified_intent %}
+            <div class="flex items-center gap-2 flex-none">
+              <span class="rounded-full bg-line px-2 py-0.5 text-xs font-medium text-t2">{{ msg.classified_intent.replace('_', ' ')|title }}</span>
+              {# The one reliability badge in the app with a real value to
+                 show today - classification_confidence, unlike every other
+                 reliability column (still null by design - see the schema
+                 pass, DECISIONS.md). #}
+              {% if msg.classification_confidence %}
+              <span class="font-mono text-[10.5px] text-t3 border border-line rounded px-2 py-1">RELIABILITY {{ msg.classification_confidence|upper }}</span>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <p class="mt-2 text-sm text-t2 whitespace-pre-line">{{ (msg.body_text or msg.snippet or "")[:500] }}</p>
+
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            {% if not msg.classified_intent %}
+            <form method="post" action="{{ url_for('applications.classify_message', application_id=application.id, message_id=msg.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {{ btn("Classify with AI", variant='tertiary', type='submit', compact=true) }}
+            </form>
+            {% endif %}
+            {% if msg.classification_notes and not msg.classified_intent %}
+            <span class="text-xs text-t2">{{ msg.classification_notes }}</span>
+            {% endif %}
+            {% if not msg.ai_suggested_reply %}
+            <form method="post" action="{{ url_for('applications.suggest_reply', application_id=application.id, message_id=msg.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {{ btn("Suggest a reply", variant='tertiary', type='submit', compact=true) }}
+            </form>
+            {% endif %}
+          </div>
+
+          {% if msg.ai_suggested_reply %}
+          <div class="mt-3">
+            {% call intelligence_surface(provider=msg.ai_suggested_reply_provider, reliability=msg.reply_suggestion_reliability, edited_at=msg.reply_suggestion_edited_at.strftime('%d.%m. at %H:%M') if msg.reply_suggestion_edited_at else None, provenance="Grounded in your profile and this message - nothing invented.") %}
+            <form method="post" action="{{ url_for('applications.save_reply_suggestion', application_id=application.id, message_id=msg.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label for="reply-text-{{ msg.id }}" class="sr-only">Suggested reply</label>
+              <textarea id="reply-text-{{ msg.id }}" name="ai_suggested_reply" rows="5" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ msg.ai_suggested_reply }}</textarea>
+              {{ btn("Save edits", variant='secondary', type='submit', compact=true, extra_classes='mt-2') }}
+            </form>
+            {% endcall %}
+            <form method="post" action="{{ url_for('applications.create_reply_draft', application_id=application.id, message_id=msg.id) }}" class="mt-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="reply_text" value="{{ msg.ai_suggested_reply }}">
+              {{ btn("Open in Gmail", variant='primary', type='submit', compact=true) }}
+            </form>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div role="tabpanel" id="panel-interview-prep" aria-labelledby="tab-interview-prep" class="pt-5" hidden>
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs text-t2 max-w-[60ch]">Likely questions and talking points for this role, grounded in your profile and the real job/company facts.</p>
+        <form method="post" action="{{ url_for('applications.generate_interview_prep_route', application_id=application.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ btn("Regenerate" if interview_prep and interview_prep.prep_text else "Generate interview prep", variant='tertiary', type='submit', compact=true) }}
+        </form>
+      </div>
+      {% if interview_prep and interview_prep.prep_text %}
+      {% call intelligence_surface(provider=interview_prep.provider, edited_at=interview_prep.edited_at.strftime('%d.%m. at %H:%M') if interview_prep.edited_at else None, provenance="Grounded in your profile and this job/company's real facts - nothing invented.") %}
+      <form method="post" action="{{ url_for('applications.save_interview_prep', application_id=application.id) }}">
+        {{ interview_prep_form.hidden_tag() }}
+        <label for="interview-prep-text" class="sr-only">Interview prep</label>
+        <textarea id="interview-prep-text" name="prep_text" rows="12" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ interview_prep.prep_text }}</textarea>
+        {{ btn("Save edits", variant='primary', type='submit', extra_classes='mt-2') }}
+      </form>
+      {% endcall %}
+      {% else %}
+      <p class="text-sm text-t2">Not generated yet.</p>
+      {% endif %}
+    </div>
+
+    {# --- CV profile statement: real functionality, not one of the
+         bundle's five tabs (nor named anywhere in the bundle screen at
+         all) - kept as its own section rather than invented as a sixth
+         tab. #}
+    <section class="mt-8 rounded-xl border border-line bg-card shadow-sm p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="font-semibold text-t1">CV profile statement</h2>
+        <form method="post" action="{{ url_for('applications.generate_cv_profile_statement_route', application_id=application.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ btn("Regenerate" if cv_profile_statement and cv_profile_statement.statement_text else "Generate CV profile statement", variant='tertiary', type='submit', compact=true) }}
+        </form>
+      </div>
+      <p class="text-xs text-t2 mb-4 max-w-[70ch]">A short, job-specific summary paragraph ("Kurzprofil") for the top of your CV - review before adding it; AUSVIA only uses information from your profile and this posting, never invented experience or skills.</p>
+
+      {% if match and match.strengths %}
+      <p class="text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Skills this posting values that you already have</p>
+      <ul class="text-sm text-t2 mb-4 list-disc list-inside">
+        {% for strength in match.strengths %}
+        <li>{{ strength }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if cv_profile_statement and cv_profile_statement.statement_text %}
+      {% call intelligence_surface(provider=cv_profile_statement.provider, edited_at=cv_profile_statement.edited_at.strftime('%d.%m. at %H:%M') if cv_profile_statement.edited_at else None, provenance="Grounded in your profile and this posting - nothing invented.") %}
+      <form method="post" action="{{ url_for('applications.save_cv_profile_statement', application_id=application.id) }}">
+        {{ cv_profile_statement_form.hidden_tag() }}
+        <label for="cv-statement-text" class="sr-only">CV profile statement</label>
+        <textarea id="cv-statement-text" name="statement_text" rows="5" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ cv_profile_statement.statement_text }}</textarea>
+        {{ btn("Save edits", variant='primary', type='submit', extra_classes='mt-2') }}
+      </form>
+      {% endcall %}
+      {% else %}
+      <p class="text-sm text-t2">Not generated yet.</p>
+      {% endif %}
+    </section>
+
+    {% if application.status in ("sent", "follow_up") or application.follow_up_email %}
+    <section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-t1">Follow-up email</h2>
+        {% if application.status in ("sent", "follow_up") %}
+        <form method="post" action="{{ url_for('applications.generate_followup_email_route', application_id=application.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ btn("Regenerate" if application.follow_up_email else "Draft a follow-up", variant='tertiary', type='submit', compact=true) }}
+        </form>
+        {% endif %}
+      </div>
+      {% if application.follow_up_email %}
+      <p class="text-xs text-t2 mb-2">
+        Source: {{ application.follow_up_email.source }}{% if application.follow_up_email.provider %} ({{ application.follow_up_email.provider }}){% endif %}
+      </p>
+      <form method="post" action="{{ url_for('applications.save_followup_email', application_id=application.id) }}">
+        {{ followup_email_form.hidden_tag() }}
+        {{ render_field(followup_email_form.subject) }}
+        <label for="followup-email-body" class="block text-sm font-medium text-t2 mb-1">Body</label>
+        <textarea id="followup-email-body" name="body" rows="6" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">{{ application.follow_up_email.body }}</textarea>
+        {{ btn("Save edits", variant='primary', type='submit', extra_classes='mt-2') }}
+      </form>
+      {% else %}
+      <p class="text-sm text-t2">No follow-up drafted yet.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="mt-6 rounded-xl border border-line bg-raised/60 p-5">
+      <h2 class="text-sm font-semibold text-t2 mb-3">Contact &amp; tracking details</h2>
+      <form method="post" action="{{ url_for('applications.update_status', application_id=application.id) }}">
+        {{ status_form.hidden_tag() }}
+        {# [&>div]:min-w-0: CSS grid items default to min-width:auto, not 0 -
+           without this, the interview_date field's native
+           datetime-local widget (no fixed CSS width, sized by the
+           browser's own control chrome) refuses to shrink below its
+           intrinsic content width and forces the whole grid past the
+           375px viewport. Found by the mobile Playwright check, not
+           assumed - a real, pre-existing overflow this pass's own
+           verification step caught while working on this section. #}
+        <div class="grid gap-4 sm:grid-cols-2 [&>div]:min-w-0">
+          {{ render_field(status_form.contact_person) }}
+          {{ render_field(status_form.contact_email) }}
+          {{ render_field(status_form.interview_date) }}
+          {{ render_field(status_form.follow_up_date) }}
+        </div>
+        {{ render_field(status_form.notes) }}
+        <details class="mb-4">
+          <summary class="cursor-pointer text-sm font-medium text-brand">Manually correct status</summary>
+          <div class="mt-3 max-w-xs">
+            {{ render_field(status_form.status) }}
+          </div>
+        </details>
+        {{ btn("Update", variant='primary', type='submit') }}
+      </form>
+    </section>
+
+    <section class="mt-6 rounded-xl border border-err/40 bg-card shadow-sm p-6">
+      <h2 class="font-semibold text-t1 mb-2">Delete this application</h2>
+      {% if application.status in ("preparing", "ready") %}
+      <p class="text-sm text-t2 mb-3">Nothing has been sent yet - this only removes draft work in progress.</p>
+      <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" id="delete-application-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ btn("Delete application", variant='destructive', type='submit') }}
+      </form>
+      <script nonce="{{ csp_nonce }}">
+        document.getElementById("delete-application-form").addEventListener("submit", function (e) {
+          if (!confirm("Delete this application? This cannot be undone.")) {
+            e.preventDefault();
+          }
+        });
+      </script>
+      {% else %}
+      <p class="text-sm text-t2 mb-3">
+        This application is past "preparing" and represents real history (dates, correspondence, notes) -
+        type <strong>DELETE</strong> below to permanently remove it.
+      </p>
+      <form method="post" action="{{ url_for('applications.delete', application_id=application.id) }}" class="flex flex-wrap items-end gap-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label for="confirm-delete-text" class="block text-xs font-semibold uppercase tracking-wide text-t2 mb-1">Type DELETE to confirm</label>
+          <input type="text" id="confirm-delete-text" name="confirm_text" autocomplete="off" class="rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
+        </div>
+        {{ btn("Delete application", variant='destructive', type='submit') }}
+      </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="lg:order-2 flex flex-col gap-5">
+    <div class="rounded-xl border border-line bg-card shadow-sm p-5">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">PDF PACKAGE</span>
+      {% if package_info %}
+      <div class="flex items-center gap-3 mt-3">
+        <span class="font-mono text-[10px] text-t2 bg-page border border-line rounded px-[7px] py-[6px] flex-none">PDF</span>
+        <div class="min-w-0">
+          <div class="text-[13.5px] font-medium truncate">{{ package_info.filename }}</div>
+          <div class="text-xs text-t3">
+            {% if package_info.page_count %}{{ package_info.page_count }} page{{ 's' if package_info.page_count != 1 else '' }} &middot; {% endif %}
+            {{ "%.1f"|format(package_info.size_bytes / 1048576) }} MB
+            {%- if package_info.built_at %} &middot; {{ package_info.built_at.strftime('%d.%m.%Y') }}{% endif %}
+          </div>
+        </div>
+      </div>
+      {{ btn("Download package", variant='secondary', href=url_for('applications.download_package', application_id=application.id), extra_classes='w-full mt-3.5') }}
+      {% else %}
+      <p class="text-[13.5px] text-t2 mt-3">Not built yet - approve the application to generate it.</p>
+      {% endif %}
+    </div>
+
+    <div class="rounded-xl border border-line bg-card shadow-sm p-5">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">CONTAINED DOCUMENTS</span>
+      <div class="flex flex-col gap-2 mt-3">
+        {% for sd in application.selected_documents %}
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[13.5px] truncate min-w-0">{{ sd.document.original_filename }}</span>
+          {{ chip_attribute(sd.document.doc_type.replace('_', ' ')|upper) }}
+        </div>
+        {% else %}
+        <p class="text-[13.5px] text-t2">No documents selected yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-line bg-card shadow-sm p-5">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">CONTACT &amp; DATES</span>
+      <div class="flex items-baseline gap-3 py-2 border-b border-line mt-3"><span class="font-mono text-[10.5px] tracking-[0.09em] text-t3 flex-1">CONTACT</span><span class="text-[13.5px]">{{ application.contact_person or "Not specified" }}</span></div>
+      <div class="flex items-baseline gap-3 py-2 border-b border-line"><span class="font-mono text-[10.5px] tracking-[0.09em] text-t3 flex-1">INTERVIEW</span><span class="text-[13.5px] tabular-nums">{{ application.interview_date.strftime('%d.%m. %H:%M') if application.interview_date else "Not set" }}</span></div>
+      <div class="flex items-baseline gap-3 py-2"><span class="font-mono text-[10.5px] tracking-[0.09em] text-t3 flex-1">FOLLOW-UP</span><span class="text-[13.5px] tabular-nums">{{ application.follow_up_date.strftime('%d.%m.%Y') if application.follow_up_date else "Not set" }}</span></div>
+    </div>
+
+    <div class="rounded-xl border border-line p-5">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">NEXT STEP</span>
+      {% if next_step %}
+      <p class="mt-2.5 text-sm text-t1">{{ next_step.reasons|join('. ') }}.</p>
+      {% else %}
+      <p class="mt-2.5 text-sm text-t2">Nothing time-sensitive right now.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# Accessible tab controller: click, arrow-key/Home/End navigation, and
+   sessionStorage-remembered active tab so a save/generate POST redirect
+   reopens on the same tab instead of resetting to the first one. CSP-safe
+   (nonce'd <script>, no inline handler attributes). #}
+<script nonce="{{ csp_nonce }}">
+(function () {
+  var STORAGE_KEY = "ausvia-app-detail-tab-{{ application.id }}";
+  var tablist = document.getElementById("app-tabs");
+  if (!tablist) return;
+  var tabs = Array.prototype.slice.call(tablist.querySelectorAll('[role="tab"]'));
+
+  function activate(tab, focusIt) {
+    tabs.forEach(function (t) {
+      var selected = t === tab;
+      t.setAttribute("aria-selected", selected ? "true" : "false");
+      t.tabIndex = selected ? 0 : -1;
+      t.classList.toggle("border-brand", selected);
+      t.classList.toggle("text-t1", selected);
+      t.classList.toggle("font-semibold", selected);
+      t.classList.toggle("border-transparent", !selected);
+      t.classList.toggle("text-t2", !selected);
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !selected;
+    });
+    if (focusIt) tab.focus();
+    try { sessionStorage.setItem(STORAGE_KEY, tab.id); } catch (e) { /* private mode, etc. */ }
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () { activate(tab, false); });
+    tab.addEventListener("keydown", function (e) {
+      var idx = tabs.indexOf(tab);
+      if (e.key === "ArrowRight") { activate(tabs[(idx + 1) % tabs.length], true); e.preventDefault(); }
+      else if (e.key === "ArrowLeft") { activate(tabs[(idx - 1 + tabs.length) % tabs.length], true); e.preventDefault(); }
+      else if (e.key === "Home") { activate(tabs[0], true); e.preventDefault(); }
+      else if (e.key === "End") { activate(tabs[tabs.length - 1], true); e.preventDefault(); }
+    });
+  });
+
+  var restoreId = null;
+  try { restoreId = sessionStorage.getItem(STORAGE_KEY); } catch (e) { /* private mode, etc. */ }
+  var hashId = (location.hash || "").replace("#", "");
+  var toActivate = tabs.find(function (t) { return t.id === restoreId; })
+    || tabs.find(function (t) { return t.id === "tab-" + hashId; });
+  if (toActivate) activate(toActivate, false);
+})();
+</script>
 {% endblock %}

@@ -9,7 +9,10 @@ from app.extensions import db, limiter
 from app.models import Job, Document, Application, GeneratedDocument, GeneratedEmail, FollowUpEmail, ApplicationDocument
 from app.models.integration import GmailMessage
 from app.models.task import BackgroundTask
-from app.applications.forms import CoverLetterForm, EmailForm, FollowUpEmailForm, StatusForm
+from app.applications.forms import (
+    CoverLetterForm, EmailForm, FollowUpEmailForm, StatusForm,
+    InterviewPrepForm, CvProfileStatementForm, ReplySuggestionForm,
+)
 from app.applications.pdf_package import build_application_pdf, safe_package_filename
 from app.applications.status_route import build_status_route
 from app.ai.cover_letter import generate_cover_letter, validate_cover_letter
@@ -23,6 +26,9 @@ from app.documents.storage import get_storage_provider
 from app.integrations import gmail_oauth, gmail_drafts
 from app.integrations.gmail_reply_tracking import check_for_replies
 from app.jobs.matching import get_or_compute_match
+from app.models.ai import InterviewPrep, CvProfileStatement
+from app.models.user import utcnow
+from app.priority_digest import application_digest_item
 from app.tasks.runner import submit_task
 from app.utils.logging import log_event
 
@@ -118,25 +124,61 @@ def detail(application_id):
         ),
         None,
     )
+    # Computed once, threaded through everywhere it's needed below (Job
+    # Detail's own pattern) - build_status_route's Matched station and the
+    # CV-tailoring strengths list both read the same match object.
+    match = get_or_compute_match(current_user, application.job)
+    gmail_connection = gmail_oauth.get_connection(current_user)
+
+    # Screens pass 2 (Application Detail, 2026-08-27): PDF package card
+    # (filename, page count, size, date). No stored metadata for page
+    # count/size - the file is real (local-disk-only, see delete()'s own
+    # comment above) so read it directly, same as download_package()/
+    # delete() already do. approved_event's timestamp is the package's
+    # real build date - there's no separate "package built at" column.
+    package_info = None
+    if application.package_storage_path and os.path.exists(application.package_storage_path):
+        from pypdf import PdfReader
+
+        approved_event = next((e for e in reversed(application.events) if e.event_type == "approved"), None)
+        try:
+            page_count = len(PdfReader(application.package_storage_path).pages)
+        except PdfReadError:
+            page_count = None
+        package_info = {
+            "filename": application.package_filename,
+            "page_count": page_count,
+            "size_bytes": os.path.getsize(application.package_storage_path),
+            "built_at": approved_event.created_at if approved_event else None,
+        }
+
     return render_template(
         "applications/detail.html",
         application=application,
         documents=documents,
         selected_ids=selected_ids,
         gmail_messages=gmail_messages,
-        gmail_connected=gmail_oauth.get_connection(current_user) is not None,
+        gmail_connected=gmail_connection is not None,
+        gmail_connection=gmail_connection,
         reply_check_task=reply_check_task,
         cover_letter_form=CoverLetterForm(obj=application.cover_letter),
         email_form=EmailForm(obj=application.email),
         followup_email_form=FollowUpEmailForm(obj=application.follow_up_email),
+        interview_prep_form=InterviewPrepForm(obj=application.interview_prep),
+        cv_profile_statement_form=CvProfileStatementForm(obj=application.cv_profile_statement),
         status_form=StatusForm(obj=application),
-        status_route=build_status_route(application),
+        status_route=build_status_route(application, job_match=match),
         interview_prep=get_interview_prep(application),
         cv_profile_statement=get_cv_profile_statement(application),
         # Deterministic, already-computed elsewhere (no new AI call, no new
         # model) - reused here to surface real matched strengths alongside
         # the CV profile statement, per the CV-tailoring investigation.
-        match=get_or_compute_match(current_user, application.job),
+        match=match,
+        package_info=package_info,
+        # Same deterministic signal the dashboard's priority digest uses,
+        # for one application instead of the whole list - see
+        # app/priority_digest.py.
+        next_step=application_digest_item(application, utcnow()),
     )
 
 
@@ -294,6 +336,32 @@ def generate_interview_prep_route(application_id):
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
+@bp.route("/<int:application_id>/interview-prep/save", methods=["POST"])
+@login_required
+def save_interview_prep(application_id):
+    """Screens pass 2 (Application Detail, 2026-08-27): the schema pass
+    added InterviewPrep.edited_at but no route ever set it - generate-only
+    until now. Mirrors save_cover_letter exactly - fetch-or-create,
+    update text, edited_at only on an existing row (a fresh row's own
+    generated_at/regeneration path is what "generated" means, not "edited")."""
+    application = _owned_application_or_404(application_id)
+    form = InterviewPrepForm()
+    if form.validate_on_submit():
+        prep = application.interview_prep or InterviewPrep(application_id=application.id)
+        prep.prep_text = form.prep_text.data
+        if prep.id is None:
+            prep.generated_at = utcnow()
+            db.session.add(prep)
+        else:
+            prep.edited_at = utcnow()
+        application.log_event("interview_prep_edited", "Interview prep edited manually.")
+        db.session.commit()
+        flash("Interview prep saved.", "success")
+    else:
+        flash("Please enter interview prep text.", "error")
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
 @bp.route("/<int:application_id>/cv-profile-statement", methods=["POST"])
 @login_required
 @limiter.limit("30 per hour")
@@ -305,6 +373,27 @@ def generate_cv_profile_statement_route(application_id):
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"CV profile statement generation failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/cv-profile-statement/save", methods=["POST"])
+@login_required
+def save_cv_profile_statement(application_id):
+    application = _owned_application_or_404(application_id)
+    form = CvProfileStatementForm()
+    if form.validate_on_submit():
+        statement = application.cv_profile_statement or CvProfileStatement(application_id=application.id)
+        statement.statement_text = form.statement_text.data
+        if statement.id is None:
+            statement.generated_at = utcnow()
+            db.session.add(statement)
+        else:
+            statement.edited_at = utcnow()
+        application.log_event("cv_profile_statement_edited", "CV profile statement edited manually.")
+        db.session.commit()
+        flash("CV profile statement saved.", "success")
+    else:
+        flash("Please enter statement text.", "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -580,6 +669,30 @@ def suggest_reply(application_id, message_id):
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Reply suggestion failed: {e}", level="warning", user_id=current_user.id)
+    return redirect(url_for("applications.detail", application_id=application.id))
+
+
+@bp.route("/<int:application_id>/messages/<int:message_id>/save-reply", methods=["POST"])
+@login_required
+def save_reply_suggestion(application_id, message_id):
+    """Same mechanism as save_interview_prep/save_cv_profile_statement.
+    ai_suggested_reply is always already set by the time this can be
+    reached (the edit textarea only renders once a suggestion exists -
+    applications/detail.html), so the "fresh row" branch below is
+    defensive, not the expected path."""
+    application = _owned_application_or_404(application_id)
+    message = _owned_message_or_404(application, message_id)
+    form = ReplySuggestionForm()
+    if form.validate_on_submit():
+        had_suggestion = message.ai_suggested_reply is not None
+        message.ai_suggested_reply = form.ai_suggested_reply.data
+        if had_suggestion:
+            message.reply_suggestion_edited_at = utcnow()
+        application.log_event("reply_suggestion_edited", "Reply suggestion edited manually.")
+        db.session.commit()
+        flash("Reply saved.", "success")
+    else:
+        flash("Please enter reply text.", "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 

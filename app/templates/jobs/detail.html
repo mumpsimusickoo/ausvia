@@ -200,8 +200,15 @@
 
 {# Contact card only when there's a real contact on file - the "view
    original posting" link already lives in the rail's SOURCE card below
-   (grounded in the bundle's own construction), so it isn't repeated here. #}
-<div class="mt-8 grid gap-5 lg:grid-cols-[1fr_330px]">
+   (grounded in the bundle's own construction), so it isn't repeated here.
+
+   grid-cols-1 explicit, not just the lg: override: without a base
+   grid-template-columns, an implicit grid's single column sizes to its
+   content's max-content width instead of filling the container - found
+   during Application Detail's 375px check (that screen's tab bar made it
+   visible; this construction was copied from here first) - see
+   DECISIONS.md. #}
+<div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_330px]">
   <div class="lg:order-1">
     {% if job.contact_person or job.contact_email %}
     <div class="rounded-xl border border-line bg-card shadow-sm p-6">

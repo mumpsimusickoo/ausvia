@@ -426,15 +426,51 @@ for a redesign pass. Status:
   (`tests/test_job_detail_screen.py`). Full detail: `DECISIONS.md`'s
   2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Job Detail - 2026-08-27 pass".
   Full pytest suite: 465 passed / 3 skipped (453 + 12).
-- **Next actual step:** screens pass 2+ - migrating the remaining ~170
+- **Screens pass 2 (Application Detail) done, 2026-08-27** - densest
+  screen in the bundle, `applications/detail.html` rebuilt on the
+  component layer. The vertical Wayfinding journey (kept, not replaced
+  with the bundle's own horizontal treatment for this screen - see
+  `DECISIONS.md`) extended from six stations to eight: Discovered
+  (`Job.discovered_at`) and Matched (`JobMatch.computed_at`, honestly
+  pending if no match row exists yet) are new leading stations; Reply is
+  the genuinely new one, dating from the earliest tracked Gmail reply and
+  showing a real "Skipped." when the route passed it with none detected -
+  a detected reply now also advances the journey even if `status` was
+  never manually changed, a real gap in the evidence-based logic caught
+  by its own test, not assumed correct. Added the header line naming the
+  next event with a countdown. Built this app's first accessible tab bar
+  (real ARIA roles, roving tabindex, arrow-key navigation, active tab
+  remembered across a save-redirect via sessionStorage - verified end-to-
+  end with Playwright) for the bundle's own five tabs (Cover letter,
+  Email, Documents, Replies, Interview prep); CV profile statement stayed
+  a standalone section since it's real functionality the bundle's screen
+  never names at all, not one of the five. Wired all three save routes
+  the schema pass had flagged as missing (interview prep, CV statement,
+  reply suggestion) - straightforward, mirroring cover letter/email's
+  already-existing mechanism exactly, confirmed working end-to-end
+  (edited a reply, saved, watched the "EDITED BY YOU" badge and tint-drop
+  render correctly). Confirmed `GmailMessage.classification_confidence`
+  is the one reliability badge in the app that renders a real value today
+  (`RELIABILITY HIGH`), unlike the four other reliability columns this
+  screen touches, which all still correctly render with the badge absent.
+  `intelligence_surface()` gained an editable `{% call %}` body slot so
+  five different editable AI features (previously each hand-rolled) share
+  one component. Two real 375px horizontal-overflow bugs found by the
+  required mobile check and fixed - one of them present in Job Detail too
+  (an identical construction copied forward), fixed there as well. 23 new
+  tests across three files. Full detail: `DECISIONS.md`'s second
+  2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Application Detail - 2026-08-27
+  pass". Full pytest suite: 488 passed / 3 skipped (465 + 23).
+- **Next actual step:** screens pass 3+ - migrating the remaining ~150
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
-  the theme toggle) - **neither yet scoped or started.** Job Detail is
-  the reference call site now for how a real screen uses `match_band`,
-  `intelligence_surface`, and the chip macros; the token layer, component
-  layer, and schema pass are all available for the rest of the screens
-  pass to build on.
+  the theme toggle) - **neither yet scoped or started.** Job Detail and
+  Application Detail are the reference call sites now for how a real
+  screen uses `match_band`, `intelligence_surface` (both its read-only and
+  editable shapes), `status_pill`, and the chip macros; the token layer,
+  component layer, and schema pass are all available for the rest of the
+  screens pass to build on.
 
 ## Security posture
 
@@ -555,11 +591,10 @@ when explicitly opted into.
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
 its tokens, logo, theme, component-layer, and reliability/edit-tracking
 schema passes are done (2026-08-25/2026-08-26, migration `5b4fe35a6528`
-applied to production), and the screens pass is underway: Job Detail
-shipped 2026-08-27 as the first real screen on the component layer. The
-next concrete step is screens pass 2+ (migrating every other screen's
-existing call sites onto the component-layer macros), not yet scoped or
-started. Everything else
+applied to production), and the screens pass is underway: Job Detail and
+Application Detail both shipped 2026-08-27. The next concrete step is
+screens pass 3+ (migrating every other screen's existing call sites onto
+the component-layer macros), not yet scoped or started. Everything else
 from Phases 1-8 plus everything documented in `ROADMAP.md` since is
 complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in

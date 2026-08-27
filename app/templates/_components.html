@@ -307,8 +307,23 @@
    BEARBEITET" plus the edit timestamp, and the provenance footer line
    disappears entirely. Provider/model/reliability are irrelevant once
    edited and are not rendered even if passed.
+
+   Body slot (added 2026-08-27, Application Detail pass): pass `text` for
+   a read-only surface (Job Detail's match narrative/improvement tips -
+   nothing to edit, so nothing to save). For an EDITABLE surface (cover
+   letter, email, interview prep, CV statement, reply suggestion - every
+   one of which already has a real edit mechanism: a pre-filled textarea
+   + its own "Save edits" submit, exactly like this app's existing cover-
+   letter/email editors), pass no `text` and supply that textarea+form via
+   `{% call intelligence_surface(...) %}...{% endcall %}` instead - the
+   macro renders `caller()` in place of the plain paragraph. This keeps
+   the established edit mechanism (a real form, not contenteditable)
+   while gaining the tint/reliability/edited-badge chrome for free. The
+   header's own Regenerate control is independent of which body is used -
+   an editable surface can still offer both Regenerate (discard my edits,
+   generate fresh) and its own Save (keep editing what's here).
    ============================================================ #}
-{% macro intelligence_surface(text, provider=None, model=None, reliability=None, generated_at=None, provenance=None, edited_at=None, regenerate_href=None) %}
+{% macro intelligence_surface(text=None, provider=None, model=None, reliability=None, generated_at=None, provenance=None, edited_at=None, regenerate_href=None) %}
 {% set edited = edited_at is not none %}
 {% set reliability_label = {'high': 'HIGH', 'medium': 'MEDIUM', 'low': 'LOW'}.get(reliability) %}
 <div class="rounded-r-xl border border-line {% if edited %}border-l-[3px] border-l-line2 bg-card{% else %}border-l-[3px] border-l-brand bg-tint{% endif %} p-[22px]">
@@ -319,15 +334,19 @@
     {% else %}
     <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">INTELLIGENCE &middot; {{ (provider ~ '-' ~ model)|upper if model else (provider|upper if provider else 'NO PROVIDER') }}</span>
     {% if reliability_label %}<span class="font-mono text-[10.5px] text-t3">RELIABILITY {{ reliability_label }}</span>{% endif %}
+    {% endif %}
     {% if regenerate_href %}
     <form method="post" action="{{ regenerate_href }}" class="ml-auto">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="font-sans text-[13.5px] font-medium text-brand bg-transparent border-0 cursor-pointer">Regenerate</button>
     </form>
     {% endif %}
-    {% endif %}
   </div>
+  {% if caller is defined %}
+  <div class="mt-3">{{ caller() }}</div>
+  {% else %}
   <p class="mt-3 text-[15px] leading-relaxed text-t1">{{ text }}</p>
+  {% endif %}
   {% if not edited and provenance %}
   <p class="mt-3 text-xs text-t3">{{ provenance }}</p>
   {% endif %}

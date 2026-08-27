@@ -38,7 +38,11 @@ def _days_between(later, earlier):
     return (later - earlier).days
 
 
-def _application_digest_item(application, now):
+def application_digest_item(application, now):
+    """Public since Screens pass 2 (Application Detail, 2026-08-27): reused
+    directly by applications/routes.py's detail() route for the "Next step"
+    rail card (one application, not the whole-user digest list below), not
+    just internally by compute_priority_digest()."""
     job = application.job
     reasons = []
     priority = 0
@@ -121,7 +125,7 @@ def compute_priority_digest(user):
     )
     items = []
     for application in applications:
-        item = _application_digest_item(application, now)
+        item = application_digest_item(application, now)
         if item:
             items.append(item)
 
