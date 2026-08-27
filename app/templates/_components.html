@@ -42,6 +42,16 @@
   {% set tone = 'bg-transparent text-err border border-line hover:bg-err-tint' %}
 {% elif variant == 'disabled' %}
   {% set tone = 'bg-page text-t3 border border-line cursor-not-allowed' %}
+{% elif variant == 'active' %}
+  {# Toggled-on state (added 2026-08-28, Find Ausbildung pass) - the
+     bundle's own "Saved" button construction (line 1044-1045 of the
+     unpacked bundle): tint fill, brand text/border, distinct from every
+     other variant's flat/bordered treatment. Real recurring pattern (a
+     toggle button, not a one-off), not the same as 'secondary' with a
+     color swapped in - formalized here rather than layering override
+     classes on 'secondary' via extra_classes, which would fight Tailwind's
+     stylesheet-order cascade instead of the HTML class-attribute order. #}
+  {% set tone = 'bg-tint text-brand border border-tint2 hover:bg-tint2' %}
 {% endif %}
 {% if href and variant != 'disabled' %}
 <a href="{{ href }}" class="{{ base }} {{ tone }} {{ extra_classes }}">{{ label }}</a>
@@ -197,9 +207,31 @@
    score: the overall 0-100, or None if not yet computed.
    skipped_categories: categories skipped for lack of data, for the
    disclosure note.
+
+   compact (added 2026-08-28, Find Ausbildung pass): renders ONLY the
+   segment bars - no MATCH eyebrow, score, title/narrative, disclosure
+   footer, or breakdown details. For the search results card, whose own
+   layout already puts the score+label in its own position (bundle line
+   1002) and has no room for per-segment labels at ~190px wide (bundle
+   lines 1003-1009 show bare bars, no text under them at all) - a second,
+   truly separate construction would just be this same segment loop
+   duplicated, so it's a mode of the one macro instead. title/narrative/
+   caller (breakdown) are ignored in this mode.
 #}
-{% macro match_band(category_scores, score=None, skipped_categories=None, title=None, narrative=None) %}
+{% macro match_band(category_scores, score=None, skipped_categories=None, title=None, narrative=None, compact=false) %}
 {% set cats = [('skills', 'SKILLS', 30), ('language', 'LANGUAGE', 25), ('education', 'EDUCATION', 20), ('location', 'LOCATION', 15), ('start_date', 'START', 10)] %}
+{% if compact %}
+<div class="flex gap-[3px]">
+  {% for key, label, weight in cats %}
+  {% set achieved = category_scores.get(key) %}
+  <div style="width: {{ weight }}%" class="h-1.5 bg-line rounded-sm overflow-hidden">
+    {% if achieved is not none %}
+    <div class="h-full bg-brand rounded-sm origin-left {% if achieved > 0 %}ausvia-bar-animated{% endif %}" style="width: {{ achieved }}%"></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
 <div class="rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-start justify-between gap-4">
     <div class="flex-1">
@@ -237,6 +269,7 @@
   </details>
   {% endif %}
 </div>
+{% endif %}
 {% endmacro %}
 
 {# ============================================================

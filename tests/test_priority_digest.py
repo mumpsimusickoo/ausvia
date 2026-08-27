@@ -42,11 +42,17 @@ def test_follow_up_date_due_surfaces_with_high_priority(app, db, make_user):
 
 
 def test_upcoming_interview_surfaces(app, db, make_user):
+    # 2026-08-28: built against utcnow().date(), not local date.today() -
+    # compute_priority_digest() compares against utcnow() throughout (see
+    # app/priority_digest.py), and this test flaked by exactly one day
+    # whenever local time and UTC briefly disagree on the calendar date
+    # (found running the full suite during the Find Ausbildung pass, not
+    # something that pass's own code touched).
     user = make_user(email="dig3@example.com")
     job = make_job(db, dedup_key="digest-interview")
     application = Application(
         user_id=user.id, job_id=job.id, status="interview",
-        interview_date=datetime.combine(date.today() + timedelta(days=3), datetime.min.time()),
+        interview_date=datetime.combine(utcnow().date() + timedelta(days=3), datetime.min.time()),
     )
     db.session.add(application)
     db.session.commit()
@@ -71,8 +77,10 @@ def test_distant_interview_does_not_surface(app, db, make_user):
 
 
 def test_approaching_application_deadline_surfaces(app, db, make_user):
+    # See test_upcoming_interview_surfaces' comment above - same
+    # UTC-vs-local fix, same reason.
     user = make_user(email="dig5@example.com")
-    job = make_job(db, dedup_key="digest-deadline", application_deadline=date.today() + timedelta(days=5))
+    job = make_job(db, dedup_key="digest-deadline", application_deadline=utcnow().date() + timedelta(days=5))
     application = Application(user_id=user.id, job_id=job.id, status="preparing")
     db.session.add(application)
     db.session.commit()

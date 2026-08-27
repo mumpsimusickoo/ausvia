@@ -499,15 +499,56 @@ for a redesign pass. Status:
   **Deploy note:** migration `4bbab0dec59b` (dashboard_insights table) is
   applied to the local dev DB but not yet run against production - needs
   `flask db upgrade` on next deploy, same gap pattern as job_radar_status.
-- **Next actual step:** screens pass 4+ - migrating the remaining ~140
+- **Screens pass 4 (Find Ausbildung) done, 2026-08-28** - `jobs/search.html`
+  rebuilt on the component layer - the biggest remaining screen, and
+  mostly real backend work rather than layout. **Scoring:** sort-by-match
+  needed every search result scored before sorting, not lazily per card -
+  measured the real cost first rather than estimating (161 jobs, real dev
+  data): `compute_match()` itself is negligible (~0.24ms/job); the
+  existing per-card `get_or_compute_match()`'s N+1 query/commit pattern
+  was the actual cost (~34ms/job cold). A new batched
+  `get_or_compute_matches()` (one SELECT, one commit for the whole batch)
+  cut that to ~4.4ms/job cold, ~0.19ms/job warm - compute-on-search using
+  the existing `JobMatch` cache, not a schema change or a
+  precompute-on-discovery pipeline. **Filters:** year range and minimum
+  score shipped (real data - 76% of jobs parse a real start year; the
+  source toggle generates its choices from `get_enabled_adapter_names()`.
+  Radius, category, and German level were all dropped - checked against
+  real data, not assumed: no coordinates exist anywhere in the schema for
+  radius, no taxonomy exists for category (an explicit stop-and-ask per
+  the task, confirmed with the user - dropped rather than inventing one),
+  and German level's field is real but only 3.1% populated (a first-pass
+  measurement had wrongly reported this as 80% real - caught and
+  corrected before shipping anything on the wrong number). **Result
+  cards** gained real score + label + a new compact `match_band()` mode,
+  a one-line strengths/gaps summary naming categories (not raw strength
+  strings, which read poorly concatenated across formats), and honest
+  meta chips (a dashed "NO DEADLINE GIVEN" is the common case - only 2.5%
+  of jobs have a real deadline). **A real bug found and fixed** during
+  the required Playwright verification: a wholly blank profile could
+  still show a fabricated 100/100 "Strong match" on some jobs, because
+  `_score_location()` treats "no preference row" as "open to anywhere" -
+  honest for a candidate who set other real preferences and left location
+  open, wrong when nothing was entered at all. A new
+  `_profile_has_scorable_data()` check overrides display (never the
+  underlying score) to "Not scored" when there's nothing real to trust.
+  14 new tests. Full detail: `DECISIONS.md`'s 2026-08-28 entry,
+  `DESIGN_SYSTEM.md`'s "Find Ausbildung - 2026-08-28 pass". Full pytest
+  suite: 515 passed / 3 skipped (501 + 14). Also fixed two unrelated,
+  pre-existing flaky tests found while running the full suite (a
+  local-date-vs-`utcnow()` boundary bug in `test_priority_digest.py`,
+  nothing to do with this pass's own changes) - see `DECISIONS.md`'s
+  incidental-fix entry.
+- **Next actual step:** screens pass 5+ - migrating the remaining ~130
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
   the theme toggle) - **neither yet scoped or started.** Job Detail,
-  Application Detail, and Dashboard are the reference call sites now for
-  how a real screen uses `match_band`, `intelligence_surface` (read-only,
-  editable, and now the cross-application-insight shape), `status_pill`,
-  `empty_state`, and the chip macros; the token layer, component layer,
+  Application Detail, Dashboard, and Find Ausbildung are the reference
+  call sites now for how a real screen uses `match_band` (full and
+  compact shapes), `intelligence_surface` (read-only, editable, and
+  cross-application-insight shapes), `status_pill`, `empty_state`,
+  `chip_source`, and the chip macros; the token layer, component layer,
   and schema pass are all available for the rest of the screens pass to
   build on.
 

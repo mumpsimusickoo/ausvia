@@ -651,7 +651,37 @@ for a redesign pass, started 2026-08-24.
       `4bbab0dec59b` (dashboard_insights table) is applied locally but
       not yet run against production - needs `flask db upgrade` on next
       deploy, same as the job_radar_status precedent.
-- [ ] **Screens pass 4+** - the remaining ~140 existing card/badge/button/
+- [x] **Screens pass 4: Find Ausbildung** - 2026-08-28, `jobs/search.html`
+      rebuilt on the component layer - the biggest remaining feature, and
+      mostly real backend work rather than layout. Sort-by-score shipped
+      via a new batched `get_or_compute_matches()` (`app/jobs/matching.py`)
+      that scores an entire result set in one query + one commit instead
+      of per-card N+1 (measured ~8x/~26x faster cold/warm on this app's
+      real data - see `DECISIONS.md`), reusing the existing `JobMatch`
+      cache rather than a new schema or a precompute-on-discovery
+      pipeline. Radius, category, and (caught mid-implementation, after
+      first reporting it as real - a wrong measurement) German level were
+      all dropped: no real data backs any of them today, checked against
+      this app's own dev DB, not estimated - category needed and got an
+      explicit stop-and-ask per the task's own instruction. Year range and
+      minimum-score filters shipped (76% and, once scoring was unblocked,
+      fully real respectively); source toggle generated from
+      `get_enabled_adapter_names()`. Result cards gained real score +
+      label + compact `match_band()` segments, a one-line strengths/gaps
+      summary built from category names (not raw strength strings), and
+      honest meta chips (deadline's dashed "NO DEADLINE GIVEN" variant is
+      the common case - only 2.5% of jobs have one). Result count line
+      ("N results · N sources · N duplicates merged") is a query over the
+      existing `JobListing` relationship, no schema change. Found and
+      fixed a real bug during required Playwright verification: a wholly
+      blank profile could still show a fabricated 100/100 "Strong match"
+      via `_score_location()`'s "no preference = open to anywhere"
+      default - a new `_profile_has_scorable_data()` check overrides
+      display (never the underlying score) to "Not scored" when nothing
+      real was entered. 14 new tests. Full detail: `DECISIONS.md`'s
+      2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Find Ausbildung - 2026-08-28
+      pass".
+- [ ] **Screens pass 5+** - the remaining ~130 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components.
       Not yet scoped or started. The named token layer

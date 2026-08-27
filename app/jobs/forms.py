@@ -1,11 +1,47 @@
+from datetime import date
+
 from flask_wtf import FlaskForm
-from wtforms import HiddenField, StringField, TextAreaField, URLField
+from wtforms import HiddenField, SelectField, SelectMultipleField, StringField, TextAreaField, URLField
 from wtforms.validators import DataRequired, Optional, Length, URL
+from wtforms.widgets import CheckboxInput, ListWidget
+
+
+def _year_range_choices():
+    # 2026-08-28: Ausbildung places are almost always advertised for a start
+    # this year or the next few - Job.start_date is real-but-free-form
+    # ("01.09.2027", "sofort", "2027", ...), so this is a *year* filter
+    # (matching the same \d{4} extraction app/ai/matching.py's
+    # _score_start_date already uses), not a calendar-date picker.
+    current_year = date.today().year
+    return [("", "Any")] + [(str(y), str(y)) for y in range(current_year, current_year + 6)]
+
+
+# Reuses app/ai/matching.py's own recommendation thresholds rather than
+# inventing separate score breakpoints - "Good match" already means >=60
+# everywhere else in this app.
+MIN_SCORE_CHOICES = [("", "Any"), ("40", "40+ (some gaps)"), ("60", "60+ (good match)"), ("80", "80+ (strong match)")]
+
+SORT_CHOICES = [("match", "Best match"), ("newest", "Newest")]
 
 
 class SearchForm(FlaskForm):
     keywords = StringField("Keywords", validators=[DataRequired(), Length(max=255)])
     location = StringField("Location (city, optional)", validators=[Optional(), Length(max=255)])
+    # Year range and minimum score: real fields with real data behind them
+    # (see DECISIONS.md for the fill-rate numbers checked before adding
+    # these). Radius, German level, and category were all considered and
+    # dropped - no real data backs them yet, see the same entry.
+    start_year_min = SelectField("Start year, from", choices=_year_range_choices, validators=[Optional()])
+    start_year_max = SelectField("Start year, to", choices=_year_range_choices, validators=[Optional()])
+    min_score = SelectField("Minimum match score", choices=MIN_SCORE_CHOICES, validators=[Optional()])
+    sort = SelectField("Sort by", choices=SORT_CHOICES, validators=[Optional()], default="match")
+    # Choices are set per-request from the enabled adapters (app/jobs/
+    # routes.py) - a source can be added/disabled by an admin without a
+    # code change, so this can't be a fixed class-level list.
+    sources = SelectMultipleField(
+        "Sources", validators=[Optional()],
+        widget=ListWidget(prefix_label=False), option_widget=CheckboxInput(),
+    )
 
 
 class ManualImportUrlForm(FlaskForm):

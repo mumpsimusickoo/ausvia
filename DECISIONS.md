@@ -6,6 +6,192 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Incidental fix: two flaky priority-digest tests (UTC vs local date)
+
+Found running the full suite during the Find Ausbildung pass, not caused
+by that pass's own changes: `test_upcoming_interview_surfaces` and
+`test_approaching_application_deadline_surfaces` (`tests/
+test_priority_digest.py`) built their fixtures from local `date.today()`,
+while `compute_priority_digest()` (`app/priority_digest.py`) compares
+everything against `utcnow()` throughout, matching this codebase's
+established convention (`app/models/user.py`'s `utcnow`, used everywhere
+for timezone safety). Whenever local time and UTC briefly disagree on the
+calendar date - confirmed directly: at the moment this was caught, local
+`date.today()` was 2026-08-28 while `utcnow()` was still 2026-08-27 23:28 -
+both tests failed by exactly one day, a real flake, not a code
+regression. Fixed by building both fixtures from `utcnow().date()`
+instead, matching the app's own convention rather than the tests'
+incidental one. Out of this pass's stated scope (jobs/search.html,
+SearchForm, the search query/scoring path, new tests) but a trivial,
+unambiguous one-line-per-test fix that restores the suite to green for a
+reason unrelated to any design decision - left broken, it would have kept
+failing intermittently for any future session that happened to run the
+suite near a UTC day boundary, for reasons that have nothing to do with
+whatever that session is actually working on.
+
+---
+
+## 2026-08-28 — Screens pass 4 (Find Ausbildung): sort-by-score, and three dropped filters
+
+**Scoring approach: compute-on-search, using the existing JobMatch cache
+table, via a new batched function - not a schema change, not a
+precompute-on-discovery pipeline.** Measured on this app's real dev data
+(161 jobs, one real profile) before deciding anything:
+- `compute_match()` itself: **0.24ms/job** - the matching arithmetic was
+  never the cost, even scoring the whole table.
+- `get_or_compute_match()` (the existing per-card helper, still used by
+  every other screen): **34ms/job cold** (one SELECT + one commit per
+  job - 5.4s for 161 jobs), **5ms/job warm** (still one SELECT per job).
+  The N+1 query/commit pattern, not the scoring, was the real cost.
+- A new `get_or_compute_matches(user, jobs)` (`app/jobs/matching.py`):
+  one SELECT for every already-cached match in the batch, one commit at
+  the end regardless of batch size. **4.4ms/job cold** (710ms for 161
+  jobs), **0.19ms/job warm** (31ms for 161 jobs) - roughly 8x and 26x
+  faster respectively.
+
+Precompute-on-discovery was considered and rejected: a score is inherently
+per (user, job), so scoring at discovery time would mean scoring every new
+job against every user's profile the moment it's found, most of which
+would never be searched for again - backwards cost direction. A single
+denormalized score column was also considered and rejected for the same
+reason - `JobMatch` already **is** the cached-column pattern (one row per
+user+job, invalidated via `profile_updated_at_snapshot` when the profile
+changes), just fetched inefficiently for a whole result set before this
+pass. The staleness contract is unchanged: this only changes how
+efficiently the search path fetches/recomputes a batch, not when a cached
+score goes stale or how staleness is detected.
+
+Search's candidate pool moved from a flat 50 to `SEARCH_CANDIDATE_LIMIT =
+40` (`app/jobs/routes.py`) - sized for a sane single results page (no
+pagination UI this pass - out of scope, and every filter already being a
+query param means adding real pagination later won't change how filters
+work), not for scoring cost: even 100 jobs batched-cold measured at
+~440ms, so the limit could go considerably higher without a performance
+concern if the page itself grew to support it. Only the search route's
+candidate-fetch path changed - `get_or_compute_match()` (singular) is
+untouched and still backs every other screen (job detail, dashboard,
+digest) unchanged.
+
+**"No profile" (or a profile compute_match can't evaluate anything
+against) stays honest, never a numeric 0.** `compute_match()` already
+returns `score=None` with `recommendation="insufficient_data"` for this
+case - unchanged. The batch path preserves it: an unscored job is sorted
+into its own bucket (`unscored_results` in the route, a separate "Not
+scored" section in the template, always below the scored results,
+never filterable by the minimum-score control since there's nothing to
+compare against a threshold) rather than defaulting to 0 and reading as a
+weak match. When every candidate comes back `insufficient_data`, the page
+shows an explicit notice ("your profile doesn't have enough data yet to
+score these results") rather than silently rendering a page that looks
+broken.
+
+**Three of the six requested filters were dropped - radius, category, and
+(caught mid-implementation) German level - all for the same reason: no
+real data supports them today.** Checked against this app's real dev DB,
+not estimated:
+- **Radius**: no coordinate data exists anywhere in the schema (`Job` has
+  no lat/long; `Preference.max_distance_km` is a stored number nothing
+  computes a distance against). Only the Jooble adapter even accepts a
+  `radius` parameter, and `ingest_search()` never threads it through.
+  Building this control would mean fabricating geo data.
+- **Category**: `Job` has no category/field/taxonomy column, and nothing
+  else in the schema maps a job to one - confirmed, then put to the user
+  per the task's explicit stop-and-ask. Their answer, and the reasoning
+  worth preserving for a future session tempted to add this from the
+  bundle's chips: a hand-picked taxonomy backfilled by keyword-matching
+  titles is an invented classifier with no ground truth, and would be
+  wrong *quietly* (a mislabeled job just looks like a missing result,
+  discovered by no one) - worse than no filter, not better. Filtering by
+  the candidate's own `Preference.fields` keywords was also rejected as a
+  substitute: that's a different feature (one user's stated interests, not
+  a shared browsable taxonomy) wearing this label's name, and shipping it
+  as "category" would misrepresent what it does. **If job-side
+  categorization ever becomes real, the honest path is extracting it from
+  the posting text the way `Job.skills` already is (see
+  `app/ai/job_requirements_extraction.py`), not inferring it from titles**
+  - a future extraction question, not a filter question.
+- **German level**: initially reported to the user as real and
+  well-backed (a wrong first-pass measurement - `Job.language_requirements
+  .isnot(None)` matched far more rows than actually had real data, an
+  ORM/JSON-column check bug, not a data bug). Corrected by testing
+  truthiness in Python directly: **only 5 of 161 jobs (3.1%) have real
+  `language_requirements`**, and those 5 are all `source="manual"` test
+  data, not real adapter-sourced postings. The field itself is real and
+  structurally sound (a genuine JSON column, real CEFR-comparable levels,
+  actively read by `_score_language()`) - the gap is that no adapter's
+  `normalize()` ever writes it, and `app/ai/job_requirements_extraction.py`
+  *deliberately* never persists it either (see that module's own docstring:
+  the `{"language","level"}` shape can't safely represent "explicitly
+  required, level unspecified"). Different flavor of gap than radius/
+  category (real infrastructure, temporarily near-empty, vs. no
+  infrastructure at all) but the same practical outcome: a selectable
+  filter over a field 97% of results don't have would either hide almost
+  every result or filter almost nothing while implying otherwise - the
+  task's own stated failure mode almost exactly. Dropped, not built.
+  Flagged as a correction to the user rather than silently building it
+  differently from what was first reported.
+
+**Year range and minimum score were kept - checked the same way, and the
+data holds up:** `Job.start_date` parses to a real year for 76.4% of jobs
+(123/161, via the same `\d{4}` extraction `_score_start_date()` already
+uses - reused, not a second parsing approach). Minimum score was always
+going to be real once scoring itself was unblocked.
+
+**Source toggle is generated from `get_enabled_adapter_names()`**, not
+hardcoded - a source added/disabled by an admin via `JobSourceSetting`
+changes the filter's own choices with no code change. "manual" is
+correctly absent from the *toggle's choices* without special-casing by
+name, since it was never in `ADAPTERS`/`_configured_adapters()` in the
+first place (it's user-driven, one URL at a time, not a searchable
+adapter) - but it's explicitly kept in the *query*'s source filter
+(`[*selected_sources, "manual"]`) regardless of what's toggled, found via
+a real test failure: the search query didn't filter by source at all
+before this pass, so a manually-imported job was always keyword-findable;
+an early version of this pass's source filter applied uniformly and would
+have silently dropped manually-imported jobs out of search results
+entirely, a real regression this pass didn't intend to make. Also
+tightened while fixing that: the filter now always applies (restricted to
+the selected sources, defaulting to every *enabled* one), not only when
+the selection is a proper subset - the original "skip the filter when
+selection == full enabled set" version meant a job whose only listing sat
+on a since-disabled or never-configured source (Adzuna, in the test that
+caught this) would still surface, silently contradicting the page's own
+"Searches X, Y, Z" intro line.
+
+**Filters are query params, not session state** (`request.args`, GET
+form) - shareable via URL, survive a reload, and each removable filter
+chip is a real link (`_query_without()`) to the same search with just that
+one param cleared, not a client-side JS toggle.
+
+**Per-card one-line strengths/gaps summary names *categories*, not raw
+strength strings** (`summarize_match_line()`, `app/jobs/matching.py`) -
+mirrors the bundle's own construction exactly ("Alle Fähigkeiten erfüllt" /
+"All skills met", "Sprache und Ort erfüllt" / "Language and location
+met"): built from `category_scores` (the same per-category numbers
+`match_band()` already renders), not from `job_match.strengths`, whose
+raw entries mix formats across categories (a skill name, a language
+proficiency sentence, an "Education background aligns: X" sentence) and
+read poorly concatenated into one line.
+
+**`match_band()` gained a `compact=true` mode rather than a second,
+duplicated construction** - the search card's own layout (bundle line
+1002) puts the score+label in its own position with no room for
+`match_band()`'s usual eyebrow/header/disclosure at ~190px wide, and the
+bundle's own card segments (lines 1003-1009) are bare bars with no text
+under them at all, unlike Job Detail's full treatment. `compact=true`
+renders only the segment-bar loop, same weight/fill logic, everything
+else omitted - one macro, two modes, not two macros.
+
+**`btn()` gained an `active` variant** for the Save/Saved toggle's "Saved"
+state (bundle line 1044: tint fill, brand text/border) - tried layering
+override classes onto `variant='secondary'` via `extra_classes` first,
+rejected because Tailwind's cascade resolves conflicting utility classes
+by stylesheet rule order, not by position in the HTML `class` attribute,
+so an override class appended after `bg-card` isn't guaranteed to win
+against it. A real named variant, not a hack.
+
+---
+
 ## 2026-08-27 — Screens pass 3 (Dashboard): non-obvious calls
 
 **The "Next up" hero card's staleness marker dates from

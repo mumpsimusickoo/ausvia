@@ -1154,6 +1154,77 @@ stale one and a deadline; several applications, everything healthy) —
 both themes, 375px with the numeric `scrollWidth` check, zero overflow
 in every state.
 
+## Find Ausbildung — 2026-08-28 pass
+
+The biggest remaining feature, and mostly real backend work - the layout
+was the easy part. Bundle structure, English copy. See `DECISIONS.md` for
+the compute-on-search scoring approach (with its measured real cost) and
+for radius/category/German level all being dropped rather than built on
+data that doesn't exist yet.
+
+**Components used:** `btn` (gained a new `active` variant for the Save/
+Saved toggle - see below), `chip_source` (the per-card source chip - its
+first reuse outside a swatch/detail context), `match_band` (gained a
+`compact` mode - see below), `empty_state` (two real variants: no search
+run yet, vs. zero results for a real search - deliberately distinct
+copy), `notice` (three real uses: partial source failure via the exact
+`(source, message)` shape `jobs/search.html` already produced, the
+`profile_insufficient` explanation, and the excluded-by-minimum-score
+count).
+
+**`match_band()` gained a `compact=true` mode** rather than a second,
+parallel construction - the search card's own layout puts score+label in
+its own position with no room for the full macro's eyebrow/header/
+disclosure at ~190px wide, and the bundle's own card segments (lines
+1003-1009 of the unpacked bundle) are bare bars with no per-segment text
+at all, unlike Job Detail's full treatment. `compact=true` renders only
+the segment-bar loop - same weight/fill/honest-absence logic as the full
+mode, everything else omitted.
+
+**`btn()` gained an `active` variant** for the Save/Saved toggle's
+"Saved" state (bundle line 1044: tint fill, brand text/border) - a real
+named variant rather than layering override classes onto `secondary` via
+`extra_classes`, which Tailwind's stylesheet-order cascade doesn't
+reliably let win.
+
+**Result card meta chips (START/salary/SOURCE/DEADLINE) are hand-written
+utility markup, not a new macro** - no existing component fit a "small
+bordered mono fact" outside `chip_source`'s specific source-attribution
+meaning, and inventing a one-off macro for a single screen's micro-
+pattern wasn't warranted. Deadline gets two honest variants: a normal or
+warn-toned (≤14 days out) bordered chip when a real deadline exists, and
+a dashed "NO DEADLINE GIVEN" chip (matching `status_pill()`'s established
+dashed-for-absent precedent) when it doesn't - `application_deadline` is
+only 2.5% filled in this app's real data, so the honest-absence case is
+the common one, not the edge case.
+
+**The one-line strengths/gaps summary names categories, not raw strength
+strings** (`summarize_match_line()`, `app/jobs/matching.py`) - mirrors
+the bundle's own construction exactly ("Alle Fähigkeiten erfüllt" / "All
+skills met") by reading `category_scores` (the same numbers `match_band`
+renders), not `job_match.strengths`, whose entries mix formats across
+categories and read poorly concatenated.
+
+**A wholly blank profile can't fabricate a passing score** - found via
+required Playwright verification, not assumed correct: `_score_location()`
+treats "no preference row" as "open to anywhere," a real 1.0 on its own,
+but combined with a job that has no skills/language/education
+requirements (the common case - see `DECISIONS.md`'s German-level
+fill-rate numbers) it let a candidate with an entirely empty profile see
+some jobs at 100/100 "Strong match." `app/jobs/routes.py`'s
+`_profile_has_scorable_data()` checks for real candidate-entered data
+directly and overrides display (never the underlying `JobMatch` row) to
+"Not scored" when there's nothing real to show. See `DECISIONS.md` for
+the full mechanics.
+
+**Verified across all six required states** (no search yet; results with
+every filter active, chips removable, filters surviving a URL reload;
+zero results; a source failing - via a deterministic pytest monkeypatch,
+not live Playwright, since a live third-party API failure isn't something
+a browser can control; a user with no profile - the bug above, found this
+way; a result set containing a merged duplicate) - both themes, 375px
+with the numeric `scrollWidth` check, zero overflow.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the

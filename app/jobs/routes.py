@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date
 from urllib.parse import quote
 
@@ -6,17 +7,21 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models.job import Job, SavedJob
+from app.models.job import Job, JobListing, SavedJob
 from app.models.manual_import import ManualImportBatch
 from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewForm
 from app.jobs.ingest import ingest_search, enrich_job_detail
 from app.jobs.radar import run_job_radar
+from app.jobs.adapters.manager import KNOWN_SOURCES, get_enabled_adapter_names
 from app.ai.job_requirements_extraction import extract_job_requirements
 from app.tasks.runner import submit_task
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
 from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
-from app.jobs.matching import get_or_compute_match, generate_narrative, generate_improvement_tips
+from app.jobs.matching import (
+    get_or_compute_match, get_or_compute_matches, generate_narrative,
+    generate_improvement_tips, match_label, summarize_match_line,
+)
 from app.ai.job_explainer import get_job_explainer, generate_job_explainer
 from app.ai.provider import AIProviderError
 from app.extensions import limiter
@@ -27,13 +32,114 @@ bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 MAX_BATCH_URLS = 10
 MAX_BOOKMARKLET_TEXT_CHARS = 8000
 
+# Screens pass 4 (Find Ausbildung), 2026-08-28: how many keyword/location
+# matches to fetch, score, and display - one page, no pagination UI this
+# pass (out of scope; every filter is a query param, so real pagination
+# can be added later without changing how filters work). Sorting by match
+# score means every candidate needs a score first (see
+# get_or_compute_matches()'s docstring for the measured cost - even 100
+# scored cold is ~440ms, comfortable), so this is sized for a sane single
+# results page, not for scoring cost - a narrow trade keyword in this
+# app's own dev data returns 13-89 matches; 40 keeps a strong keyword
+# (78 "Elektroniker" matches, plus whatever a live search adds) from
+# rendering as a hundred-card page.
+SEARCH_CANDIDATE_LIMIT = 40
+
+
+def _job_start_year(job):
+    """Extracts a 4-digit year from Job.start_date - the same free-form
+    field ("01.09.2027", "sofort", "2027", ...) and the same \\d{4}
+    extraction app/ai/matching.py's _score_start_date() already uses for
+    scoring, reused here for the year-range filter rather than a second
+    parsing approach. None if start_date is empty or has no parseable
+    year."""
+    if not job.start_date:
+        return None
+    match = re.search(r"\d{4}", job.start_date)
+    return int(match.group()) if match else None
+
+
+def _profile_has_scorable_data(profile):
+    """Whether compute_match() has anything real to evaluate against, at
+    all - deliberately NOT the same check as a JobMatch's own
+    recommendation == "insufficient_data" (found during Playwright
+    verification, 2026-08-28: a genuinely blank profile, no Preference row
+    at all, still scored some jobs 100/100 "Strong match", because
+    _score_location() treats "no location preference set" as "open to
+    anywhere" - a real 1.0 on its own, honest for a candidate who has
+    actually stated other preferences but left location open, but wrong
+    read as "nothing about this candidate is known" when NOTHING has been
+    entered. compute_match()'s own possible==0 check doesn't catch this,
+    since that one category still contributes weight - so a job with no
+    skills/language/education requirements (most of them, see DECISIONS.md's
+    German-level fill-rate numbers) plus a wholly empty profile can still
+    produce a positive score from a default, not from anything the
+    candidate provided. This checks for real candidate-entered data
+    directly, not matching.py's scoring outcome - a search-page display
+    decision (which score results to trust and show), not a change to how
+    compute_match() itself scores anything."""
+    if profile is None:
+        return False
+    if profile.skills or profile.languages or profile.education_entries:
+        return True
+    preference = profile.preference
+    return bool(preference and (preference.locations or preference.desired_start_date))
+
+
+def _query_without(*keys):
+    """The current request's query params with the given key(s) removed -
+    used to build each removable filter chip's href. Reads multi-value
+    params (sources) as lists so removing one filter never silently drops
+    another that happens to be multi-valued - query params, not session
+    state, so filters stay shareable/bookmarkable and survive a reload."""
+    kept = {}
+    for key in request.args:
+        if key in keys:
+            continue
+        values = request.args.getlist(key)
+        kept[key] = values if len(values) > 1 else values[0]
+    return kept
+
+
+def _build_filter_chips(form, enabled_source_names):
+    chips = []
+
+    lo, hi = form.start_year_min.data, form.start_year_max.data
+    if lo or hi:
+        label = f"Start {lo}–{hi}" if lo and hi else (f"Start from {lo}" if lo else f"Start by {hi}")
+        chips.append((label, url_for("jobs.search", **_query_without("start_year_min", "start_year_max"))))
+
+    if form.min_score.data:
+        chips.append((f"Score ≥ {form.min_score.data}", url_for("jobs.search", **_query_without("min_score"))))
+
+    selected_sources = form.sources.data
+    if selected_sources and set(selected_sources) != set(enabled_source_names):
+        names = [KNOWN_SOURCES.get(s, s) for s in selected_sources]
+        chips.append((", ".join(names), url_for("jobs.search", **_query_without("sources"))))
+
+    return chips
+
 
 @bp.route("/", methods=["GET"])
 @login_required
 def search():
     form = SearchForm(request.args, meta={"csrf": False})
+    enabled_source_names = get_enabled_adapter_names()
+    form.sources.choices = [(name, KNOWN_SOURCES.get(name, name)) for name in enabled_source_names]
+    if not form.sources.data:
+        # No explicit selection yet (fresh search, or every box left
+        # checked) - every enabled source is active by default, matching
+        # the bundle's own "alle 3 Quellen aktiv" starting state.
+        form.sources.process_data(enabled_source_names)
+
     results = []
+    unscored_results = []
     ingest_errors = []
+    filter_chips = []
+    result_meta = None
+    match_by_job_id = {}
+    profile_insufficient = False
+    excluded_by_score = 0
 
     if form.keywords.data:
         if form.validate():
@@ -43,22 +149,97 @@ def search():
             query = Job.query.filter(Job.title.ilike(f"%{form.keywords.data}%"))
             if form.location.data:
                 query = query.filter(Job.location.ilike(f"%{form.location.data}%"))
-            results = query.order_by(Job.discovered_at.desc()).limit(50).all()
+            # Always restricted to the selected sources - defaulting to
+            # every *enabled* one, not "no filter at all" - a job whose
+            # only listing is on a source that's disabled (or was never
+            # configured) shouldn't surface just because the selection
+            # happens to equal the full enabled set; the intro line
+            # ("Searches X, Y, Z") would be lying otherwise. "manual" is
+            # always included regardless of the toggle - it isn't a
+            # searchable adapter to begin with (see KNOWN_SOURCES/
+            # get_enabled_adapter_names()'s own docstrings), just the
+            # user's own directly-imported jobs, which keyword search
+            # found before this pass added a source filter at all and
+            # shouldn't now disappear from it.
+            selected_sources = form.sources.data or enabled_source_names
+            query = query.filter(Job.listings.any(JobListing.source.in_([*selected_sources, "manual"])))
+            candidate_jobs = query.order_by(Job.discovered_at.desc()).limit(SEARCH_CANDIDATE_LIMIT).all()
+
+            if form.start_year_min.data:
+                min_year = int(form.start_year_min.data)
+                candidate_jobs = [j for j in candidate_jobs if (_job_start_year(j) or 0) >= min_year]
+            if form.start_year_max.data:
+                max_year = int(form.start_year_max.data)
+                candidate_jobs = [j for j in candidate_jobs if (_job_start_year(j) or 9999) <= max_year]
+
+            # Every candidate scored before sorting/filtering by score - see
+            # get_or_compute_matches()'s docstring for why this is a single
+            # batched call, not a per-card lazy one.
+            match_by_job_id = get_or_compute_matches(current_user, candidate_jobs)
+            profile_insufficient = bool(candidate_jobs) and not _profile_has_scorable_data(current_user.profile)
+
+            min_score = int(form.min_score.data) if form.min_score.data else None
+            scored_jobs = []
+            for j in candidate_jobs:
+                score = None if profile_insufficient else match_by_job_id[j.id].score
+                if score is None:
+                    # An unscoreable job is not a zero-scoring job (spec) -
+                    # never dropped by a minimum-score filter, always shown,
+                    # just kept in its own honestly-labeled section instead
+                    # of blended into a numeric ranking it was never placed
+                    # on. profile_insufficient forces every candidate down
+                    # this path too, regardless of any individual score
+                    # compute_match() happened to produce - see
+                    # _profile_has_scorable_data()'s docstring for why that
+                    # score can't be trusted when nothing real was entered.
+                    unscored_results.append(j)
+                elif min_score is not None and score < min_score:
+                    excluded_by_score += 1
+                else:
+                    scored_jobs.append(j)
+
+            if form.sort.data == "newest":
+                scored_jobs.sort(key=lambda j: j.discovered_at, reverse=True)
+            else:
+                scored_jobs.sort(key=lambda j: (-match_by_job_id[j.id].score, -j.discovered_at.timestamp()))
+            unscored_results.sort(key=lambda j: j.discovered_at, reverse=True)
+            results = scored_jobs
+
+            all_jobs = results + unscored_results
+            all_sources = set()
+            duplicates_merged = 0
+            for j in all_jobs:
+                all_sources.update(j.sources)
+                if len(j.listings) > 1:
+                    duplicates_merged += len(j.listings) - 1
+            result_meta = {
+                "count": len(all_jobs),
+                "source_count": len(all_sources),
+                "duplicates_merged": duplicates_merged,
+            }
+            filter_chips = _build_filter_chips(form, enabled_source_names)
         else:
             flash("Please enter valid search terms.", "error")
 
     saved_job_ids = {sj.job_id for sj in SavedJob.query.filter_by(user_id=current_user.id).all()}
-    # deterministic, no AI call - cheap enough to compute per result
-    match_by_job_id = {job.id: get_or_compute_match(current_user, job) for job in results}
 
     return render_template(
         "jobs/search.html",
         form=form,
         results=results,
+        unscored_results=unscored_results,
         ingest_errors=ingest_errors,
         saved_job_ids=saved_job_ids,
         match_by_job_id=match_by_job_id,
         searched=bool(form.keywords.data),
+        filter_chips=filter_chips,
+        result_meta=result_meta,
+        profile_insufficient=profile_insufficient,
+        excluded_by_score=excluded_by_score,
+        match_label=match_label,
+        summarize_match_line=summarize_match_line,
+        source_display_names=[KNOWN_SOURCES.get(n, n) for n in enabled_source_names],
+        today=date.today(),
     )
 
 
