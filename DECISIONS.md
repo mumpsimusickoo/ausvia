@@ -6,6 +6,119 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-27 — Screens pass 3 (Dashboard): non-obvious calls
+
+**The "Next up" hero card's staleness marker dates from
+`ApplicationEvent`, not a new column.** The task flagged this as a
+stop-and-ask if the schema couldn't support it. It can: a new public
+`latest_transition_at(application)` helper (`app/applications/
+status_route.py`, alongside the existing event-reading helpers that
+already power the station journey) takes the latest `created_at` among
+`created`/`approved`/`sent`/`status_changed` events - the same real-
+transition vocabulary `build_status_route` already relies on - and falls
+back to `Application.created_at` only if the log is somehow empty.
+Deliberately not `Application.updated_at`, which bumps on any field edit
+(notes, contact_email, ...) and would make "unchanged for 3 days" lie the
+moment someone jots a note. The same helper now also dates the
+applications table's relative-date column, so both are backed by one
+definition of "when did this application's status last really move," not
+two.
+
+**The hero card is its own construction, not `intelligence_surface()`.**
+The bundle's own hero (line 869 of the unpacked bundle) uses `bg-card`
+with a brand left border - not `intelligence_surface()`'s tint fill - and
+it isn't AI-generated content at all, just the top `DigestItem` from the
+same deterministic, no-AI-call ranking the digest list below it already
+uses (`compute_priority_digest`, reusing `application_digest_item` -
+public since Screens pass 2 - rather than a second ranking). Giving it
+the Intelligence surface's tint/provenance chrome would have implied an
+AI source that isn't there.
+
+**Hero and digest actions are gated on real state, not the bundle's
+literal buttons.** The bundle always shows "Paket öffnen" - our hero only
+offers "Open package" when `package_storage_path` is actually set,
+falling back to "View application" otherwise; "Mark as sent" only
+appears when `status == "ready"` (mirrors `applications/detail.html`'s
+own gating for the same action, not a new rule). A saved-job hero item
+gets "Start application" as a real POST to `applications.start`, the same
+route `jobs/detail.html` already uses. The priority-digest list's own
+per-row action originally tried to reuse "Open package" as a label there
+too; dropped in favor of a plain "View application"/"View job" once it
+was clear the row's link target (`applications.detail`) didn't match a
+"download the package" label for every reason that can put an item at
+the top of the list - a label promising an action the link doesn't take
+is worse than a plainer, always-true one.
+
+**Digest row dot color is a lookup against this codebase's own fixed
+reason strings, not a priority-integer threshold.** `compute_priority_digest`
+produces a small, self-controlled set of exact reason sentences (`"...
+deadline..."`, `"Interview in N days"`, `"Approved but not yet sent"`,
+etc.) - matching against those (not parsing untrusted text) reproduces
+the bundle's example coloring exactly: warn for deadline/interview-soon,
+brand for ready-not-sent, t3 (neutral) for everything else including the
+stalled-application and strong-match-not-started reasons the bundle
+didn't happen to show an example of.
+
+**The cross-application insight was built, not deferred.** The task's
+own conditional ("if it can't be grounded cleanly, defer") implied
+deferral was the fallback, not the default. `format_applications_summary()`
+(`app/ai/facts.py`) grounds it in exactly what the schema actually gives
+per application - job title, company, `Company.industry` when known,
+current status, and up to 5 `JobMatch.gaps` labels - all already
+deterministic, already-computed facts. What it deliberately does *not*
+attempt: clustering applications by "field/category," since `Job` has no
+such column and `Company.industry` is frequently null - the prompt
+(`app/ai/prompts/dashboard_insight.py`) is instructed to say "no clear
+pattern yet" rather than manufacture one when the given facts don't
+support it. Verified against the real Gemini provider in dev (not just
+mock mode): given five real applications split between technical and
+commercial Ausbildung fields, it correctly named that exact split and
+suggested narrowing profile focus - a genuine inference from the given
+job titles, not a fabricated fact.
+
+**New `DashboardInsight` model + migration were pre-authorized, not a
+stop-and-ask.** Unlike the staleness caveat, the task's own SCOPE section
+lists "the cross-application insight" as in-scope work to build, so
+adding the model (mirrors `ProfileCoaching`'s shape - `summary_text`,
+`provider`, `reliability` nullable/unpopulated by design, `generated_at`,
+plus `application_count_snapshot` alongside the usual
+`profile_updated_at_snapshot`, since this surface's real input is "all of
+a user's applications," where a newly started or deleted application can
+make a cached synthesis stale even when the profile itself hasn't
+changed) needed no separate confirmation.
+
+**Profile completeness stays a percent + bar; one sentence was added
+naming what's missing, not a checkbox-list UI.** The task's own wording
+said "CHECKLIST," but the bundle's actual construction (line 934) is a
+single sentence ("Es fehlen: ein Sprachzertifikat..."), not a list of
+checkboxes. `CandidateProfile.completeness_percent()` was refactored into
+a `completeness_checklist()` (8 real `(label, satisfied)` pairs) that
+both the unchanged percent calculation and the new missing-items sentence
+now read from - satisfying the underlying intent (name what's missing,
+not just a bare percentage) via the bundle's literal construction rather
+than inventing a bundle-specific sub-field (e.g. a literal "language
+certificate" concept `Language` doesn't model) to match its example text
+word-for-word.
+
+**The bottom three-card row (Job search / Documents / Candidate profile
+mini-summaries) was dropped, not restyled.** It isn't part of the bundle's
+Dashboard at all (confirmed by reading the unpacked bundle's Dashboard
+section directly, lines 858-957) and every destination it linked to is
+already one click away in the sidebar nav - keeping it would have meant
+inventing dashboard content the redesign's own source doesn't have,
+against this pass's explicit "bundle structure" instruction.
+
+**Job radar's rail card dropped the inline per-job result list in favor
+of a compact count** ("6 new listings for your profile"), matching the
+bundle's own compact rail treatment (it shows a count + arrow link, not a
+list) rather than the pre-existing dashboard's inline job rows - the
+actual postings stay one click away via "Open Find Ausbildung." The
+on-demand "Check now" button and its honest manual-not-autonomous copy
+were kept exactly as shipped, since the task called that out explicitly
+as something to preserve, not restyle away.
+
+---
+
 ## 2026-08-27 — Screens pass 2 (Application Detail): non-obvious calls
 
 **The Reply station's dating logic, since it's genuinely new (not a

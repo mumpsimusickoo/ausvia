@@ -69,6 +69,31 @@ def _status_changed_to(events, value):
     return matches[-1] if matches else None
 
 
+# Event types that represent a real status transition, not just work-in-
+# progress on the content (cover_letter_generated, documents_selected,
+# etc. don't move the application to a new stage). Every real transition
+# this app makes goes through one of these four - see
+# app/applications/routes.py: start() logs "created", approve() logs
+# "approved", mark_sent() logs "sent", update_status() logs
+# "status_changed" whenever old != new.
+_TRANSITION_EVENT_TYPES = {"created", "approved", "sent", "status_changed"}
+
+
+def latest_transition_at(application):
+    """The timestamp of the most recent real status transition - used for
+    the Dashboard's staleness marker ("unchanged for 3 days") and its
+    applications table's date column (Screens pass 3, 2026-08-27).
+    Deliberately not Application.updated_at, which bumps on any field edit
+    (notes, contact_email, ...) - this is scoped to transitions the way
+    build_status_route's own event-based inference already is, not a new
+    concept. No schema change: ApplicationEvent already logs every one of
+    these. Falls back to created_at if the event log is somehow empty
+    (shouldn't happen - start() always logs "created" - but an absent
+    timestamp is worse than a slightly-conservative one)."""
+    transition_times = [e.created_at for e in application.events if e.event_type in _TRANSITION_EVENT_TYPES]
+    return max(transition_times) if transition_times else application.created_at
+
+
 def _next_event(application, stations):
     """The header line naming the next dated, not-yet-reached station with a
     countdown - new in this pass (the bundle's own "VERLAUF DER BEWERBUNG"

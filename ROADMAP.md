@@ -628,7 +628,30 @@ for a redesign pass, started 2026-08-24.
       `DECISIONS.md`). 23 new tests. Full detail: `DECISIONS.md`'s second
       2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Application Detail -
       2026-08-27 pass".
-- [ ] **Screens pass 3+** - the remaining ~150 existing card/badge/button/
+- [x] **Screens pass 3: Dashboard** - 2026-08-27, `main/dashboard.html`
+      rebuilt on the component layer (bundle structure, English copy);
+      first screen most users see, brand-new-account empty states treated
+      as the main case throughout, not an afterthought. Fixed "Follow-ups
+      due" (was hardcoded `"0"`); built the new "Next up" hero card
+      (single highest-priority digest item, own construction rather than
+      `intelligence_surface()`, staleness dated from a new public
+      `latest_transition_at()` helper reading real `ApplicationEvent`
+      transitions rather than a new schema column); made the priority
+      digest inline (dot-colored rows, no longer a teaser link to the
+      identical standalone `/digest` page); added the applications table
+      (didn't exist on the dashboard before, `status_pill()` + relative
+      dates); built the cross-application insight (new `DashboardInsight`
+      model + migration, grounded in real per-application facts, gated at
+      2+ applications, verified against the real configured AI provider
+      in dev, not just mock mode). Dropped the pre-existing bottom
+      three-card row (not part of the bundle's Dashboard; every
+      destination already lives in the sidebar). 13 new tests. Full
+      detail: `DECISIONS.md`'s third 2026-08-27 entry, `DESIGN_SYSTEM.md`'s
+      "Dashboard - 2026-08-27 pass". **Deploy note:** migration
+      `4bbab0dec59b` (dashboard_insights table) is applied locally but
+      not yet run against production - needs `flask db upgrade` on next
+      deploy, same as the job_radar_status precedent.
+- [ ] **Screens pass 4+** - the remaining ~140 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components.
       Not yet scoped or started. The named token layer

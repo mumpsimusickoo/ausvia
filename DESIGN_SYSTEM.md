@@ -1071,6 +1071,89 @@ tab bar's 24px gap alone exceeding a 328px mobile column before
 `flex-wrap` had a chance to help. The grid bug was copied forward from
 `jobs/detail.html`'s identical construction and fixed there too.
 
+## Dashboard — 2026-08-27 pass
+
+First screen most users see, and — for a brand-new invite-only account —
+almost entirely empty states, treated as the main case throughout rather
+than an afterthought. Bundle structure (its Dashboard section, read
+directly from the unpacked bundle), English copy — see `DECISIONS.md` for
+the hero card's staleness source, why it isn't `intelligence_surface()`,
+the digest dot-color mapping, and the cross-application insight's
+grounding.
+
+**Components used:** `btn`, `arrow_link`, `status_pill` (the applications
+table — its second real call site after Application Detail),
+`intelligence_surface` (the cross-application insight, once generated —
+its first call site that isn't a per-application surface),
+`empty_state` (five real variants on this one screen: hero, priority
+digest, and applications table each get a brand-new-account variant and
+a separate "you have activity but nothing's due" variant; the
+cross-application insight gets an eligibility-gated variant), `progress_bar`.
+`chip_attribute`, `chip_coverage`, `match_band`, `chip_source`, `notice`
+weren't needed.
+
+**New pattern: the "Next up" hero card.** Not built from
+`intelligence_surface()` — it isn't AI content, just the top item from
+the same deterministic `compute_priority_digest()` ranking the digest
+list below it reuses. Construction: `rounded-r-xl border border-line
+border-l-[3px] border-l-brand bg-card` (bundle line 869 — `bg-card`, not
+`intelligence_surface`'s tint fill, is the tell that this is a different
+kind of surface). A `NEXT UP` mono eyebrow, an optional staleness mono
+label, a sentence built from the item's own title/company/top reason, a
+supporting line from any remaining reasons, and up to two real actions
+gated on actual application state (see `DECISIONS.md`). Two more
+variants for when there's no top item: a dashed `empty_state()` for a
+truly brand-new account ("Nothing to show yet"), and a calm, non-dashed
+variant in the same bordered-card shell for an account with real
+activity and nothing currently urgent ("Nothing needs your attention
+right now") — deliberately not the same visual weight as the empty-
+account case, since "all caught up" is a good state, not a missing one.
+
+**Priority digest is now inline** (heading + `"N items with a real
+reason"` count line + one row per item, dot-colored by reason, each with
+its own `View application`/`View job` link) — not a teaser link to the
+standalone `/digest` page, which showed identical content and is now
+redundant with what's directly on the dashboard. `/digest` itself is
+unchanged and still reachable directly.
+
+**Applications table is new on this screen** (it didn't exist on the
+dashboard before this pass, per the original screen-inventory audit):
+up to 8 rows, sorted by `latest_transition_at()` descending, each a
+`status_pill()` plus a relative date (`today`/`yesterday`/`N days ago`,
+falling back to an absolute `DD.MM.YYYY` past 13 days — the same
+relative/absolute mix the bundle's own table uses).
+
+**Follow-ups due, fixed:** was a literal `"0"` regardless of data. Now
+counts real `Application.follow_up_date <= today` — the same real signal
+`compute_priority_digest`'s own "Follow-up date has arrived" check uses,
+not a second definition kept separately in sync.
+
+**Cross-application insight — genuinely new, built rather than
+deferred.** Gated on `MIN_APPLICATIONS_FOR_INSIGHT = 2` (fewer than two
+applications isn't a pattern to compare, it's just describing them) —
+below that, a plain `empty_state()` explains why with no action. At or
+above it, an on-demand `Generate insight` form (mirrors the Job Radar
+"Check now" pattern — a real mutation, not a bare link) until one exists,
+then `intelligence_surface()` with `reliability=None` (unpopulated by
+design — the badge correctly stays hidden) and a `Regenerate` control.
+Verified against the real configured provider in dev, not just mock
+mode — see `DECISIONS.md`.
+
+**Dropped, not restyled:** the pre-existing bottom three-card row (Job
+search / Documents / Candidate profile mini-summaries) isn't part of the
+bundle's Dashboard at all — every destination it linked to is already
+one click away in the sidebar. Job Radar's rail card dropped its inline
+per-job result list for a compact count, matching the bundle's own
+compact treatment, while keeping the on-demand "Check now" button and
+its honest manual-not-autonomous copy exactly as shipped (explicitly
+called out to preserve, not restyle).
+
+**Verified across all four required states** (brand-new/empty account;
+one application with nothing urgent; several applications including a
+stale one and a deadline; several applications, everything healthy) —
+both themes, 375px with the numeric `scrollWidth` check, zero overflow
+in every state.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the

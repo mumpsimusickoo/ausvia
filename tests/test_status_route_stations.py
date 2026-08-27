@@ -7,7 +7,7 @@ new station data and dating logic specifically.
 """
 from datetime import timedelta
 
-from app.applications.status_route import build_status_route
+from app.applications.status_route import build_status_route, latest_transition_at
 from app.jobs.matching import get_or_compute_match
 from app.models.integration import GmailMessage
 from app.models.user import utcnow
@@ -134,6 +134,34 @@ def test_next_event_counts_down_to_a_future_interview(client, db, make_user):
     assert route["next_event"] is not None
     assert "Interview" in route["next_event"]
     assert "3 day" in route["next_event"]
+
+
+def test_latest_transition_at_advances_on_real_transitions_only(client, db, make_user):
+    """Dashboard pass (2026-08-27): latest_transition_at() dates the
+    dashboard's staleness marker and applications-table date column - it
+    must track real status transitions (created/approved/sent/
+    status_changed events), not Application.updated_at, which bumps on any
+    field edit."""
+    make_user(email="st8@example.com", password="Password123!")
+    login(client, "st8@example.com", "Password123!")
+    job = make_job(db, dedup_key="st-transition-1")
+    _, application = start_application(client, db, job)
+
+    created_transition = latest_transition_at(application)
+    assert created_transition is not None
+
+    # A field edit that logs no ApplicationEvent must not move the marker,
+    # even though it bumps updated_at (onupdate=utcnow).
+    application.notes = "Called HR to confirm receipt."
+    db.session.commit()
+    assert latest_transition_at(application) == created_transition
+    assert application.updated_at >= created_transition
+
+    application.log_event("approved", "Application approved by user - package generated.")
+    application.status = "ready"
+    db.session.commit()
+    approved_transition = latest_transition_at(application)
+    assert approved_transition >= created_transition
 
 
 def test_next_event_falls_back_to_remaining_station_count(client, db, make_user):

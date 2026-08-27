@@ -102,6 +102,10 @@ def test_check_now_caps_number_of_fields_searched(client, db, make_user, monkeyp
 
 
 def test_dashboard_shows_check_now_button_and_latest_results(client, db, make_user, monkeypatch):
+    # Screens pass 3 (Dashboard, 2026-08-27): the rail card shows a count of
+    # new listings, not an inline per-job list (matches the bundle's compact
+    # rail treatment - see DECISIONS.md) - the job itself is still reachable
+    # via Find Ausbildung, not asserted here.
     user = make_user(email="radar6@example.com", password="Password123!")
     login(client, "radar6@example.com", "Password123!")
     _set_preference(db, user, fields=["Elektroniker"])
@@ -115,7 +119,7 @@ def test_dashboard_shows_check_now_button_and_latest_results(client, db, make_us
     resp = client.get("/dashboard")
     assert resp.status_code == 200
     assert b"Check now" in resp.data
-    assert b"TestFirma" in resp.data
+    assert b"1 new listing for your profile" in resp.data
 
 
 def test_dashboard_check_now_button_present_without_any_prior_check(client, db, make_user):

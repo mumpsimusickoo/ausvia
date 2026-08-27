@@ -230,3 +230,36 @@ class ProcessQAAnswer(db.Model):
     user = db.relationship("User")
 
     __table_args__ = (db.UniqueConstraint("user_id", "question_key", name="uq_process_qa_user_question"),)
+
+
+class DashboardInsight(db.Model):
+    """Cached cross-application AI synthesis (Screens pass 3, Dashboard,
+    2026-08-27) - genuinely new: nothing before this aggregated across a
+    user's applications, every existing Intelligence surface is scoped to
+    one job/application/reply. Same staleness pattern as JobMatch/
+    CompanyInsight (profile_updated_at_snapshot), plus
+    application_count_snapshot since the input set here is "all of a
+    user's applications", not one job - a changed profile isn't the only
+    thing that can make a cached synthesis stale; applying to a new job or
+    an application changing status can too. Count, not a hash of every
+    application's full state, is a deliberately cheap approximation - see
+    app/ai/dashboard_insight.py for why that's an honest tradeoff, not a
+    shortcut hiding a bug."""
+
+    __tablename__ = "dashboard_insights"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=True, nullable=False, index=True)
+
+    summary_text = db.Column(db.Text, nullable=True)
+    provider = db.Column(db.String(30), nullable=True)
+    # "high"|"medium"|"low", same range as every other reliability column -
+    # ships unpopulated by design, same reasoning as the schema pass: this
+    # is free-form prose generation with no structured secondary signal to
+    # source a rating from. See DECISIONS.md.
+    reliability = db.Column(db.String(20), nullable=True)
+    profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    application_count_snapshot = db.Column(db.Integer, nullable=True)
+    generated_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship("User")

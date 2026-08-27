@@ -91,6 +91,46 @@ def format_company_facts(company):
     return "\n".join(lines) if lines else None
 
 
+def format_applications_summary(applications, match_by_job_id=None):
+    """Screens pass 3 (Dashboard, 2026-08-27): one line per application,
+    for the cross-application Intelligence insight - the first Intelligence
+    surface that aggregates across more than one job/application. Reuses
+    JobMatch.strengths/gaps (already computed deterministically by
+    app/ai/matching.py, not re-derived here) as the per-application gap
+    signal, rather than trying to invent a cross-job "field" or "category"
+    grouping from data this app doesn't reliably have (Job has no
+    industry/category field of its own; Company.industry is often unset).
+    Grounding this in real computed gaps is more reliable than clustering
+    by a field that's frequently null.
+
+    match_by_job_id: optional {job_id: JobMatch} map (the caller already
+    has these from get_or_compute_match() per application - avoids a
+    second computation here). Applications with no entry just omit the
+    match line, same "don't invent it" rule as everywhere else.
+    """
+    if not applications:
+        return "No applications on file."
+
+    match_by_job_id = match_by_job_id or {}
+    lines = []
+    for app in applications:
+        job = app.job
+        parts = [f"- {job.title}"]
+        if job.company_name:
+            parts.append(f"at {job.company_name}")
+        if job.company and job.company.industry:
+            parts.append(f"({job.company.industry})")
+        lines.append(" ".join(parts))
+        lines.append(f"  Status: {app.status}")
+
+        match = match_by_job_id.get(job.id)
+        if match and match.gaps:
+            gap_labels = ", ".join(g["label"] for g in match.gaps[:5])
+            lines.append(f"  Gaps identified by the deterministic match score: {gap_labels}")
+
+    return "\n".join(lines)
+
+
 def format_job_facts(job):
     lines = [
         f"Job title: {job.title}",

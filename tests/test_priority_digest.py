@@ -191,9 +191,27 @@ def test_digest_is_per_user(app, db, make_user):
     assert len(priority_digest.compute_priority_digest(user2)) == 0
 
 
-def test_digest_link_shown_on_dashboard(client, db, make_user):
+def test_digest_empty_state_shown_on_dashboard_for_brand_new_account(client, db, make_user):
+    # Screens pass 3 (Dashboard, 2026-08-27): the digest is now rendered
+    # inline on the dashboard itself (not a teaser link to the standalone
+    # /digest page, which showed identical content) - see DECISIONS.md.
     make_user(email="dig15@example.com", password="Password123!")
     login(client, "dig15@example.com", "Password123!")
 
     resp = client.get("/dashboard")
-    assert b"Show my priority digest" in resp.data
+    assert b"Priority digest" in resp.data
+    assert b"Nothing to prioritize yet" in resp.data
+
+
+def test_digest_item_rendered_inline_on_dashboard(client, db, make_user):
+    user = make_user(email="dig16@example.com", password="Password123!")
+    login(client, "dig16@example.com", "Password123!")
+    job = make_job(db, title="Ausbildung Elektroniker/in")
+    db.session.add(Application(user_id=user.id, job_id=job.id, status="ready"))
+    db.session.commit()
+
+    resp = client.get("/dashboard")
+    assert b"1 item with a real reason" in resp.data
+    assert b"Ausbildung Elektroniker" in resp.data
+    assert b"Approved but not yet sent" in resp.data
+    assert b"View application" in resp.data

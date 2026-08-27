@@ -45,19 +45,28 @@ class CandidateProfile(db.Model):
     def full_name(self):
         return " ".join(p for p in [self.first_name, self.last_name] if p) or None
 
+    def completeness_checklist(self):
+        """(label, satisfied) pairs backing completeness_percent() below -
+        split out in the Dashboard pass (2026-08-27) so the dashboard can
+        name what's actually missing ("Missing: Skills, Job preferences")
+        instead of showing a bare percentage. Same eight checks, same
+        order, same weighting as before this pass - only exposing the
+        labels is new, the percentage itself is unchanged."""
+        return [
+            ("Name", bool(self.first_name and self.last_name)),
+            ("Location", bool(self.city and self.country)),
+            ("Phone number", bool(self.phone)),
+            ("Contact email", bool(self.contact_email)),
+            ("Education", bool(self.education_entries)),
+            ("Skills", bool(self.skills)),
+            ("Languages", bool(self.languages)),
+            ("Job preferences", bool(self.preference)),
+        ]
+
     def completeness_percent(self):
         """Rough profile-completeness signal shown on the dashboard."""
-        checks = [
-            bool(self.first_name and self.last_name),
-            bool(self.city and self.country),
-            bool(self.phone),
-            bool(self.contact_email),
-            bool(self.education_entries),
-            bool(self.skills),
-            bool(self.languages),
-            bool(self.preference),
-        ]
-        return round(100 * sum(checks) / len(checks))
+        checks = self.completeness_checklist()
+        return round(100 * sum(ok for _, ok in checks) / len(checks))
 
 
 class Education(db.Model):

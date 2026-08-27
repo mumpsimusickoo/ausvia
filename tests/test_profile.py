@@ -91,3 +91,29 @@ def test_update_preferences(client, db, make_user):
 def test_profile_view_requires_login(client):
     resp = client.get("/profile/", follow_redirects=True)
     assert b"Log in" in resp.data
+
+
+def test_completeness_checklist_matches_percent(client, db, make_user):
+    # Screens pass 3 (Dashboard, 2026-08-27): completeness_checklist() backs
+    # completeness_percent() - same eight checks, same weighting, only the
+    # per-item labels are new (needed so the dashboard can name what's
+    # missing instead of a bare percentage).
+    user = make_user(email="p5@example.com", password="Password123!")
+    profile = user.profile
+
+    # make_user() pre-fills contact_email from the account email, so that's
+    # the one check already satisfied on a fresh profile.
+    checklist = profile.completeness_checklist()
+    assert len(checklist) == 8
+    satisfied = {label for label, ok in checklist if ok}
+    assert satisfied == {"Contact email"}
+    assert profile.completeness_percent() == round(100 * 1 / 8)
+
+    profile.first_name = "Ilias"
+    profile.last_name = "Jabbour"
+    db.session.commit()
+
+    checklist = profile.completeness_checklist()
+    satisfied = {label for label, ok in checklist if ok}
+    assert satisfied == {"Contact email", "Name"}
+    assert profile.completeness_percent() == round(100 * 2 / 8)

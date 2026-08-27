@@ -461,16 +461,55 @@ for a redesign pass. Status:
   tests across three files. Full detail: `DECISIONS.md`'s second
   2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Application Detail - 2026-08-27
   pass". Full pytest suite: 488 passed / 3 skipped (465 + 23).
-- **Next actual step:** screens pass 3+ - migrating the remaining ~150
+- **Screens pass 3 (Dashboard) done, 2026-08-27** - `main/dashboard.html`
+  rebuilt on the component layer, first screen most users see - a
+  brand-new invite-only account has no applications, saved jobs, digest
+  items, or profile, so every block's empty state was written as the main
+  case, not an afterthought. Fixed the "Follow-ups due" stat tile, which
+  was hardcoded to `"0"` regardless of real data - now counts real
+  `Application.follow_up_date <= today`, the same signal
+  `compute_priority_digest` already used internally. Built the new "Next
+  up" hero card: the single highest-priority item from the same
+  deterministic digest ranking (reusing the now-public
+  `application_digest_item`, not a second ranking), with a staleness
+  marker ("unchanged for 3 days") dated by a new public
+  `latest_transition_at()` helper that reads real `ApplicationEvent`
+  transitions - no schema change needed, resolving the task's own
+  stop-and-ask caveat without pausing. The hero is its own construction,
+  not `intelligence_surface()`, since it isn't AI content - see
+  `DECISIONS.md`. Made the priority digest inline on the dashboard itself
+  (dot-colored rows, each with its own reason and action link), retiring
+  the old "Show my priority digest" teaser link to the standalone
+  `/digest` page, which showed identical content. Added an applications
+  table (didn't exist on the dashboard before this pass) using
+  `status_pill()` and relative dates. Built the cross-application
+  insight - genuinely new: a `DashboardInsight` model + migration,
+  grounded in real per-application facts (job title, company, industry
+  when known, status, `JobMatch.gaps`), gated at 2+ applications, honest
+  "no clear pattern yet" permitted over a fabricated one. Verified
+  end-to-end against the real configured AI provider in dev (not just
+  mock mode) - given five real applications split between technical and
+  commercial Ausbildung fields, it correctly named that exact split.
+  Dropped the pre-existing bottom three-card row (Job search/Documents/
+  Candidate profile mini-summaries) since it isn't part of the bundle's
+  Dashboard and every destination it linked to already lives in the
+  sidebar. 13 new tests across four files. Full detail: `DECISIONS.md`'s
+  third 2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Dashboard - 2026-08-27
+  pass". Full pytest suite: 501 passed / 3 skipped (488 + 13).
+  **Deploy note:** migration `4bbab0dec59b` (dashboard_insights table) is
+  applied to the local dev DB but not yet run against production - needs
+  `flask db upgrade` on next deploy, same gap pattern as job_radar_status.
+- **Next actual step:** screens pass 4+ - migrating the remaining ~140
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
-  the theme toggle) - **neither yet scoped or started.** Job Detail and
-  Application Detail are the reference call sites now for how a real
-  screen uses `match_band`, `intelligence_surface` (both its read-only and
-  editable shapes), `status_pill`, and the chip macros; the token layer,
-  component layer, and schema pass are all available for the rest of the
-  screens pass to build on.
+  the theme toggle) - **neither yet scoped or started.** Job Detail,
+  Application Detail, and Dashboard are the reference call sites now for
+  how a real screen uses `match_band`, `intelligence_surface` (read-only,
+  editable, and now the cross-application-insight shape), `status_pill`,
+  `empty_state`, and the chip macros; the token layer, component layer,
+  and schema pass are all available for the rest of the screens pass to
+  build on.
 
 ## Security posture
 
