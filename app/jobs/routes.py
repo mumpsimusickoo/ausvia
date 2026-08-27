@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from urllib.parse import quote
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
@@ -115,9 +116,28 @@ def detail(job_id):
 
     application = Application.query.filter_by(user_id=current_user.id, job_id=job.id).first()
 
+    # Screens pass 1 (Job Detail), 2026-08-27: cross-references a gap's
+    # label against job.skills to flag the matching requirement tag err-
+    # toned in the template (chip_attribute(gap=True)) - a gap's label for
+    # the "skills" category is always the literal skill string (see
+    # app/ai/matching.py::_score_skills), so an exact-string match is
+    # correct here, not a heuristic.
+    gap_skill_labels = {g["label"] for g in (match.gaps or [])} & set(job.skills or [])
+
+    deadline_days_left = None
+    if job.application_deadline:
+        deadline_days_left = (job.application_deadline - date.today()).days
+
+    company_open_positions = None
+    if job.company_id:
+        company_open_positions = Job.query.filter_by(company_id=job.company_id, status="active").count()
+
     return render_template(
         "jobs/detail.html", job=job, is_saved=is_saved, match=match, application=application,
         explainer=get_job_explainer(current_user, job),
+        gap_skill_labels=gap_skill_labels,
+        deadline_days_left=deadline_days_left,
+        company_open_positions=company_open_positions,
     )
 
 

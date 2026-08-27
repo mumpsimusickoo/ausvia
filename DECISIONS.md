@@ -6,6 +6,101 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-27 — Screens pass 1 (Job Detail): non-obvious calls
+
+**Decision, "Duration" fact tile dropped:** the bundle's Job Detail fact-
+tile row is start date / salary / duration / source. No field anywhere in
+this app backs "duration" - not on `Job`, not extracted, not on any other
+model. Rendering it would mean every job shows "Not specified" forever,
+not "sometimes missing" - a fabricated column, not an honest-absence
+state. Omitted (3 tiles, not 4) rather than stopping the pass to ask,
+since the answer was already implied by the project's own stance on not
+inventing data; flagged here and in the report instead. Adding a real
+`duration` field (extraction + schema) is a future decision, not this
+pass's to make.
+
+**Component changes, both additive, both used immediately:**
+- `chip_attribute()` gained a `gap` tone (err fill/text/border), read from
+  the bundle's own Job Detail requirement-tag cloud - the one construction
+  where a gap-flagged tag is visually distinct from the plain ones around
+  it. The macro previously had only plain/highlight.
+- `chip_coverage()` gained an optional `label` override. Built during the
+  component pass as a generic legend item (fixed word per state - "Fulfilled",
+  "Partial", etc.), it needed a per-item custom sentence
+  ("German B2 — required B1") for Job Detail's real Strengths/Gaps list
+  while keeping the same dot+state visual language. Defaults to the
+  original generic text, so the existing `/admin/components` legend demo
+  is unchanged.
+
+**English copy retrofit to `_components.html`:** `match_band()`,
+`chip_coverage()`, `notice()`, and `intelligence_surface()` all had
+German strings hardcoded from the component pass (built by reading the
+bundle's own construction too literally, before this pass's explicit
+"copy stays English" instruction existed as a rule). Since this pass is
+the first to actually wire these macros into a real screen, fixing that
+copy was required, not optional scope creep — done directly in the shared
+macros, so every future call site gets it for free rather than needing
+its own translation pass later.
+
+**Strengths/Gaps live inside `match_band()`'s "Show breakdown" disclosure,
+not a separate always-visible section:** the bundle's own static mockup
+shows them as a separate section following the match card. This pass
+nests them inside the collapsed breakdown instead - not a deviation
+invented now, but following through on the component pass's own
+documented plan (`admin/components.html`'s comment: "the screens pass
+fills this with the real strengths/gaps list"), which the task's own
+"'Show breakdown' expander over the category detail" phrasing confirms as
+intended, not incidental.
+
+**Known, accepted inconsistency: gap severity differs between the
+requirement-tag cloud and the Strengths/Gaps breakdown.** `chip_attribute(gap=True)`
+is a single boolean - any skill gap renders err-toned, matching the
+bundle's one literal example. But `_score_skills()` (app/ai/matching.py)
+never distinguishes required vs. preferred skills - every skill gap's
+`GapItem.status` is `"preferred_missing"`, which the breakdown correctly
+renders as the softer warn-toned `teilweise`, never `fehlt`. So the same
+skill can appear err-red in the tag cloud and warn-amber two sections
+below. Left as-is rather than adding a severity parameter to
+`chip_attribute` for one page's minor color nuance - the tag cloud is
+answering "is this a gap at all," the breakdown is answering "how bad,"
+and both are individually honest even though the colors don't match
+across sections. Revisit only if this reads as a real bug in practice,
+not preemptively.
+
+**`score is None` / "not enough data" branch is effectively unreachable in
+normal use, kept anyway:** `compute_match()` only returns `score=None`
+when `profile is None` entirely. Every registered user has a
+`CandidateProfile` (created at registration), and `_score_location()`
+always returns a real ratio even with zero preference data set ("Open to
+opportunities Germany-wide") - so a logged-in user's score is never
+`None` in practice; the branch only guards a user record that somehow
+lacks a profile. Kept the honest message (matches the pre-existing
+template's own prior wording) rather than deleting a real defensive path;
+covered in tests by deleting the profile row directly, the only way to
+reach it through the real route.
+
+**Mobile reordering (score above title, actions pinned to the bottom) is
+one responsive template, not a second one:** Tailwind `order-1/2/3` +
+`md:order-*` on three siblings (match card, header, fact tiles), plus a
+`fixed md:hidden bottom-0` action bar duplicating the header's two
+buttons. Matches this app's existing pattern (`base.html`'s sidebar vs.
+mobile topbar/drawer already work the same way) rather than introducing a
+second markup path to keep in sync.
+
+**Consequences:** `app/templates/jobs/detail.html` rewritten;
+`app/jobs/routes.py::detail()` gained `gap_skill_labels`,
+`deadline_days_left`, `company_open_positions` (real derived data, no new
+model fields). `app/templates/_components.html` gained the `gap`/`label`
+params and English copy fixes; one real bug caught by the mobile
+Playwright check and fixed in the same file: `match_band()`'s segment
+labels had no `truncate`, so narrow segments' text ran together at 375px
+(the bundle's own construction has `overflow:hidden` here; the macro was
+missing it). 12 new tests
+(`tests/test_job_detail_screen.py`). Full pytest suite: 465 passed / 3
+skipped (453 + 12).
+
+---
+
 ## 2026-08-26 — Removed dead `admin_required` decorator; admin gating is the `before_request` guard
 
 **Decision:** Deleted `app/utils/decorators.py` (it contained exactly one

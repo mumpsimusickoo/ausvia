@@ -1,6 +1,17 @@
 # Design System — AUSVIA
 
-Status: **Schema pass implemented**, 2026-08-26 — backend only, see
+Status: **Screens pass 1 (Job Detail) implemented**, 2026-08-27 — the
+first real screen rebuilt on the component layer. See "Job Detail —
+2026-08-27 pass" below for what changed on the screen itself, and the
+updated component reference table for two new macro variants
+(`chip_attribute`'s `gap` tone, `chip_coverage`'s `label` override) plus
+an English-copy retrofit to `match_band`/`chip_coverage`/`notice`/
+`intelligence_surface` (built with German strings hardcoded during the
+component pass, corrected now that a real English screen actually calls
+them). Full detail: `DECISIONS.md`'s 2026-08-27 entry.
+
+Prior status, still accurate: **Schema pass implemented**, 2026-08-26 —
+backend only, see
 "Component layer — 2026-08-26 pass"'s new "Reliability — where the value
 comes from" subsection below for what actually changed here (no new
 component, no macro touched). Adds a `reliability` column to the six
@@ -838,8 +849,8 @@ at `/admin/components` — no existing call site migrated yet.
 | `arrow_link(label, href, size)` | — | one shape | Navigational "go look at X" — separate component from tertiary `btn`, not a duplicate (see Decisions). |
 | `status_pill(status)` | takes an `Application.APPLICATION_STATUSES` value | all 10 states | Any place an application status renders. Always carries a dot. |
 | `chip_source(label)` | — | one shape | Job-source provenance ("ARBEITSAGENTUR", "ADZUNA", "MANUAL IMPORT"). |
-| `chip_attribute(label, highlight, removable, remove_action)` | `remove_action` required if `removable=true` | highlight / plain; removable / read-only (default) | Read-only descriptive tags ("Primary CV") or removable ones (profile skills/languages — POST+CSRF). |
-| `chip_coverage(state)` | `state`: `erfuellt`/`teilweise`/`fehlt`/`nicht_bewertet` | 4 states | Requirement-coverage legend, not a content badge — see Decisions for the shape/naming note. |
+| `chip_attribute(label, highlight, gap, removable, remove_action)` | `remove_action` required if `removable=true` | plain / highlight (brand) / `gap=true` (err — added 2026-08-27, Job Detail pass); removable / read-only (default) | Read-only descriptive tags ("Primary CV"), removable ones (profile skills/languages — POST+CSRF), or a posting's requirement tags with the ones the candidate lacks flagged (`gap=true`). |
+| `chip_coverage(state, label)` | `state`: `erfuellt`/`teilweise`/`fehlt`/`nicht_bewertet`; `label` optional override (added 2026-08-27) | 4 states, generic legend text or a custom per-item sentence | Requirement-coverage legend (no `label`) or a real per-item Strengths/Gaps row (`label` set) — see Decisions for the shape/naming note. |
 | `match_band(category_scores, score, skipped_categories, title, narrative)` | `category_scores` dict keyed like `CATEGORY_WEIGHTS` (`skills`/`language`/`education`/`location`/`start_date`), each 0–100 or absent | 0%-achieved segments render as an empty groove with a warn-colored label | Replaces the five stacked bars in `jobs/detail.html` / `main/dashboard.html`. Pass a `{% call %}` block for the "Aufschlüsselung anzeigen" detail. |
 | `empty_state(heading, guidance, action_label, action_href)` | `action_label`/`action_href` optional | one shape | Any of the app's 20 empty states, migrated one at a time in the screens pass — this pass built the macro only. |
 | `notice(variant, message, failures, note)` | `variant`: `success`/`partial_failure`/`info`; `failures` is a `(source, reason)` list for `partial_failure` | 3 variants | `partial_failure` takes the exact shape `jobs/search.html`'s `ingest_errors` already produces — visual upgrade to already-wired data. |
@@ -947,6 +958,53 @@ bundle's general Inputs spec (radius 8, 2px focus ring, error rendered
 beneath the field): `render_field()` already matches on all three points
 and needed no changes. The 8 raw form controls outside it (audit §5)
 remain a separate, already-identified gap for the screens pass.
+
+## Job Detail — 2026-08-27 pass
+
+First real screen rebuilt on the component layer (`AUSVIA_2_0_standalone.html`'s
+Job Detail screen, `AUSVIA_2_0_SCREEN_INVENTORY.md` §5). Copy written in
+English throughout, structure taken from the bundle — see `DECISIONS.md`
+for why (the bundle itself is German; this app's UI is English, i18n is a
+later pass).
+
+**Components used:** `btn`, `arrow_link`, `chip_attribute` (plain +
+`gap=true`), `chip_coverage` (with the new `label` override),
+`match_band` (its first real call site), `intelligence_surface` (also
+its first real call site, for both the match narrative and the
+improvement tips — two separate surfaces, two separate `reliability`
+columns, both null by design per the schema pass). `status_pill`,
+`chip_source`, `empty_state`, `notice`, `progress_bar` weren't needed by
+this specific screen.
+
+**Fact tiles: 3, not 4.** The bundle's row is start date / salary /
+duration / source. "Duration" has no backing field anywhere in this
+app — omitted rather than always rendering "Not specified" for a column
+that can never hold real data. See `DECISIONS.md`.
+
+**Mobile (375px): score above title, actions pinned to the bottom.**
+One responsive template, not a second one — `order-1/2/3` +
+`md:order-*` on the match card / header / fact tiles, and a
+`fixed md:hidden bottom-0` action bar. Caught one real bug via the
+375px Playwright check: `match_band()`'s segment labels had no
+`truncate`, so "LOCATION"/"START" ran together at narrow segment
+widths — the bundle's own construction has `overflow:hidden` there;
+the macro was missing it, now fixed.
+
+**Strengths/Gaps use `chip_coverage`'s new `label` param, with a third
+state:** strengths → `erfuellt`; gaps → `fehlt` (required) or `teilweise`
+(preferred/uncertain); skipped categories (`match.skipped_categories`) →
+`nicht_bewertet`, labeled "{Category} — not evaluated (missing data)" —
+deliberately not claiming "the posting never asked" the way the bundle's
+own example does, since a skipped category here can be missing on either
+side (posting or candidate profile), not always the posting's fault.
+
+**Requirement tags (`chip_attribute`) vs. the Strengths/Gaps breakdown
+disagree on gap severity for the same skill, by design, not by
+accident** — a skill gap is always err-toned in the tag cloud
+(`gap=true`, one boolean) but can render as the softer `teilweise` in the
+breakdown below, because `_score_skills()` never distinguishes required
+vs. preferred skills. Documented in `DECISIONS.md` rather than papering
+over with a severity parameter for one page's minor inconsistency.
 
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 

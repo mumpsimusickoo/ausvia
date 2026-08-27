@@ -594,14 +594,28 @@ for a redesign pass, started 2026-08-24.
       skipped (9 new tests). Full detail:
       `DECISIONS.md`'s two 2026-08-26 schema-pass entries,
       `DESIGN_SYSTEM.md`'s "Reliability - where the value comes from".
-- [ ] **Screens pass** - migrate the ~180 existing card/badge/button/
-      empty-state/match-score occurrences onto the component-layer macros
-      above, plus the remaining per-screen re-layouts beyond
-      tokens/logo/theme/components. Not yet scoped or started. The named
-      token layer (`text-display`/`text-title`/`text-section`/etc.,
-      `rounded-panel`, `shadow-hairline`/`shadow-overlay`) is now
-      available for it; adopting those tokens on existing headings/cards
-      site-wide is itself part of this not-yet-started work.
+- [x] **Screens pass 1: Job Detail** - 2026-08-27, `jobs/detail.html`
+      rebuilt on the component layer (bundle structure, English copy).
+      Replaced the five stacked score bars with `match_band()`; added the
+      requirement-tag cloud from `Job.skills` (extracted, never rendered
+      before); added the third "not evaluated" state to Strengths/Gaps
+      (distinct from a real gap); added the deadline countdown and
+      source/dedup disclosure (both from data that already existed,
+      never surfaced); wrapped the match narrative and improvement tips
+      in `intelligence_surface()`, reliability badge confirmed hidden on
+      null. `chip_attribute`/`chip_coverage` gained real variants in the
+      process (see `DESIGN_SYSTEM.md`). One real bug caught by the 375px
+      mobile check and fixed: `match_band()`'s segment labels lacked
+      `truncate`. 12 new tests. Full detail: `DECISIONS.md`'s 2026-08-27
+      entry, `DESIGN_SYSTEM.md`'s "Job Detail - 2026-08-27 pass".
+- [ ] **Screens pass 2+** - the remaining ~170 existing card/badge/button/
+      empty-state occurrences across every other screen, plus the
+      remaining per-screen re-layouts beyond tokens/logo/theme/components.
+      Not yet scoped or started. The named token layer
+      (`text-display`/`text-title`/`text-section`/etc., `rounded-panel`,
+      `shadow-hairline`/`shadow-overlay`) is available for it; adopting
+      those tokens on existing headings/cards site-wide is itself part of
+      this not-yet-started work.
 
 ## Explicitly not scheduled
 

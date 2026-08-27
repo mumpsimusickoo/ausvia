@@ -396,17 +396,45 @@ for a redesign pass. Status:
   where the value comes from". Full pytest suite: 452 passed / 3 skipped
   (9 new tests covering nullable defaults and non-population for both
   additions).
-- **Next actual step:** the screens pass - migrating the ~180 existing
-  card/badge/button/empty-state/match-score occurrences onto the
-  component-layer macros, wiring the new reliability/edit-tracking
-  columns into the Intelligence surfaces and save routes that will
-  actually populate them - and the i18n pass (English default, language
-  switcher - reserved space for it already sits beside the theme toggle)
-  - **neither yet scoped or started.** The token layer shipped across the
-  tokens/logo/theme passes, the component layer, and this schema pass are
-  all available for the screens pass; actually adopting them on existing
-  headings/cards/screens site-wide is that not-yet-started work, not
-  something this pass did.
+- **Screens pass 1 (Job Detail) done, 2026-08-27** - `jobs/detail.html`
+  rebuilt on the component layer, first real screen off the macros built
+  2026-08-26. Bundle structure, English copy (the bundle is German; this
+  app's UI isn't, i18n is a later pass). Replaced the five stacked score
+  bars with `match_band()` (segment width = fixed category weight, fill =
+  achieved, disclosure line names the weights, "Show breakdown"
+  expander). Rendered `Job.skills` as a requirement-tag cloud for the
+  first time (extracted since an earlier pass, never displayed).
+  Strengths/Gaps gained the honest third state - "not evaluated," for a
+  skipped category, distinct from a real gap - alongside the existing
+  two. Deadline countdown and source/dedup-merge disclosure both surface
+  data that already existed (`Job.application_deadline`,
+  `Job.listings`) with no schema change. Match narrative and improvement
+  tips both wrapped in `intelligence_surface()` - confirmed the
+  reliability badge stays hidden on the still-null
+  `narrative_reliability`/`improvement_tips_reliability` columns from the
+  schema pass, exactly as designed, not defaulting to a guessed rating.
+  One real gap found, not invented around: the bundle's fact-tile row
+  includes "duration," which has no backing field anywhere in this app -
+  omitted (3 tiles, not 4) rather than always showing "Not specified" for
+  data that can never exist. `chip_attribute`/`chip_coverage` gained real
+  variants in the process (an err tone, a custom-label override) - both
+  were also carrying hardcoded German copy from the component pass,
+  fixed now that a real English screen calls them. One real bug caught by
+  the 375px mobile Playwright check and fixed:
+  `match_band()`'s segment labels had no text-overflow handling and ran
+  together at narrow widths. 12 new tests
+  (`tests/test_job_detail_screen.py`). Full detail: `DECISIONS.md`'s
+  2026-08-27 entry, `DESIGN_SYSTEM.md`'s "Job Detail - 2026-08-27 pass".
+  Full pytest suite: 465 passed / 3 skipped (453 + 12).
+- **Next actual step:** screens pass 2+ - migrating the remaining ~170
+  existing card/badge/button/empty-state occurrences on every other
+  screen onto the component-layer macros - and the i18n pass (English
+  default, language switcher - reserved space for it already sits beside
+  the theme toggle) - **neither yet scoped or started.** Job Detail is
+  the reference call site now for how a real screen uses `match_band`,
+  `intelligence_surface`, and the chip macros; the token layer, component
+  layer, and schema pass are all available for the rest of the screens
+  pass to build on.
 
 ## Security posture
 
@@ -527,10 +555,11 @@ when explicitly opted into.
 The active thread right now is the **AUSVIA 2.0 redesign** (see above) -
 its tokens, logo, theme, component-layer, and reliability/edit-tracking
 schema passes are done (2026-08-25/2026-08-26, migration `5b4fe35a6528`
-applied to production); the next concrete step is the screens pass
-(migrating existing call sites onto the component-layer macros and wiring
-the new schema columns into real Intelligence surfaces and save routes),
-not yet scoped or started. Everything else
+applied to production), and the screens pass is underway: Job Detail
+shipped 2026-08-27 as the first real screen on the component layer. The
+next concrete step is screens pass 2+ (migrating every other screen's
+existing call sites onto the component-layer macros), not yet scoped or
+started. Everything else
 from Phases 1-8 plus everything documented in `ROADMAP.md` since is
 complete. When the redesign isn't the priority, the longer-
 standing unscheduled options remain: (a) Phase 9 as originally scoped in
