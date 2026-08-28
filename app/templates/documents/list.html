@@ -1,101 +1,112 @@
-﻿{% extends "base.html" %}
-{% from "_icons.html" import warning %}
+{% extends "base.html" %}
+{% from "_components.html" import btn, empty_state %}
 {% block title %}Documents — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-t1">Documents</h1>
-<p class="mt-1 text-sm text-t2 mb-6">Upload your CV, diploma, and certificates. Originals are never modified — application PDFs are generated separately.</p>
+{#
+  Screens pass 5, 2026-08-28 - Documents. Bundle structure, English copy.
+  "Used in N applications" is a query over the existing ApplicationDocument
+  join (Document.application_documents), not new plumbing - see
+  DESIGN_SYSTEM.md.
+#}
+<div class="border-b border-line pb-6">
+  <h1 class="text-2xl font-bold text-t1">Documents</h1>
+  <p class="mt-1.5 text-sm text-t2">Originals are never modified - application PDFs are built separately, from copies.</p>
+</div>
 
-<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
-  <h2 class="font-semibold text-t1 mb-4">Upload a document</h2>
-  <form method="post" action="{{ url_for('documents.upload') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-4">
+<div class="mt-7 rounded-xl border border-dashed border-line2 p-6 flex flex-wrap items-center gap-5">
+  <div class="flex-1 min-w-[240px]">
+    <div class="font-display font-semibold text-[16px] text-t1">Upload a document</div>
+    <div class="text-[13.5px] text-t2 mt-1">PDF, JPG, or PNG, up to 15 MB. The type is suggested from the file where possible - you confirm it.</div>
+  </div>
+  <form method="post" action="{{ url_for('documents.upload') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
-      <label for="upload-doc-type" class="block text-sm font-medium text-t2 mb-1">Type</label>
-      <select id="upload-doc-type" name="doc_type" class="rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
+      <label for="upload-doc-type" class="block text-xs font-medium text-t2 mb-1">Type</label>
+      <select id="upload-doc-type" name="doc_type" class="h-9 rounded-lg border border-line2 bg-card text-t1 px-3 text-sm">
         {% for t in doc_types %}
         <option value="{{ t }}">{{ t.replace('_', ' ')|capitalize }}</option>
         {% endfor %}
       </select>
     </div>
     <div>
-      <label for="upload-file" class="block text-sm font-medium text-t2 mb-1">File (PDF, JPG, or PNG, max 15 MB)</label>
-      <input id="upload-file" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required class="text-sm text-t1">
+      <label for="upload-file" class="block text-xs font-medium text-t2 mb-1">File</label>
+      <input id="upload-file" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required class="text-sm text-t1 h-9">
     </div>
-    <div class="flex-1 min-w-[12rem]">
-      <label for="upload-description" class="block text-sm font-medium text-t2 mb-1">Description (optional)</label>
-      <input id="upload-description" type="text" name="description" maxlength="500" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm">
+    <div class="min-w-[10rem]">
+      <label for="upload-description" class="block text-xs font-medium text-t2 mb-1">Description (optional)</label>
+      <input id="upload-description" type="text" name="description" maxlength="500" class="w-full h-9 rounded-lg border border-line2 bg-card text-t1 px-3 text-sm">
     </div>
-    <button type="submit" class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">Upload</button>
+    {{ btn("Upload", variant="primary", type="submit") }}
   </form>
-</section>
+</div>
 
-<section class="rounded-xl border border-line bg-card shadow-sm">
-  {% if documents %}
-  {# Phase 7 remediation (QA finding B3/W9): a data table this wide has no
-     business forcing the whole page to scroll sideways on a phone - it
-     scrolls within its own box instead, so nothing outside it is affected. #}
+{% if documents %}
+<div class="mt-6 rounded-xl border border-line bg-card shadow-sm overflow-hidden">
+  {# Phase 7 remediation (QA finding B3/W9): a data table this wide scrolls
+     within its own box on a phone, not the whole page - unchanged. #}
   <div class="overflow-x-auto">
   <table class="w-full text-sm">
     <thead>
-      <tr class="border-b border-line text-left text-xs uppercase tracking-wide text-t2">
-        <th class="px-5 py-3">File</th>
-        <th class="px-5 py-3">Type</th>
-        <th class="px-5 py-3">Size</th>
-        <th class="px-5 py-3">Uploaded</th>
-        <th class="px-5 py-3">Primary</th>
-        <th class="px-5 py-3"></th>
+      <tr class="border-b border-line text-left font-mono text-[10px] tracking-[0.1em] text-t3">
+        <th class="pl-5 pr-2 py-3 w-12"></th>
+        <th class="px-2 py-3">FILE</th>
+        <th class="px-2 py-3">TYPE</th>
+        <th class="px-2 py-3 text-right">SIZE</th>
+        <th class="px-2 py-3 text-right">UPLOADED</th>
+        <th class="px-2 py-3"></th>
+        <th class="pl-2 pr-5 py-3"></th>
       </tr>
     </thead>
     <tbody>
       {% for doc in documents %}
-      <tr class="border-b border-line last:border-0">
-        <td class="px-5 py-3">
-          <a href="{{ url_for('documents.download', doc_id=doc.id) }}" class="font-medium text-brand hover:underline">{{ doc.original_filename }}</a>
-          {% if doc.description %}<p class="text-xs text-t2">{{ doc.description }}</p>{% endif %}
+      {% set used_count = doc.application_documents|length %}
+      <tr class="border-b border-line last:border-0 align-top">
+        <td class="pl-5 pr-2 py-3.5">
+          <span class="inline-flex items-center justify-center font-mono text-[10px] text-t2 bg-page border border-line rounded px-[6px] py-[5px]">{{ (doc.original_filename.rsplit('.', 1)[-1]|upper) if '.' in doc.original_filename else "?" }}</span>
         </td>
-        <td class="px-5 py-3 text-t2">
+        <td class="px-2 py-3.5">
+          <a href="{{ url_for('documents.download', doc_id=doc.id) }}" class="font-medium text-t1 hover:text-brand break-words">{{ doc.original_filename }}</a>
+          <p class="text-xs text-t3 mt-0.5">{{ "Used in " ~ used_count ~ " application" ~ ("s" if used_count != 1 else "") if used_count else "Not used in any application" }}</p>
+          {% if doc.description %}<p class="text-xs text-t2 mt-0.5">{{ doc.description }}</p>{% endif %}
+        </td>
+        <td class="px-2 py-3.5 text-t2">
           {{ doc.doc_type.replace('_', ' ')|capitalize }}
           {% if doc.ai_suggested_doc_type %}
-          <div class="mt-1.5 flex items-start gap-1.5 text-xs text-warn">
-            <span class="mt-0.5 shrink-0">{{ warning(12) }}</span>
-            <div>
-              <p>AI suggests: {{ doc.ai_suggested_doc_type.replace('_', ' ')|capitalize }}</p>
-              <div class="mt-1 flex gap-2">
-                <form method="post" action="{{ url_for('documents.apply_suggested_type', doc_id=doc.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="font-medium text-brand hover:underline">Use this</button>
-                </form>
-                <form method="post" action="{{ url_for('documents.dismiss_suggested_type', doc_id=doc.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="text-t2 hover:underline">Dismiss</button>
-                </form>
-              </div>
-            </div>
+          <div class="mt-1.5 text-xs text-brand">Intelligence suggests: {{ doc.ai_suggested_doc_type.replace('_', ' ')|capitalize }}</div>
+          <div class="mt-1 flex gap-3">
+            <form method="post" action="{{ url_for('documents.apply_suggested_type', doc_id=doc.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-xs font-medium text-brand hover:underline">Use this</button>
+            </form>
+            <form method="post" action="{{ url_for('documents.dismiss_suggested_type', doc_id=doc.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="text-xs text-t2 hover:underline">Dismiss</button>
+            </form>
           </div>
           {% endif %}
         </td>
-        <td class="px-5 py-3 text-t2">{{ doc.human_size() }}</td>
-        <td class="px-5 py-3 text-t2">{{ doc.uploaded_at.strftime('%d %b %Y') }}</td>
-        <td class="px-5 py-3">
-          <div class="flex flex-wrap gap-1">
+        <td class="px-2 py-3.5 text-t2 text-right font-mono text-xs whitespace-nowrap">{{ doc.human_size() }}</td>
+        <td class="px-2 py-3.5 text-t2 text-right font-mono text-xs whitespace-nowrap">{{ doc.uploaded_at.strftime('%d %b %Y') }}</td>
+        <td class="px-2 py-3.5">
+          <div class="flex flex-wrap gap-1 justify-end">
             {% if doc.doc_type == 'cv' %}
-              {% if doc.is_primary_cv %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">Primary CV</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='cv') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-xs text-brand hover:underline">Set as primary CV</button></form>{% endif %}
+              {% if doc.is_primary_cv %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary CV</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='cv') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary CV</button></form>{% endif %}
             {% endif %}
             {% if doc.doc_type == 'diploma' %}
-              {% if doc.is_primary_diploma %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">Primary diploma</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='diploma') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-xs text-brand hover:underline">Set as primary diploma</button></form>{% endif %}
+              {% if doc.is_primary_diploma %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary diploma</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='diploma') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary diploma</button></form>{% endif %}
             {% endif %}
             {% if doc.doc_type == 'language_certificate' %}
-              {% if doc.is_primary_german_cert %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">Primary German cert.</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='german_cert') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-xs text-brand hover:underline">Set as primary German cert.</button></form>{% endif %}
+              {% if doc.is_primary_german_cert %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary German cert.</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='german_cert') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary German cert.</button></form>{% endif %}
             {% endif %}
           </div>
         </td>
-        <td class="px-5 py-3 text-right">
+        <td class="pl-2 pr-5 py-3.5 text-right">
           <form method="post" action="{{ url_for('documents.delete', doc_id=doc.id) }}" onsubmit="return confirm('Delete this document?');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="text-xs font-medium text-err hover:underline">Delete</button>
+            <button type="submit" class="text-xs font-medium text-err hover:underline whitespace-nowrap">Delete</button>
           </form>
         </td>
       </tr>
@@ -103,8 +114,10 @@
     </tbody>
   </table>
   </div>
-  {% else %}
-  <p class="p-6 text-sm text-t2">No documents uploaded yet.</p>
-  {% endif %}
-</section>
+</div>
+{% else %}
+<div class="mt-6">
+  {{ empty_state("No documents yet", "Upload your CV, diploma, and any certificates - AUSVIA builds application packages from copies of what's here, and never modifies the originals.") }}
+</div>
+{% endif %}
 {% endblock %}

@@ -6,6 +6,59 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Screens pass 5 (Profile + Documents): language proof state, and reused vs. new completeness UI
+
+**Language proof state is German-only, not extended to every language.** The
+bundle shows a proof caption on every non-native language row ("Goethe-
+Zertifikat vorhanden" for German B2, "Schulkenntnisse, kein Nachweis" for
+English B1), but this schema only tracks certificate evidence for German
+specifically - `Document.is_primary_german_cert`. There's no
+`is_primary_english_cert` or any general per-language certificate link;
+`DOCUMENT_TYPES` has one generic `"language_certificate"` type with no
+language field of its own. Cross-referencing a `Language` row named
+"German" against `is_primary_german_cert` (`_language_proof_note()`,
+`app/profile/routes.py`) reproduces the bundle's German example exactly
+using real data - genuinely "German cert on file" vs. "German, no cert
+on file." Extending the same claim to English (or any other language)
+would mean asserting "no evidence" for something the schema has no way
+to actually check - indistinguishable from a guess dressed as a fact.
+Resolved without a stop-and-ask: the task's own instruction was to stop
+only when *something* needs data the models don't have at all: here,
+the real distinction (German proof) genuinely exists and ships; only the
+*generalization* to every language doesn't, so that part is simply
+omitted rather than faked, same reasoning as Find Ausbildung's German-level
+filter the pass before this one. A `Language` at `level == "Native"` gets
+its own honest caption ("Native language") instead - a real stored CEFR
+value, not proof-related.
+
+**The completeness checklist reuses `CandidateProfile.completeness_checklist()`'s
+data, not a second calculation - but needed its own UI, not the Dashboard
+pass's.** The Dashboard pass (2026-08-27) rendered the same eight checks as
+one summary sentence ("Missing: X, Y, Z"), a deliberate simplification for
+that screen's compact rail card - documented there as specific to that
+construction, not a general checklist component. The bundle's own Profile
+completeness panel is a real list of four dot+sentence rows mixing done
+and missing items, matching this task's explicit "as a CHECKLIST, not just
+a percentage" instruction for *this* screen. `_completeness_lines()`
+(`app/profile/routes.py`) pairs the same eight `(label, satisfied)` values
+with a done/missing phrasing per item ("Name provided" / "Name missing"),
+rendered as a real dot-per-row list - one data source, two screens, two
+honestly-different presentations because the bundle itself draws them
+differently.
+
+**Personal info and Ausbildung preferences became summary-card-plus-edit-toggle
+sections, not always-open forms.** The bundle's own Profile construction
+shows a compact read-only summary (avatar initials, name, age/nationality/
+city/email on one line, an "Edit" affordance) and a compact preferences
+rail card (four value rows, no form fields visible by default) - not the
+pre-existing always-visible edit forms. Converted both to a summary view
+with a `<details>` toggle revealing the real form beneath, matching the
+`<details>` disclosure pattern the Education/Experience "Add entry"
+sections already used before this pass, rather than introducing a new
+interaction mechanism.
+
+---
+
 ## 2026-08-28 — Incidental fix: two flaky priority-digest tests (UTC vs local date)
 
 Found running the full suite during the Find Ausbildung pass, not caused

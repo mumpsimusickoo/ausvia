@@ -681,7 +681,28 @@ for a redesign pass, started 2026-08-24.
       real was entered. 14 new tests. Full detail: `DECISIONS.md`'s
       2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Find Ausbildung - 2026-08-28
       pass".
-- [ ] **Screens pass 5+** - the remaining ~130 existing card/badge/button/
+- [x] **Screens pass 5: Candidate Profile + Documents** - 2026-08-28, both
+      `profile/view.html` and `documents/list.html` rebuilt on the
+      component layer - two screens in one pass, both mostly restyling
+      over data that already existed. Personal info and Ausbildung
+      preferences became summary-card-plus-`<details>`-toggle sections
+      (avatar initials, computed age, a real meta line) matching the
+      bundle's compact read-only constructions, replacing the pre-existing
+      always-open forms. Completeness became a real per-item checklist
+      (dot + done/missing sentence, one row per one of
+      `completeness_checklist()`'s eight checks) - reusing the Dashboard
+      pass's *data*, not its single-summary-sentence UI, since the bundle
+      draws this screen's panel as an actual list. Language rows gained a
+      proof-state caption, scoped honestly to German only (the one
+      language this schema actually tracks certificate evidence for, via
+      `Document.is_primary_german_cert`) rather than fabricating "no
+      evidence" for languages with no tracking at all. Documents gained
+      "Used in N applications" / "Not used in any application" per
+      document (a query over the existing `ApplicationDocument` join, no
+      new plumbing) and its zero-documents empty state. 11 new tests. Full
+      detail: `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s
+      "Candidate Profile + Documents - 2026-08-28 pass".
+- [ ] **Screens pass 6+** - the remaining ~120 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components.
       Not yet scoped or started. The named token layer

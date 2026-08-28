@@ -539,17 +539,46 @@ for a redesign pass. Status:
   local-date-vs-`utcnow()` boundary bug in `test_priority_digest.py`,
   nothing to do with this pass's own changes) - see `DECISIONS.md`'s
   incidental-fix entry.
-- **Next actual step:** screens pass 5+ - migrating the remaining ~130
+- **Screens pass 5 (Candidate Profile + Documents) done, 2026-08-28** -
+  both `profile/view.html` and `documents/list.html` rebuilt on the
+  component layer, one pass, mostly restyling over data that already
+  existed. Personal info and Ausbildung preferences became summary-card-
+  plus-`<details>`-toggle sections (avatar initials, computed age, a real
+  meta line reading "21 years old · Croatian · Leipzig · email") matching
+  the bundle's own compact read-only constructions, replacing the
+  pre-existing always-open forms - the toggle reuses the same `<details>`
+  disclosure Education/Experience's "Add entry" already had, not a new
+  mechanism. Completeness became a real per-item checklist (a dot +
+  done-or-missing sentence per row) - reusing the Dashboard pass's
+  `completeness_checklist()` *data*, explicitly not its single-sentence
+  rail-card UI, since the bundle draws this screen's own panel as an
+  actual list of four lines. Language rows gained a proof-state caption,
+  scoped honestly to German only - the one language this schema actually
+  tracks certificate evidence for (`Document.is_primary_german_cert`) -
+  rather than claiming "no evidence" for languages with no tracking at
+  all, which would have been indistinguishable from a guess. Documents
+  gained "Used in N applications" / "Not used in any application" per
+  document (a query over the existing `ApplicationDocument` join, no new
+  plumbing) and a written zero-documents empty state. Found and fixed one
+  real 375px layout issue during required verification: language column
+  dividers stayed visible when the grid collapsed to one column on
+  mobile, leaving German/English visibly indented versus Croatian -
+  fixed by gating the divider styling to the breakpoint where multiple
+  columns actually exist. 11 new tests. Full detail: `DECISIONS.md`'s
+  2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Candidate Profile + Documents -
+  2026-08-28 pass". Full pytest suite: 526 passed / 3 skipped (515 + 11).
+- **Next actual step:** screens pass 6+ - migrating the remaining ~120
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
   the theme toggle) - **neither yet scoped or started.** Job Detail,
-  Application Detail, Dashboard, and Find Ausbildung are the reference
-  call sites now for how a real screen uses `match_band` (full and
-  compact shapes), `intelligence_surface` (read-only, editable, and
-  cross-application-insight shapes), `status_pill`, `empty_state`,
-  `chip_source`, and the chip macros; the token layer, component layer,
-  and schema pass are all available for the rest of the screens pass to
+  Application Detail, Dashboard, Find Ausbildung, and Candidate Profile /
+  Documents are the reference call sites now for how a real screen uses
+  `match_band` (full and compact shapes), `intelligence_surface`
+  (read-only, editable, and cross-application-insight shapes),
+  `status_pill`, `empty_state`, `chip_source`, `chip_attribute`, and the
+  rest of the component layer; the token layer, component layer, and
+  schema pass are all available for the rest of the screens pass to
   build on.
 
 ## Security posture

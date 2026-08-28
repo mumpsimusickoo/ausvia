@@ -1225,6 +1225,74 @@ a browser can control; a user with no profile - the bug above, found this
 way; a result set containing a merged duplicate) - both themes, 375px
 with the numeric `scrollWidth` check, zero overflow.
 
+## Candidate Profile + Documents — 2026-08-28 pass
+
+Two screens in one pass, both mostly restyling over data that already
+existed. Bundle structure, English copy. See `DECISIONS.md` for the
+German-only language proof state and why the completeness checklist
+reused the Dashboard pass's *data* but needed its own UI.
+
+**Components used (Profile):** `chip_attribute` (skill chips - the bundle's
+own plain-tone construction, `bg-page border-line`, was already this
+macro's default variant, first genuine reuse for skills specifically),
+`empty_state` (education/experience empty variants, each with its own
+written copy, not a shared generic message), `intelligence_surface`
+(profile coaching - confirmed the reliability badge stays hidden on
+`ProfileCoaching.reliability`, null by design, same as every other
+unpopulated reliability column so far), `progress_bar` (completeness).
+**Components used (Documents):** `btn`, `empty_state` (zero documents -
+written for this screen specifically, not reused verbatim from another
+empty state).
+
+**Personal info and Ausbildung preferences became summary-card-plus-
+`<details>`-toggle sections**, matching the bundle's own compact read-only
+constructions (an avatar-initials card; a four-row preferences card) over
+the pre-existing always-open forms - the `<details>` toggle is the same
+disclosure pattern Education/Experience's "Add entry" already used, not a
+new interaction mechanism. Avatar initials, age (from `date_of_birth`),
+and the personal-info meta line (`"21 years old · Croatian · Leipzig ·
+email"`) are all real derivations from existing fields, computed in
+`app/profile/routes.py`, not new data.
+
+**The completeness checklist is a real per-item list this time** (dot +
+done/missing sentence, one row per one of `completeness_checklist()`'s
+eight checks) - distinct from the Dashboard pass's single summary
+sentence, which was that screen's own deliberate simplification for a
+compact rail card, not this project's general completeness component.
+Same data, two honest presentations - see `DECISIONS.md`.
+
+**Language rows are a hand-built mini-grid, not `chip_attribute`** - the
+bundle's construction (name + level on one line, a proof caption below,
+column dividers between languages) doesn't fit a flat pill shape. Uses
+`sm:border-l`/`sm:px-4` (not unconditional) so the column dividers only
+apply once the grid actually has room for multiple columns - found via
+the required 375px check: at one column, an unconditional left border/
+padding left German and English visibly indented relative to Croatian,
+since the divider styling doesn't know it's no longer between two
+side-by-side columns once everything's stacked.
+
+**Documents: "Used in N applications" / "Not used in any application"**
+is `doc.application_documents|length` read directly in the template - the
+relationship (`Document.application_documents`, added in the Phase 7
+cascade-delete remediation) already existed; this is its first use for
+display, not new plumbing. File-type badge (PDF/JPG) is the filename
+extension, uppercased, computed inline in the template - no model change.
+Primary-document badges stayed their own table column rather than folding
+into the bundle's action-column treatment (its own table has no separate
+Primary header at all, folding the badge into the trailing action slot) -
+kept as a distinct column since that's already a clearer, working pattern
+and the bundle's fold-in would cramp two things (a badge and a delete
+button) into one narrow slot.
+
+**Verified across all six required states** (a brand-new profile with
+nothing filled; a partial profile; a complete profile with a German
+certificate on file; zero documents; a document with a pending type
+suggestion; a document used in no applications - plus, incidentally, one
+used in a real application, and the German-certificate cross-reference
+toggling live between "Certificate on file" and "School-level, no
+certificate on file" as the certificate document was added) - both
+themes, 375px with the numeric `scrollWidth` check, zero overflow.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the

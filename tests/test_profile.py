@@ -1,4 +1,8 @@
+from datetime import date
+
+from app.models.document import Document
 from app.models.profile import Education, Skill, Language
+from app.profile.routes import _age, _completeness_lines, _language_proof_note
 from tests.conftest import login
 
 
@@ -117,3 +121,94 @@ def test_completeness_checklist_matches_percent(client, db, make_user):
     satisfied = {label for label, ok in checklist if ok}
     assert satisfied == {"Contact email", "Name"}
     assert profile.completeness_percent() == round(100 * 2 / 8)
+
+
+def test_completeness_lines_pairs_done_and_missing_phrasing(client, db, make_user):
+    # Screens pass 5 (Profile, 2026-08-28): the Profile screen's checklist
+    # reuses completeness_checklist()'s data (not a second calculation),
+    # paired with real done/missing sentences for its own list UI.
+    user = make_user(email="p6@example.com", password="Password123!")
+    lines = _completeness_lines(user.profile.completeness_checklist())
+    assert len(lines) == 8
+    by_text = {text: ok for text, ok in lines}
+    assert by_text["Contact email provided"] is True
+    assert by_text["Name missing"] is False
+
+
+def test_completeness_checklist_shown_on_profile_page(client, db, make_user):
+    make_user(email="p7@example.com", password="Password123!")
+    login(client, "p7@example.com", "Password123!")
+
+    resp = client.get("/profile/")
+    assert b"Contact email provided" in resp.data
+    assert b"Name missing" in resp.data
+
+
+def test_grounding_statement_shown_on_profile_page(client, db, make_user):
+    make_user(email="p8@example.com", password="Password123!")
+    login(client, "p8@example.com", "Password123!")
+
+    resp = client.get("/profile/")
+    assert b"nothing is ever invented to fill" in resp.data
+
+
+def test_age_computed_from_date_of_birth():
+    today = date.today()
+    # Exactly 20 years ago today - just turned 20.
+    assert _age(date(today.year - 20, today.month, today.day)) == 20
+    # Born the same month/day but 20 years ago plus one day - the birthday
+    # falls tomorrow, so still 19, not the naive year-subtraction's 20.
+    from datetime import timedelta
+    tomorrow = today + timedelta(days=1)
+    assert _age(date(tomorrow.year - 20, tomorrow.month, tomorrow.day)) == 19
+    assert _age(None) is None
+
+
+def test_language_proof_note_native_language():
+    class FakeLang:
+        level = "Native"
+        name = "Croatian"
+
+    assert _language_proof_note(FakeLang(), has_german_certificate=True) == "Native language"
+
+
+def test_language_proof_note_german_with_and_without_certificate():
+    class FakeGerman:
+        level = "B2"
+        name = "German"
+
+    assert _language_proof_note(FakeGerman(), has_german_certificate=True) == "Certificate on file"
+    assert _language_proof_note(FakeGerman(), has_german_certificate=False) == "School-level, no certificate on file"
+
+
+def test_language_proof_note_non_german_stays_honest_about_missing_data():
+    # No is_primary_english_cert (or equivalent) exists anywhere in the
+    # schema - the schema simply can't answer "does a certificate exist
+    # for English", so this must not claim it can (see DECISIONS.md).
+    class FakeEnglish:
+        level = "B1"
+        name = "English"
+
+    assert _language_proof_note(FakeEnglish(), has_german_certificate=False) is None
+
+
+def test_language_proof_note_reflects_real_uploaded_certificate(client, db, make_user):
+    user = make_user(email="p9@example.com", password="Password123!")
+    login(client, "p9@example.com", "Password123!")
+    profile = user.profile
+    profile.languages.append(Language(name="German", level="B2"))
+    db.session.commit()
+
+    resp = client.get("/profile/")
+    assert b"School-level, no certificate on file" in resp.data
+
+    db.session.add(Document(
+        user_id=user.id, doc_type="language_certificate", original_filename="cert.pdf",
+        stored_filename="cert-stored.pdf", storage_path="x/cert-stored.pdf",
+        mime_type="application/pdf", file_size=1000, is_primary_german_cert=True,
+    ))
+    db.session.commit()
+
+    resp = client.get("/profile/")
+    assert b"Certificate on file" in resp.data
+    assert b"School-level, no certificate on file" not in resp.data

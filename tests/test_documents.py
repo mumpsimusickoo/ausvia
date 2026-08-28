@@ -1,6 +1,8 @@
 import io
 
+from app.models.application import Application, ApplicationDocument
 from app.models.document import Document
+from app.models.job import Job
 from tests.conftest import login
 from pdfmerge import text_to_pdf_bytes
 
@@ -164,3 +166,52 @@ def test_set_primary_cv_unsets_previous_primary(client, db, make_user):
     db.session.refresh(doc2)
     assert doc1.is_primary_cv is False
     assert doc2.is_primary_cv is True
+
+
+def test_empty_state_shown_when_no_documents(client, db, make_user):
+    make_user(email="d8@example.com", password="Password123!")
+    login(client, "d8@example.com", "Password123!")
+
+    resp = client.get("/documents/")
+    assert b"No documents yet" in resp.data
+
+
+def test_document_not_used_in_any_application(client, db, make_user):
+    make_user(email="d9@example.com", password="Password123!")
+    login(client, "d9@example.com", "Password123!")
+    client.post(
+        "/documents/upload",
+        data={"doc_type": "cv", "file": (io.BytesIO(VALID_PDF), "unused.pdf")},
+        content_type="multipart/form-data",
+    )
+
+    resp = client.get("/documents/")
+    assert b"Not used in any application" in resp.data
+
+
+def test_document_used_in_applications_count(client, db, make_user):
+    # Screens pass 5 (Documents, 2026-08-28): "Used in N applications" is a
+    # query over the existing ApplicationDocument join, not new plumbing.
+    user = make_user(email="d10@example.com", password="Password123!")
+    login(client, "d10@example.com", "Password123!")
+
+    doc = Document(
+        user_id=user.id, doc_type="cv", original_filename="used.pdf",
+        stored_filename="used-stored.pdf", storage_path="x/used-stored.pdf",
+        mime_type="application/pdf", file_size=1000,
+    )
+    db.session.add(doc)
+    db.session.commit()
+
+    job = Job(title="Elektroniker", employment_type="Ausbildung", dedup_key="doc-usage-test")
+    db.session.add(job)
+    db.session.commit()
+    application = Application(user_id=user.id, job_id=job.id, status="preparing")
+    db.session.add(application)
+    db.session.commit()
+    db.session.add(ApplicationDocument(application_id=application.id, document_id=doc.id, order_index=0))
+    db.session.commit()
+
+    resp = client.get("/documents/")
+    assert b"Used in 1 application" in resp.data
+    assert b"Not used in any application" not in resp.data

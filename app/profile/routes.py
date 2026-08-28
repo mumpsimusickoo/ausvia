@@ -1,9 +1,11 @@
 import io
+from datetime import date
 
 from flask import Blueprint, render_template, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
+from app.models.document import Document
 from app.models.profile import Education, Experience, Skill, Language, Preference
 from app.profile.forms import (
     PersonalInfoForm,
@@ -21,6 +23,61 @@ from app.profile.cv_export import build_cv_pdf, safe_cv_filename
 from app.utils.logging import log_event
 
 bp = Blueprint("profile", __name__, url_prefix="/profile")
+
+
+def _age(date_of_birth):
+    if not date_of_birth:
+        return None
+    today = date.today()
+    years = today.year - date_of_birth.year
+    if (today.month, today.day) < (date_of_birth.month, date_of_birth.day):
+        years -= 1
+    return years
+
+
+# Screens pass 5 (Profile, 2026-08-28): the bundle's own completeness
+# panel is four real done-or-missing sentences ("Personendaten
+# vollständig" / "Sprachzertifikat nicht hochgeladen"), not a bare label
+# list - this pairs CandidateProfile.completeness_checklist()'s eight
+# generic (label, satisfied) checks (reused as-is, per the task - not a
+# second completeness calculation) with a done/missing phrasing for each,
+# rather than the Dashboard pass's single summary sentence (a deliberate
+# simplification for that screen's compact rail card, not a general
+# checklist component - see DECISIONS.md).
+_COMPLETENESS_PHRASING = {
+    "Name": ("Name provided", "Name missing"),
+    "Location": ("Location provided", "Location missing"),
+    "Phone number": ("Phone number provided", "Phone number missing"),
+    "Contact email": ("Contact email provided", "Contact email missing"),
+    "Education": ("Education entries added", "No education entries yet"),
+    "Skills": ("Skills added", "No skills added yet"),
+    "Languages": ("Languages added", "No languages added yet"),
+    "Job preferences": ("Ausbildung preferences set", "Ausbildung preferences not set"),
+}
+
+
+def _completeness_lines(checklist):
+    return [
+        (_COMPLETENESS_PHRASING.get(label, (label, label))[0 if ok else 1], ok)
+        for label, ok in checklist
+    ]
+
+
+def _language_proof_note(language, has_german_certificate):
+    """Screens pass 5 (Profile, 2026-08-28): the bundle shows a proof-state
+    caption per language ("Goethe-Zertifikat vorhanden" / "Schulkenntnisse,
+    kein Nachweis"), but this schema only tracks certificate evidence for
+    German specifically (Document.is_primary_german_cert - there's no
+    is_primary_english_cert or similar for any other language). Rather than
+    claim "no evidence" for a language this app has no way to actually
+    check, the proof caption is German-only; every other non-native
+    language just shows its level, honestly not extended past what's
+    real - see DECISIONS.md."""
+    if language.level == "Native":
+        return "Native language"
+    if language.name.strip().lower() == "german":
+        return "Certificate on file" if has_german_certificate else "School-level, no certificate on file"
+    return None
 
 
 def _get_or_create_profile():
@@ -62,9 +119,39 @@ def view():
     else:
         preference_form = PreferenceForm(open_to_relocation=True)
 
+    age = _age(profile.date_of_birth)
+    meta_parts = [
+        f"{age} years old" if age is not None else None,
+        profile.nationality,
+        profile.city,
+        profile.contact_email,
+    ]
+    profile_meta_line = " · ".join(p for p in meta_parts if p)
+
+    has_german_certificate = Document.query.filter_by(
+        user_id=current_user.id, is_primary_german_cert=True
+    ).first() is not None
+    language_notes = {lang.id: _language_proof_note(lang, has_german_certificate) for lang in profile.languages}
+
+    pref = profile.preference
+    preference_lines = [
+        ("Fields", ", ".join(pref.fields) if pref and pref.fields else "Any"),
+        ("Locations", ", ".join(pref.locations) if pref and pref.locations else "Germany-wide"),
+        ("Relocation", ("Open to it" if pref.open_to_relocation else "Not open to it") if pref else "Not set"),
+        ("Min. German level", pref.min_german_level if pref and pref.min_german_level else "Not set"),
+        ("Desired start", pref.desired_start_date if pref and pref.desired_start_date else "Not set"),
+    ]
+
     return render_template(
         "profile/view.html",
         profile=profile,
+        age=age,
+        profile_meta_line=profile_meta_line,
+        avatar_initials="".join(p[0] for p in (profile.first_name, profile.last_name) if p).upper() or "?",
+        completeness=profile.completeness_percent(),
+        completeness_lines=_completeness_lines(profile.completeness_checklist()),
+        language_notes=language_notes,
+        preference_lines=preference_lines,
         personal_form=personal_form,
         preference_form=preference_form,
         education_form=EducationForm(),

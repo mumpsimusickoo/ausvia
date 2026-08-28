@@ -71,4 +71,4 @@ def test_coaching_button_shown_on_profile_page(client, db, make_user):
     login(client, "coach5@example.com", "Password123!")
 
     resp = client.get("/profile/")
-    assert b"Get AI feedback on my profile" in resp.data
+    assert b"Get AI feedback" in resp.data
