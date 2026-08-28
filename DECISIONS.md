@@ -6,6 +6,58 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Screens pass 6 (Company Detail): "listings" vs. "positions", and a second wholly-blank-profile fix
+
+**"Listings on file" is the raw `JobListing` count, not the number of
+positions shown below.** The bundle's German label ("Anzeigen auf Datei")
+uses the same word ("Anzeige" - posting/ad) the rest of the bundle uses
+generically for job postings, so the alternative reading (a rough
+synonym for "positions") was real and considered. Went with the raw-
+listing interpretation instead: it's a genuinely different, more
+informative number whenever this company's postings were merged from
+more than one source (`app/jobs/dedupe.py`) - the exact same
+duplicates-are-an-honest-signal reasoning behind Find Ausbildung's "N
+duplicates merged" line, not a new idea introduced here. Verified live:
+a company with one canonical position merged from two source listings
+correctly shows "1" position but "2" listings on file, not the same
+number twice. Costs nothing when there's no duplication (equal to the
+position count then, exactly matching the bundle's own single example).
+
+**The company-fit insight's grounding was verified by reading the prompt
+builder directly, not assumed from the docstring.**
+`app/ai/prompts/company.py`'s `_company_facts()` builds its entire company-
+side context from exactly five fields - `name`, `industry`, `location`,
+`website`, `description` - plus up to 5 job titles on file, all wrapped
+via `wrap_untrusted_external_text()` (company-sourced text is external,
+third-party-authored data, not instructions). The system prompt
+separately forbids inventing "company culture, employee count, benefits,
+working conditions, reputation, or hiring practices... not explicitly
+stated" and instructs saying so plainly when the facts are thin rather
+than filling the gap. Every one of those company-side fields is also
+what the new Facts on file panel shows - confirmed the insight has
+nothing to draw on that isn't already visible on the same page. Verified
+live against the real configured provider (not just mock mode): given a
+company with a real German description and three real Ausbildung
+postings, the generated note referenced only the location, the
+description's own content, the candidate's real skills/language/location,
+and explicitly said the company details were "relatively limited" rather
+than inventing anything to compensate - the honest-thinness instruction
+working in practice, not just in the prompt text.
+
+**Company Detail's position list needed the same wholly-blank-profile fix
+Find Ausbildung's search results needed.** Found by inspection this time,
+not by re-discovering it via Playwright: `get_or_compute_matches()` is the
+same batched matcher, so a candidate with no skills/languages/education/
+preference at all can still see a fabricated 100/100 "Strong match" on
+every position here too, via the identical `_score_location()` "no
+preference row = open to anywhere" default documented in the Find
+Ausbildung pass's entry. Reused `_profile_has_scorable_data()` directly
+from `app/jobs/routes.py` (imported, not duplicated) rather than writing
+a second copy of the same check - confirmed live with a genuinely blank
+profile: every position correctly reads "Not scored" instead of a number.
+
+---
+
 ## 2026-08-28 — Screens pass 5 (Profile + Documents): language proof state, and reused vs. new completeness UI
 
 **Language proof state is German-only, not extended to every language.** The

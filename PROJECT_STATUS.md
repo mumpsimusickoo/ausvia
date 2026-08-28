@@ -567,19 +567,46 @@ for a redesign pass. Status:
   columns actually exist. 11 new tests. Full detail: `DECISIONS.md`'s
   2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Candidate Profile + Documents -
   2026-08-28 pass". Full pytest suite: 526 passed / 3 skipped (515 + 11).
-- **Next actual step:** screens pass 6+ - migrating the remaining ~120
+- **Screens pass 6 (Company Detail) done, 2026-08-28** -
+  `companies/detail.html` rebuilt on the component layer - small screen,
+  mostly restyling. New "Facts on file" panel (industry, location,
+  listings on file, first seen) keeps its unusual honest-blank note
+  verbatim in spirit - "Employee count, founding year, and revenue aren't
+  available, so they stay blank rather than being estimated" - rendered
+  as a real sentence, not shrunk to a caption. "Listings on file" is
+  deliberately the raw `JobListing` count rather than the position count,
+  a genuinely different number whenever postings were merged from more
+  than one source - same reasoning as Find Ausbildung's "N duplicates
+  merged" line, verified live with a two-listing/one-position company.
+  Per-position match scores reuse Find Ausbildung's batched
+  `get_or_compute_matches()` (per the task's own instruction) and picked
+  up that pass's `_profile_has_scorable_data()` guard too, applied
+  proactively here rather than waiting to rediscover the same wholly-
+  blank-profile score-fabrication bug on a second screen - confirmed live
+  that every position on a real company correctly read "Not scored" for
+  a blank test profile. Company fit insight wrapped in
+  `intelligence_surface`; its grounding was verified by reading
+  `app/ai/prompts/company.py`'s prompt builder directly (five company
+  fields plus job titles, nothing else, wrapped as untrusted external
+  text) rather than trusting the docstring, then confirmed live against
+  the real configured provider - the generated note stayed inside the
+  facts panel's own data and explicitly flagged the company details as
+  thin rather than inventing around it. 9 new tests. Full detail:
+  `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Company Detail
+  - 2026-08-28 pass". Full pytest suite: 535 passed / 3 skipped (526 + 9).
+- **Next actual step:** screens pass 7+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
   the theme toggle) - **neither yet scoped or started.** Job Detail,
-  Application Detail, Dashboard, Find Ausbildung, and Candidate Profile /
-  Documents are the reference call sites now for how a real screen uses
-  `match_band` (full and compact shapes), `intelligence_surface`
-  (read-only, editable, and cross-application-insight shapes),
-  `status_pill`, `empty_state`, `chip_source`, `chip_attribute`, and the
-  rest of the component layer; the token layer, component layer, and
-  schema pass are all available for the rest of the screens pass to
-  build on.
+  Application Detail, Dashboard, Find Ausbildung, Candidate Profile /
+  Documents, and Company Detail are the reference call sites now for how
+  a real screen uses `match_band` (full and compact shapes),
+  `intelligence_surface` (read-only, editable, and cross-application-
+  insight shapes), `status_pill`, `empty_state`, `chip_source`,
+  `chip_attribute`, and the rest of the component layer; the token
+  layer, component layer, and schema pass are all available for the
+  rest of the screens pass to build on.
 
 ## Security posture
 

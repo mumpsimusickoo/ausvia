@@ -702,7 +702,31 @@ for a redesign pass, started 2026-08-24.
       new plumbing) and its zero-documents empty state. 11 new tests. Full
       detail: `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s
       "Candidate Profile + Documents - 2026-08-28 pass".
-- [ ] **Screens pass 6+** - the remaining ~120 existing card/badge/button/
+- [x] **Screens pass 6: Company Detail** - 2026-08-28, `companies/detail.html`
+      rebuilt on the component layer - small screen, mostly restyling.
+      New "Facts on file" panel (industry, location, listings on file,
+      first seen) plus its unusual, deliberately-kept honest-blank note
+      ("Employee count, founding year, and revenue aren't available, so
+      they stay blank rather than being estimated"). Per-position match
+      scores reuse Find Ausbildung's batched `get_or_compute_matches()`
+      (per the task's own instruction, avoiding the N+1 pattern that pass
+      fixed) and picked up its `_profile_has_scorable_data()` guard too -
+      a wholly blank profile can no longer fabricate a passing score on
+      a company's positions either, the same underlying bug applied
+      proactively rather than rediscovered. "Listings on file" is
+      deliberately the raw `JobListing` count, not the position count -
+      a genuinely different number whenever postings were merged from
+      more than one source, same reasoning as Find Ausbildung's "N
+      duplicates merged" line. Company fit insight wrapped in
+      `intelligence_surface`; its grounding was verified by reading
+      `app/ai/prompts/company.py`'s prompt builder directly (five company
+      fields + job titles, nothing else, wrapped as untrusted external
+      text) and confirmed live against the real configured provider - the
+      generated note stayed inside the facts panel's own data and
+      explicitly flagged the company facts as thin rather than inventing
+      around it. 9 new tests. Full detail: `DECISIONS.md`'s 2026-08-28
+      entry, `DESIGN_SYSTEM.md`'s "Company Detail - 2026-08-28 pass".
+- [ ] **Screens pass 7+** - the remaining ~110 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components.
       Not yet scoped or started. The named token layer

@@ -1293,6 +1293,53 @@ toggling live between "Certificate on file" and "School-level, no
 certificate on file" as the certificate document was added) - both
 themes, 375px with the numeric `scrollWidth` check, zero overflow.
 
+## Company Detail — 2026-08-28 pass
+
+Small screen, mostly restyling over data that already existed. Bundle
+structure, English copy. See `DECISIONS.md` for the "listings on file" vs.
+"positions" distinction, confirmation the company-fit insight is
+genuinely grounded (read the prompt builder directly, not assumed), and
+a second instance of the wholly-blank-profile score-fabrication fix
+Find Ausbildung needed first.
+
+**Components used:** `intelligence_surface` (company fit - confirmed the
+reliability badge stays hidden on `CompanyInsight.reliability`, null by
+design, same pattern as every other unpopulated reliability column so
+far), `status_pill` ("Your application here" - reuses the existing ten-
+state pill rather than writing new per-status sentences the bundle's own
+single-example text implied but doesn't generalize), `empty_state` (no
+positions on file), `btn`.
+
+**Per-position match scores reuse `get_or_compute_matches()`** (Find
+Ausbildung's batched matcher) and `match_label()`, per the task's own
+instruction - a company with several openings would otherwise repeat the
+N+1 `get_or_compute_match()` pattern that pass fixed. Also picked up that
+pass's `_profile_has_scorable_data()` guard (imported directly from
+`app/jobs/routes.py`, not duplicated) so a wholly blank profile can't
+fabricate a passing score here either - the same underlying
+`_score_location()` default, the same fix, applied proactively rather
+than waiting to rediscover it.
+
+**Company-initials avatar reuses `jobs/detail.html`'s own inline
+logic** (first letter of the first two words of the company name) -
+same convention, computed the same way, not a second rule.
+
+**The honest-blank facts-panel note is kept as a real sentence, not a
+caption** - "Employee count, founding year, and revenue aren't
+available, so they stay blank rather than being estimated" renders at
+the same `text-t3` weight as every other footnote on this screen, not
+shrunk further or dropped. This is the more unusual of the screen's two
+grounding statements (most products silently omit or estimate fields
+like these) and the task was explicit that it should survive verbatim
+in spirit, not be reduced.
+
+**Verified across all four required states** (a company with no insight
+generated yet; one with a real insight, generated live against the
+configured provider; a single-position company and a several-position
+company, including one with a merged-duplicate listing; a company where
+an application exists and one where it doesn't) - both themes, 375px
+with the numeric `scrollWidth` check, zero overflow.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the
