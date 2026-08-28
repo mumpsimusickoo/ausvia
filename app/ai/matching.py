@@ -8,6 +8,8 @@ already-computed facts, never invents the numbers.
 import re
 from dataclasses import dataclass, field
 
+from flask_babel import gettext as _
+
 from app.models.profile import CEFR_LEVELS
 
 CEFR_RANK = {level: i for i, level in enumerate(CEFR_LEVELS)}
@@ -114,13 +116,16 @@ def _score_language(profile, job):
 
         if candidate_rank >= required_rank:
             points += 1
-            strengths.append(f"{language} {candidate_level} (required: {required_level})")
+            strengths.append(
+                _("%(language)s %(level)s (required: %(required)s)",
+                  language=language, level=candidate_level, required=required_level)
+            )
         else:
             gaps.append(
                 GapItem(
-                    label=f"{language} {required_level} preferred",
+                    label=_("%(language)s %(level)s preferred", language=language, level=required_level),
                     status="preferred_missing",
-                    note=f"candidate has {candidate_level}",
+                    note=_("candidate has %(level)s", level=candidate_level),
                 )
             )
 
@@ -146,13 +151,13 @@ def _score_education(profile, job):
 
     if best_entry and best_overlap > 0:
         label = " / ".join(p for p in [best_entry.degree, best_entry.field] if p)
-        return 1.0, [f"Education background aligns: {label}"], []
+        return 1.0, [_("Education background aligns: %(label)s", label=label)], []
 
     return 0.0, [], [
         GapItem(
-            label="Education / field of study",
+            label=_("Education / field of study"),
             status="unknown",
-            note="Could not confirm alignment automatically - review manually.",
+            note=_("Could not confirm alignment automatically - review manually."),
         )
     ]
 
@@ -160,28 +165,37 @@ def _score_education(profile, job):
 def _score_location(profile, job):
     preference = profile.preference
     if not preference or not preference.locations:
-        return 1.0, ["Open to opportunities Germany-wide"], []
+        return 1.0, [_("Open to opportunities Germany-wide")], []
 
     job_places = {p.lower() for p in [job.location, job.federal_state] if p}
     preferred_places = {p.strip().lower() for p in preference.locations if p.strip()}
 
     if job_places & preferred_places:
-        return 1.0, [f"Location matches preference ({job.location or job.federal_state})"], []
+        return 1.0, [
+            _("Location matches preference (%(location)s)", location=job.location or job.federal_state)
+        ], []
 
+    location_name = job.location or _("This location")
     if preference.open_to_relocation:
         return 0.5, [], [
             GapItem(
-                label="Location",
+                label=_("Location"),
                 status="preferred_missing",
-                note=f"{job.location or 'This location'} is outside stated preferences, but candidate is open to relocation.",
+                note=_(
+                    "%(location)s is outside stated preferences, but candidate is open to relocation.",
+                    location=location_name,
+                ),
             )
         ]
 
     return 0.0, [], [
         GapItem(
-            label="Location",
+            label=_("Location"),
             status="required_missing",
-            note=f"{job.location or 'This location'} is outside stated preferences and candidate is not open to relocation.",
+            note=_(
+                "%(location)s is outside stated preferences and candidate is not open to relocation.",
+                location=location_name,
+            ),
         )
     ]
 
@@ -197,12 +211,15 @@ def _score_start_date(profile, job):
         return None, [], []
 
     if wanted.group() == actual.group():
-        return 1.0, [f"Start date matches ({job.start_date})"], []
+        return 1.0, [_("Start date matches (%(date)s)", date=job.start_date)], []
     return 0.0, [], [
         GapItem(
-            label="Start date",
+            label=_("Start date"),
             status="preferred_missing",
-            note=f"Job starts {job.start_date}, candidate prefers {preference.desired_start_date}.",
+            note=_(
+                "Job starts %(job_date)s, candidate prefers %(pref_date)s.",
+                job_date=job.start_date, pref_date=preference.desired_start_date,
+            ),
         )
     ]
 

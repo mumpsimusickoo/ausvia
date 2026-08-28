@@ -66,7 +66,13 @@ def test_reply_station_dates_from_earliest_gmail_message(client, db, make_user):
     reply = next(s for s in route["stations"] if s["key"] == "reply")
     assert reply["reached"] is True
     assert reply["skipped"] is False
-    assert reply["date_label"] == earlier.strftime("%d %b")
+    # i18n pass 2: format_local_date(dt, format="d MMM") - not "%d %b" - see
+    # DECISIONS.md's mass date-formatting sweep. get_locale() falls back to
+    # the app default (English) with no request context (app/i18n.py), so
+    # this needs no request context of its own to resolve correctly.
+    from app.i18n import format_local_date
+
+    assert reply["date_label"] == format_local_date(earlier, format="d MMM")
 
 
 def test_reply_station_skipped_when_route_passed_it_with_no_reply(client, db, make_user):

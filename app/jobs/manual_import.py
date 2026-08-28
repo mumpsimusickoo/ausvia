@@ -10,6 +10,7 @@ import re
 
 import requests
 from bs4 import BeautifulSoup
+from flask_babel import gettext as _
 
 FETCH_TIMEOUT = 10
 MAX_RESPONSE_BYTES = 3 * 1024 * 1024  # 3 MB
@@ -25,7 +26,7 @@ def fetch_and_extract_text(url):
     human-readable reason on any failure - callers should fall back to manual
     text paste rather than retry with different headers/evasion techniques."""
     if not re.match(r"^https?://", url or ""):
-        raise FetchFailed("That doesn't look like a valid URL.")
+        raise FetchFailed(_("That doesn't look like a valid URL."))
 
     try:
         resp = requests.get(
@@ -35,23 +36,25 @@ def fetch_and_extract_text(url):
             stream=True,
         )
     except requests.RequestException as e:
-        raise FetchFailed(f"Could not reach that page ({e.__class__.__name__}).")
+        raise FetchFailed(_("Could not reach that page (%(reason)s).", reason=e.__class__.__name__))
 
     if resp.status_code in (401, 403, 429):
         raise FetchFailed(
-            "That site declined the request (access-restricted or rate-limited). "
-            "Please paste the job text manually instead."
+            _(
+                "That site declined the request (access-restricted or rate-limited). "
+                "Please paste the job text manually instead."
+            )
         )
     if resp.status_code != 200:
-        raise FetchFailed(f"That page returned HTTP {resp.status_code}.")
+        raise FetchFailed(_("That page returned HTTP %(status)d.", status=resp.status_code))
 
     content = resp.raw.read(MAX_RESPONSE_BYTES + 1, decode_content=True)
     if len(content) > MAX_RESPONSE_BYTES:
-        raise FetchFailed("That page is too large to import automatically.")
+        raise FetchFailed(_("That page is too large to import automatically."))
 
     content_type = resp.headers.get("Content-Type", "")
     if "html" not in content_type and "text" not in content_type:
-        raise FetchFailed("That URL doesn't point to a readable web page.")
+        raise FetchFailed(_("That URL doesn't point to a readable web page."))
 
     soup = BeautifulSoup(content, "html.parser")
     for tag in soup(["script", "style", "noscript", "nav", "footer", "header"]):
@@ -63,6 +66,6 @@ def fetch_and_extract_text(url):
     text = "\n".join(line for line in lines if line)
 
     if len(text) < 50:
-        raise FetchFailed("Couldn't find readable content on that page.")
+        raise FetchFailed(_("Couldn't find readable content on that page."))
 
     return {"page_title": title, "text": text[:20000]}

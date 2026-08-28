@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ get_locale() }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}AUSVIA — Your path to Ausbildung{% endblock %}</title>
+  <title>{% block title %}{{ _("AUSVIA — Your path to Ausbildung") }}{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='brand/favicon.svg') }}">
   <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='brand/favicon-32.png') }}">
   <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='brand/favicon-16.png') }}">
@@ -61,14 +61,23 @@
     shared by the desktop <aside> and the mobile drawer so the two can
     never drift out of sync.
   #}
+  {#
+    i18n pass 1, 2026-08-28: the end-to-end proof of concept for this
+    pass - the sidebar/drawer nav labels, visible on every authenticated
+    screen, wrapped in _() (Jinja's i18n-extension global, installed
+    automatically by babel.init_app() - see app/__init__.py). This is
+    deliberately the ONLY string extraction this pass does; mass
+    extraction across every template is pass 2's job, not this one's -
+    see DECISIONS.md and ROADMAP.md.
+  #}
   {% set nav_items = [
-    ('main.dashboard', 'Dashboard'),
-    ('jobs.search', 'Find Ausbildung'),
-    ('jobs.saved', 'Saved Jobs'),
-    ('applications.list_applications', 'Applications'),
-    ('profile.view', 'Candidate Profile'),
-    ('documents.list_documents', 'Documents'),
-    ('integrations.gmail_status', 'Gmail'),
+    ('main.dashboard', _('Dashboard')),
+    ('jobs.search', _('Find Ausbildung')),
+    ('jobs.saved', _('Saved Jobs')),
+    ('applications.list_applications', _('Applications')),
+    ('profile.view', _('Candidate Profile')),
+    ('documents.list_documents', _('Documents')),
+    ('integrations.gmail_status', _('Gmail')),
   ] %}
   {#
     Theme pass, 2026-08-25: nav_links() is now shared between two surfaces
@@ -102,8 +111,8 @@
     {% endfor %}
     {% if current_user.is_admin %}
     <div class="pt-4 mt-4 border-t {% if themed %}border-line{% else %}border-white/10{% endif %}">
-      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide {% if themed %}text-t2{% else %}text-ink-t2{% endif %}">Admin</p>
-      {% for endpoint, label in [('admin.overview', 'Admin Dashboard'), ('admin.codes', 'Invitation Codes'), ('admin.users', 'Users'), ('admin.job_sources', 'Job Sources'), ('admin.ai_usage', 'AI Usage'), ('admin.components', 'Components')] %}
+      <p class="px-3 pb-1 text-xs font-semibold uppercase tracking-wide {% if themed %}text-t2{% else %}text-ink-t2{% endif %}">{{ _("Admin") }}</p>
+      {% for endpoint, label in [('admin.overview', _('Admin Dashboard')), ('admin.codes', _('Invitation Codes')), ('admin.users', _('Users')), ('admin.job_sources', _('Job Sources')), ('admin.ai_usage', _('AI Usage')), ('admin.components', _('Components'))] %}
       {# Original behavior, preserved: only "Admin Dashboard" ever shows
          active, and it does so for the whole admin blueprint (not just the
          exact overview page) - the other four links never highlight. #}
@@ -128,7 +137,7 @@
     <a href="{{ url_for('auth.logout') }}"
        class="mt-1 flex items-center rounded-lg px-3 py-2 font-medium transition-colors duration-150
          {% if themed %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand
-         {% else %}text-ink-t2 hover:bg-white/5 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright{% endif %}">Log out</a>
+         {% else %}text-ink-t2 hover:bg-white/5 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright{% endif %}">{{ _("Log out") }}</a>
   </div>
   {% endmacro %}
   {% from "_logo.html" import lockup %}
@@ -143,7 +152,14 @@
     looked landing-specific. See _components.html for the macro itself
     and DECISIONS.md's 2026-08-28 "Landing toggle-fix pass" entry.
   #}
-  {% from "_components.html" import theme_toggle %}
+  {#
+    i18n pass 1, 2026-08-28: language_switcher() imported alongside
+    theme_toggle() from the same shared component file, for the same
+    reason theme_toggle lives there - a real component both authenticated
+    chrome and public pages (landing.html) need identically, not a
+    base.html-local macro landing.html can't reach.
+  #}
+  {% from "_components.html" import theme_toggle, language_switcher %}
 
   {#
     Logo-replacement pass, 2026-08-25: the mobile topbar/drawer lockups
@@ -159,21 +175,22 @@
       {{ lockup(22, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
     </a>
     <div class="flex items-center gap-1">
+      {{ language_switcher(fixed_ink=true) }}
       {{ theme_toggle('theme-toggle-mobile', fixed_ink=true) }}
       <button type="button" id="mobile-nav-toggle" aria-expanded="false" aria-controls="mobile-nav-drawer"
-              aria-label="Open menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
+              aria-label="{{ _('Open menu') }}" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
         {{ menu(22) }}
       </button>
     </div>
   </header>
 
   <!-- Mobile nav drawer: hidden by default, toggled by mobile-nav.js below -->
-  <div id="mobile-nav-drawer" class="md:hidden fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+  <div id="mobile-nav-drawer" class="md:hidden fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-label="{{ _('Navigation') }}">
     <div id="mobile-nav-backdrop" class="absolute inset-0 bg-black/50"></div>
     <div class="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-ink flex flex-col shadow-xl">
       <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
         {{ lockup(24, symbol_color="#4FC3C9", wordmark_color="#FFFFFF") }}
-        <button type="button" id="mobile-nav-close" aria-label="Close menu" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
+        <button type="button" id="mobile-nav-close" aria-label="{{ _('Close menu') }}" class="rounded-lg p-2 text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright">
           {{ cross(18) }}
         </button>
       </div>
@@ -233,8 +250,9 @@
       {#
         Theme pass, 2026-08-25: new - desktop had no persistent chrome
         above the content before this. Deliberately minimal (a control
-        strip, not a header): just the theme toggle and reserved space for
-        the language switcher the next pass adds beside it. No bundle
+        strip, not a header): the theme toggle, joined by the language
+        switcher as of the i18n pass (2026-08-28) in the space this
+        comment originally reserved for it. No bundle
         equivalent exists for this specific bar (checked directly - the
         bundle's own top bar with tabs is its screen-switcher demo chrome,
         not product UI; none of the real screens render one), so this is
@@ -242,6 +260,7 @@
         bundle-sourced pattern. See DESIGN_SYSTEM.md.
       #}
       <header class="hidden md:flex items-center justify-end gap-2 h-14 px-6 bg-card border-b border-line">
+        {{ language_switcher() }}
         {{ theme_toggle('theme-toggle-desktop') }}
       </header>
       <main class="mx-auto max-w-5xl px-4 py-8 md:px-8">
@@ -278,13 +297,15 @@
   <script nonce="{{ csp_nonce }}">
     (function () {
       var buttons = document.querySelectorAll('.theme-toggle-btn');
+      var LABEL_LIGHT = {{ _("Switch to light theme")|tojson }};
+      var LABEL_DARK = {{ _("Switch to dark theme")|tojson }};
       function currentTheme() {
         return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
       }
       function sync() {
         var dark = currentTheme() === 'dark';
         buttons.forEach(function (btn) {
-          btn.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme');
+          btn.setAttribute('aria-label', dark ? LABEL_LIGHT : LABEL_DARK);
           btn.querySelector('.theme-toggle-icon-moon').hidden = dark;
           btn.querySelector('.theme-toggle-icon-sun').hidden = !dark;
         });

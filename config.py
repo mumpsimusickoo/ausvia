@@ -106,6 +106,24 @@ class Config:
     # self-serve like Adzuna's, allow lead time.
     JOOBLE_API_KEY = os.environ.get("JOOBLE_API_KEY")
 
+    # i18n pass 1 (see app/i18n.py, DECISIONS.md). English is the default,
+    # not the bundle's own bilingual rule (superseded - see DECISIONS.md).
+    # Not env-configurable - this is a fixed product decision, not a
+    # per-deployment setting like AI_PROVIDER/STORAGE_PROVIDER above.
+    LANGUAGES = {"en": "English", "de": "Deutsch"}
+    BABEL_DEFAULT_LOCALE = "en"
+    # Absolute, not the bare "translations" default Flask-Babel resolves
+    # relative to *its own* app.root_path - which is app/ (the package
+    # this Flask instance was constructed with __name__="app"), not the
+    # repo root where translations/ actually lives (alongside babel.cfg).
+    # A relative path here silently resolves to app/translations/ (never
+    # created), which Flask-Babel treats as "no catalog found" and falls
+    # back to returning every msgid verbatim - found live, not
+    # theoretically: every _()-wrapped string rendered in English
+    # regardless of locale until this was made absolute, same
+    # BASE_DIR-relative pattern as UPLOAD_DIR/GENERATED_DIR above.
+    BABEL_TRANSLATION_DIRECTORIES = os.path.join(BASE_DIR, "translations")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

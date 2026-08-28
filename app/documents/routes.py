@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, send_file, abort, request
+from flask_babel import gettext as _
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models.document import Document, DOCUMENT_TYPES
+from app.models.document import Document, DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS
 from app.documents.storage import UnsupportedFileError, get_storage_provider
 from app.documents.extraction import suggest_doc_type
 from app.utils.logging import log_event
@@ -44,7 +45,7 @@ def upload():
         doc_type = "other"
 
     if not file or not file.filename:
-        flash("Please choose a file to upload.", "error")
+        flash(_("Please choose a file to upload."), "error")
         return redirect(url_for("documents.list_documents"))
 
     try:
@@ -77,14 +78,20 @@ def upload():
     db.session.commit()
     log_event("upload", f"Document uploaded (type={doc_type}).", user_id=current_user.id)
     if doc.ai_suggested_doc_type:
+        # i18n pass 2: DOCUMENT_TYPE_LABELS (app/models/document.py), not
+        # doc_type.replace('_', ' '), which has no German equivalent -
+        # same fix as the doc-type displays in applications/detail.html
+        # and documents/list.html.
         flash(
-            f"Document uploaded. This looks like it might be a "
-            f"\"{doc.ai_suggested_doc_type.replace('_', ' ')}\" rather than "
-            f"\"{doc_type.replace('_', ' ')}\" - you can confirm the suggestion below if that's right.",
+            _(
+                'Document uploaded. This looks like it might be a "%(suggested)s" rather than '
+                '"%(chosen)s" - you can confirm the suggestion below if that\'s right.',
+                suggested=DOCUMENT_TYPE_LABELS[doc.ai_suggested_doc_type], chosen=DOCUMENT_TYPE_LABELS[doc_type],
+            ),
             "info",
         )
     else:
-        flash("Document uploaded.", "success")
+        flash(_("Document uploaded."), "success")
     return redirect(url_for("documents.list_documents"))
 
 
@@ -96,7 +103,7 @@ def apply_suggested_type(doc_id):
         doc.doc_type = doc.ai_suggested_doc_type
         doc.ai_suggested_doc_type = None
         db.session.commit()
-        flash("Document type updated.", "success")
+        flash(_("Document type updated."), "success")
     return redirect(url_for("documents.list_documents"))
 
 
@@ -134,7 +141,7 @@ def delete(doc_id):
     db.session.delete(doc)
     db.session.commit()
     log_event("upload", "Document deleted.", user_id=current_user.id)
-    flash("Document deleted.", "info")
+    flash(_("Document deleted."), "info")
     return redirect(url_for("documents.list_documents"))
 
 
@@ -156,5 +163,5 @@ def set_primary(doc_id, kind):
     Document.query.filter_by(user_id=current_user.id).update({field: False})
     setattr(doc, field, True)
     db.session.commit()
-    flash("Primary document updated.", "success")
+    flash(_("Primary document updated."), "success")
     return redirect(url_for("documents.list_documents"))

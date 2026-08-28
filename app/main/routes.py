@@ -1,14 +1,19 @@
 from datetime import date, datetime
 
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
+from flask_babel import gettext as _
+from flask_babel import ngettext
 from flask_login import login_required, current_user
 
 from app.ai.dashboard_insight import MIN_APPLICATIONS_FOR_INSIGHT, generate_dashboard_insight, get_dashboard_insight
 from app.ai.provider import AIProviderError
 from app.applications.status_route import latest_transition_at
+from app.extensions import db
+from app.i18n import format_local_date, refresh_locale, safe_next_path, set_locale_cookie, supported_locales
 from app.jobs.adapters.manager import get_enabled_adapter_names, KNOWN_SOURCES
 from app.models.job import SavedJob, JobRadarStatus
 from app.models.application import Application
+from app.models.profile import CHECKLIST_LABEL_TRANSLATIONS
 from app.priority_digest import ACTIVE_STATUSES, TERMINAL_STATUSES, compute_priority_digest
 from app.jobs.matching import get_or_compute_match
 from app.utils.logging import log_event
@@ -27,10 +32,10 @@ def _time_of_day_greeting():
     # would need a stored profile preference, tracked as future polish.
     hour = datetime.now().hour
     if hour < 12:
-        return "Good morning"
+        return _("Good morning")
     if hour < 18:
-        return "Good afternoon"
-    return "Good evening"
+        return _("Good afternoon")
+    return _("Good evening")
 
 
 def _relative_date(dt):
@@ -44,12 +49,19 @@ def _relative_date(dt):
         return "—"
     days = (datetime.now() - dt).days
     if days <= 0:
-        return "today"
+        return _("today")
     if days == 1:
-        return "yesterday"
+        return _("yesterday")
     if days < 14:
-        return f"{days} days ago"
-    return dt.strftime("%d.%m.%Y")
+        return ngettext("%(num)d day ago", "%(num)d days ago", days)
+    # i18n pass 1: locale-aware beyond the relative window, one of this
+    # pass's three proof-of-concept call sites for format_local_date() -
+    # was a hardcoded German-style %d.%m.%Y regardless of locale before
+    # this pass (a real pre-existing inconsistency for English UI users,
+    # fixed here as a side effect, not chased down at every other
+    # strftime call site - that's pass 2's mass extraction, not this one's
+    # infrastructure-proof scope). See DECISIONS.md.
+    return format_local_date(dt)
 
 
 def _situation_summary(digest_items):
@@ -58,11 +70,19 @@ def _situation_summary(digest_items):
     the honest default for a healthy account, not an edge case to
     apologize for."""
     if not digest_items:
-        return "Nothing urgent right now — good time to keep applying."
+        return _("Nothing urgent right now — good time to keep applying.")
     n = len(digest_items)
-    summary = f"{n} item{'s' if n != 1 else ''} need{'s' if n == 1 else ''} your attention this week."
-    if any("deadline" in reason.lower() for item in digest_items for reason in item.reasons):
-        summary += " One has a deadline coming up."
+    summary = ngettext(
+        "%(num)d item needs your attention this week.",
+        "%(num)d items need your attention this week.",
+        n,
+    )
+    # i18n pass 2: reason_codes, not the translated `reasons` text - see
+    # priority_digest.py's DigestItem docstring. Substring-matching a
+    # translated sentence for "deadline" only ever worked by coincidence
+    # of it still being English.
+    if any("deadline_soon" in item.reason_codes for item in digest_items):
+        summary += " " + _("One has a deadline coming up.")
     return summary
 
 
@@ -129,7 +149,7 @@ def dashboard():
         if hero_application:
             days = (datetime.now() - latest_transition_at(hero_application)).days
             if days >= 1:
-                hero_staleness = f"unchanged for {days} day{'s' if days != 1 else ''}"
+                hero_staleness = ngettext("unchanged for %(num)d day", "unchanged for %(num)d days", days)
 
     dashboard_applications = sorted(applications, key=latest_transition_at, reverse=True)[:DASHBOARD_APPLICATIONS_LIMIT]
     applications_table = [
@@ -150,7 +170,12 @@ def dashboard():
         # empty-state copy can tell them apart honestly.
         is_brand_new=(len(applications) == 0 and saved_job_count == 0),
         profile=profile,
-        today_label=datetime.now().strftime("%A, %d %B %Y").upper(),
+        # i18n pass 2: locale-aware weekday/month names via format_local_date
+        # (was strftime('%A, %d %B %Y') - always English regardless of UI
+        # language). .upper() dropped from here too - the template now
+        # applies it as a CSS text-transform instead of baking a case
+        # transform into the translated string itself.
+        today_label=format_local_date(datetime.now(), format="full"),
         situation_summary=_situation_summary(digest_items),
         saved_job_count=saved_job_count,
         applications_count=len(applications),
@@ -160,7 +185,12 @@ def dashboard():
         active_count=active_count,
         terminal_count=terminal_count,
         completeness=profile.completeness_percent() if profile else 0,
-        completeness_missing=[label for label, ok in profile.completeness_checklist() if not ok] if profile else [],
+        # i18n pass 2: translated labels (CHECKLIST_LABEL_TRANSLATIONS,
+        # app/models/profile.py) - completeness_checklist()'s own labels
+        # stay untranslated internal keys, see its docstring.
+        completeness_missing=[
+            CHECKLIST_LABEL_TRANSLATIONS[label] for label, ok in profile.completeness_checklist() if not ok
+        ] if profile else [],
         digest_items=digest_items,
         hero_item=hero_item,
         hero_staleness=hero_staleness,
@@ -196,3 +226,36 @@ def generate_insight():
 @login_required
 def priority_digest():
     return render_template("main/digest.html", items=compute_priority_digest(current_user))
+
+
+@bp.route("/set-locale", methods=["POST"])
+def set_locale():
+    """i18n pass 1: the language_switcher() component's target
+    (_components.html), called from three chrome contexts (desktop top
+    bar, mobile topbar, landing header) - deliberately not @login_required,
+    since the landing page has no user. `next` preserves the current page
+    and its query params (a required verification state - switching
+    language on a filtered search shouldn't drop the filters), validated
+    through safe_next_path() rather than trusted verbatim. If authenticated,
+    the choice is written straight to the account (the same "explicit
+    choice, persisted" tier the cookie occupies for a logged-out visitor -
+    see app/i18n.py), not just the cookie, so it survives across devices
+    the same way logging in already carries a prior anonymous choice over
+    (sync_explicit_locale_to_user(), called at login/register)."""
+    lang = request.form.get("lang")
+    if lang not in supported_locales():
+        abort(400)
+
+    if current_user.is_authenticated:
+        current_user.locale = lang
+        db.session.commit()
+
+    # flask_babel caches the resolved locale per request/app context and
+    # never re-derives it on its own - without this, a flash message or
+    # any other content rendered later in the very same request could
+    # still reflect the pre-switch locale. See app/i18n.py's docstring.
+    refresh_locale()
+
+    response = redirect(safe_next_path(request.form.get("next")))
+    set_locale_cookie(response, lang)
+    return response

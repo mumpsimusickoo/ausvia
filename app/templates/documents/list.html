@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_components.html" import btn, empty_state %}
-{% block title %}Documents — AUSVIA{% endblock %}
+{% block title %}{{ _("Documents") }} — AUSVIA{% endblock %}
 {% block content %}
 {#
   Screens pass 5, 2026-08-28 - Documents. Bundle structure, English copy.
@@ -9,34 +9,37 @@
   DESIGN_SYSTEM.md.
 #}
 <div class="border-b border-line pb-6">
-  <h1 class="text-2xl font-bold text-t1">Documents</h1>
-  <p class="mt-1.5 text-sm text-t2">Originals are never modified - application PDFs are built separately, from copies.</p>
+  <h1 class="text-2xl font-bold text-t1">{{ _("Documents") }}</h1>
+  <p class="mt-1.5 text-sm text-t2">{{ _("Originals are never modified - application PDFs are built separately, from copies.") }}</p>
 </div>
 
 <div class="mt-7 rounded-xl border border-dashed border-line2 p-6 flex flex-wrap items-center gap-5">
   <div class="flex-1 min-w-[240px]">
-    <div class="font-display font-semibold text-[16px] text-t1">Upload a document</div>
-    <div class="text-[13.5px] text-t2 mt-1">PDF, JPG, or PNG, up to 15 MB. The type is suggested from the file where possible - you confirm it.</div>
+    <div class="font-display font-semibold text-[16px] text-t1">{{ _("Upload a document") }}</div>
+    <div class="text-[13.5px] text-t2 mt-1">{{ _("PDF, JPG, or PNG, up to 15 MB. The type is suggested from the file where possible - you confirm it.") }}</div>
   </div>
   <form method="post" action="{{ url_for('documents.upload') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div>
-      <label for="upload-doc-type" class="block text-xs font-medium text-t2 mb-1">Type</label>
+      <label for="upload-doc-type" class="block text-xs font-medium text-t2 mb-1">{{ _("Type") }}</label>
       <select id="upload-doc-type" name="doc_type" class="h-9 rounded-lg border border-line2 bg-card text-t1 px-3 text-sm">
         {% for t in doc_types %}
-        <option value="{{ t }}">{{ t.replace('_', ' ')|capitalize }}</option>
+        {# i18n pass 2: document_type_labels[code] (app/models/document.py),
+           not t.replace('_', ' ')|capitalize, which has no German
+           equivalent. #}
+        <option value="{{ t }}">{{ document_type_labels[t] }}</option>
         {% endfor %}
       </select>
     </div>
     <div>
-      <label for="upload-file" class="block text-xs font-medium text-t2 mb-1">File</label>
+      <label for="upload-file" class="block text-xs font-medium text-t2 mb-1">{{ _("File") }}</label>
       <input id="upload-file" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required class="text-sm text-t1 h-9">
     </div>
     <div class="min-w-[10rem]">
-      <label for="upload-description" class="block text-xs font-medium text-t2 mb-1">Description (optional)</label>
+      <label for="upload-description" class="block text-xs font-medium text-t2 mb-1">{{ _("Description (optional)") }}</label>
       <input id="upload-description" type="text" name="description" maxlength="500" class="w-full h-9 rounded-lg border border-line2 bg-card text-t1 px-3 text-sm">
     </div>
-    {{ btn("Upload", variant="primary", type="submit") }}
+    {{ btn(_("Upload"), variant="primary", type="submit") }}
   </form>
 </div>
 
@@ -49,10 +52,10 @@
     <thead>
       <tr class="border-b border-line text-left font-mono text-[10px] tracking-[0.1em] text-t3">
         <th class="pl-5 pr-2 py-3 w-12"></th>
-        <th class="px-2 py-3">FILE</th>
-        <th class="px-2 py-3">TYPE</th>
-        <th class="px-2 py-3 text-right">SIZE</th>
-        <th class="px-2 py-3 text-right">UPLOADED</th>
+        <th class="px-2 py-3">{{ _("FILE") }}</th>
+        <th class="px-2 py-3">{{ _("TYPE") }}</th>
+        <th class="px-2 py-3 text-right">{{ _("SIZE") }}</th>
+        <th class="px-2 py-3 text-right">{{ _("UPLOADED") }}</th>
         <th class="px-2 py-3"></th>
         <th class="pl-2 pr-5 py-3"></th>
       </tr>
@@ -66,47 +69,47 @@
         </td>
         <td class="px-2 py-3.5">
           <a href="{{ url_for('documents.download', doc_id=doc.id) }}" class="font-medium text-t1 hover:text-brand break-words">{{ doc.original_filename }}</a>
-          <p class="text-xs text-t3 mt-0.5">{{ "Used in " ~ used_count ~ " application" ~ ("s" if used_count != 1 else "") if used_count else "Not used in any application" }}</p>
+          <p class="text-xs text-t3 mt-0.5">{{ ngettext("Used in %(num)d application", "Used in %(num)d applications", used_count) if used_count else _("Not used in any application") }}</p>
           {% if doc.description %}<p class="text-xs text-t2 mt-0.5">{{ doc.description }}</p>{% endif %}
         </td>
         <td class="px-2 py-3.5 text-t2">
-          {{ doc.doc_type.replace('_', ' ')|capitalize }}
+          {{ document_type_labels[doc.doc_type] }}
           {% if doc.ai_suggested_doc_type %}
-          <div class="mt-1.5 text-xs text-brand">Intelligence suggests: {{ doc.ai_suggested_doc_type.replace('_', ' ')|capitalize }}</div>
+          <div class="mt-1.5 text-xs text-brand">{{ _("Intelligence suggests: %(type)s", type=document_type_labels[doc.ai_suggested_doc_type]) }}</div>
           <div class="mt-1 flex gap-3">
             <form method="post" action="{{ url_for('documents.apply_suggested_type', doc_id=doc.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="text-xs font-medium text-brand hover:underline">Use this</button>
+              <button type="submit" class="text-xs font-medium text-brand hover:underline">{{ _("Use this") }}</button>
             </form>
             <form method="post" action="{{ url_for('documents.dismiss_suggested_type', doc_id=doc.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="text-xs text-t2 hover:underline">Dismiss</button>
+              <button type="submit" class="text-xs text-t2 hover:underline">{{ _("Dismiss") }}</button>
             </form>
           </div>
           {% endif %}
         </td>
         <td class="px-2 py-3.5 text-t2 text-right font-mono text-xs whitespace-nowrap">{{ doc.human_size() }}</td>
-        <td class="px-2 py-3.5 text-t2 text-right font-mono text-xs whitespace-nowrap">{{ doc.uploaded_at.strftime('%d %b %Y') }}</td>
+        <td class="px-2 py-3.5 text-t2 text-right font-mono text-xs whitespace-nowrap">{{ format_local_date(doc.uploaded_at) }}</td>
         <td class="px-2 py-3.5">
           <div class="flex flex-wrap gap-1 justify-end">
             {% if doc.doc_type == 'cv' %}
-              {% if doc.is_primary_cv %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary CV</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='cv') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary CV</button></form>{% endif %}
+              {% if doc.is_primary_cv %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">{{ _("Primary CV") }}</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='cv') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">{{ _("Set as primary CV") }}</button></form>{% endif %}
             {% endif %}
             {% if doc.doc_type == 'diploma' %}
-              {% if doc.is_primary_diploma %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary diploma</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='diploma') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary diploma</button></form>{% endif %}
+              {% if doc.is_primary_diploma %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">{{ _("Primary diploma") }}</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='diploma') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">{{ _("Set as primary diploma") }}</button></form>{% endif %}
             {% endif %}
             {% if doc.doc_type == 'language_certificate' %}
-              {% if doc.is_primary_german_cert %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">Primary German cert.</span>
-              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='german_cert') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">Set as primary German cert.</button></form>{% endif %}
+              {% if doc.is_primary_german_cert %}<span class="rounded-full bg-tint text-brand text-xs font-medium px-2.5 py-1 whitespace-nowrap">{{ _("Primary German cert.") }}</span>
+              {% else %}<form method="post" action="{{ url_for('documents.set_primary', doc_id=doc.id, kind='german_cert') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="text-xs text-brand hover:underline whitespace-nowrap">{{ _("Set as primary German cert.") }}</button></form>{% endif %}
             {% endif %}
           </div>
         </td>
         <td class="pl-2 pr-5 py-3.5 text-right">
-          <form method="post" action="{{ url_for('documents.delete', doc_id=doc.id) }}" onsubmit="return confirm('Delete this document?');">
+          <form method="post" action="{{ url_for('documents.delete', doc_id=doc.id) }}" onsubmit="return confirm({{ _('Delete this document?')|tojson }});">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-xs font-medium text-err hover:underline whitespace-nowrap">Delete</button>
+            <button type="submit" class="text-xs font-medium text-err hover:underline whitespace-nowrap">{{ _("Delete") }}</button>
           </form>
         </td>
       </tr>
@@ -117,7 +120,7 @@
 </div>
 {% else %}
 <div class="mt-6">
-  {{ empty_state("No documents yet", "Upload your CV, diploma, and any certificates - AUSVIA builds application packages from copies of what's here, and never modifies the originals.") }}
+  {{ empty_state(_("No documents yet"), _("Upload your CV, diploma, and any certificates - AUSVIA builds application packages from copies of what's here, and never modifies the originals.")) }}
 </div>
 {% endif %}
 {% endblock %}

@@ -4,6 +4,8 @@ from datetime import date
 from urllib.parse import quote
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask_babel import gettext as _
+from flask_babel import ngettext
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -106,11 +108,16 @@ def _build_filter_chips(form, enabled_source_names):
 
     lo, hi = form.start_year_min.data, form.start_year_max.data
     if lo or hi:
-        label = f"Start {lo}–{hi}" if lo and hi else (f"Start from {lo}" if lo else f"Start by {hi}")
+        if lo and hi:
+            label = _("Start %(lo)s–%(hi)s", lo=lo, hi=hi)
+        elif lo:
+            label = _("Start from %(lo)s", lo=lo)
+        else:
+            label = _("Start by %(hi)s", hi=hi)
         chips.append((label, url_for("jobs.search", **_query_without("start_year_min", "start_year_max"))))
 
     if form.min_score.data:
-        chips.append((f"Score ≥ {form.min_score.data}", url_for("jobs.search", **_query_without("min_score"))))
+        chips.append((_("Score ≥ %(score)s", score=form.min_score.data), url_for("jobs.search", **_query_without("min_score"))))
 
     selected_sources = form.sources.data
     if selected_sources and set(selected_sources) != set(enabled_source_names):
@@ -219,7 +226,7 @@ def search():
             }
             filter_chips = _build_filter_chips(form, enabled_source_names)
         else:
-            flash("Please enter valid search terms.", "error")
+            flash(_("Please enter valid search terms."), "error")
 
     saved_job_ids = {sj.job_id for sj in SavedJob.query.filter_by(user_id=current_user.id).all()}
 
@@ -256,10 +263,15 @@ def check_now():
         return redirect(url_for("main.dashboard"))
 
     if new_jobs:
-        flash(f"{len(new_jobs)} new listing{'s' if len(new_jobs) != 1 else ''} found.", "success")
+        flash(ngettext("%(num)d new listing found.", "%(num)d new listings found.", len(new_jobs)), "success")
     else:
-        flash("No new listings found for your preferences right now.", "info")
+        flash(_("No new listings found for your preferences right now."), "info")
     for source, message in errors:
+        # `message` is an adapter-level diagnostic string (timeout, rate
+        # limit, etc. - app/jobs/adapters/*), deliberately not translated
+        # this pass - see DECISIONS.md's i18n pass 2 entry for the same
+        # call made on JobMatch gap notes, for the same reason (a large,
+        # separate surface, not this pass's own UI copy).
         flash(f"{source}: {message}", "error")
     return redirect(url_for("main.dashboard"))
 
@@ -329,7 +341,7 @@ def explain(job_id):
     job = db.get_or_404(Job, job_id)
     try:
         generate_job_explainer(current_user, job)
-        flash("Plain-language summary generated.", "success")
+        flash(_("Plain-language summary generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Job explainer generation failed: {e}", level="warning", user_id=current_user.id)
@@ -371,7 +383,7 @@ def save(job_id):
     if not SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first():
         db.session.add(SavedJob(user_id=current_user.id, job_id=job.id))
         db.session.commit()
-        flash("Saved.", "success")
+        flash(_("Saved."), "success")
     return redirect(request.referrer or url_for("jobs.detail", job_id=job.id))
 
 
@@ -382,7 +394,7 @@ def unsave(job_id):
     if entry:
         db.session.delete(entry)
         db.session.commit()
-        flash("Removed from saved jobs.", "info")
+        flash(_("Removed from saved jobs."), "info")
     return redirect(request.referrer or url_for("jobs.saved"))
 
 
@@ -480,8 +492,10 @@ def _render_batch_review(batch):
     else:
         review_form.application_url.data = item["url"]
         flash(
-            f"Couldn't fetch {item['url']}: {item['error']} "
-            "Paste the text yourself below, or skip it.",
+            _(
+                "Couldn't fetch %(url)s: %(error)s Paste the text yourself below, or skip it.",
+                url=item["url"], error=item["error"],
+            ),
             "error",
         )
 
@@ -503,12 +517,12 @@ def import_fetch():
     url_form = ManualImportUrlForm()
 
     if not url_form.validate_on_submit():
-        flash("Please paste at least one URL.", "error")
+        flash(_("Please paste at least one URL."), "error")
         return _render_import_page(url_form=url_form)
 
     urls, truncated = _parse_batch_urls(url_form.urls.data)
     if not urls:
-        flash("Please paste at least one URL.", "error")
+        flash(_("Please paste at least one URL."), "error")
         return _render_import_page(url_form=url_form)
 
     # A new fetch replaces any existing incomplete batch for this user -
@@ -541,10 +555,19 @@ def import_fetch():
     succeeded = sum(1 for i in items if i["status"] == "fetched")
     failed = len(items) - succeeded
     if truncated:
-        flash(f"Only the first {MAX_BATCH_URLS} URLs were used - that's the limit per batch.", "info")
-    summary = f"Fetched {succeeded} of {len(items)} page{'s' if len(items) != 1 else ''} successfully."
+        flash(_("Only the first %(max)d URLs were used - that's the limit per batch.", max=MAX_BATCH_URLS), "info")
+    summary = ngettext(
+        "Fetched %(succeeded)d of %(total)d page successfully.",
+        "Fetched %(succeeded)d of %(total)d pages successfully.",
+        len(items),
+        succeeded=succeeded, total=len(items),
+    )
     if failed:
-        summary += f" {failed} failed - you'll get a chance to paste those in manually."
+        summary += " " + ngettext(
+            "%(num)d failed - you'll get a chance to paste those in manually.",
+            "%(num)d failed - you'll get a chance to paste those in manually.",
+            failed,
+        )
     flash(summary, "info" if succeeded else "error")
 
     return _render_batch_review(batch)
@@ -566,7 +589,7 @@ def import_save():
     )
 
     if not review_form.validate_on_submit():
-        flash("Please fill in at least the job title and company.", "error")
+        flash(_("Please fill in at least the job title and company."), "error")
         return _render_import_page(review_form=review_form, show_review=True, batch=batch if in_batch else None)
 
     normalized = NormalizedJob(
@@ -588,7 +611,7 @@ def import_save():
     )
 
     if not in_batch:
-        flash("Job imported." if created else "This matched an already-known opportunity - merged.", "success")
+        flash(_("Job imported.") if created else _("This matched an already-known opportunity - merged."), "success")
         return redirect(url_for("jobs.detail", job_id=job.id))
 
     items = list(batch.items)
@@ -598,7 +621,7 @@ def import_save():
     db.session.commit()
 
     if not batch.is_complete:
-        flash("Job imported." if created else "Matched an already-known opportunity - merged.", "success")
+        flash(_("Job imported.") if created else _("Matched an already-known opportunity - merged."), "success")
         return _render_batch_review(batch)
 
     return _finish_batch(batch, last_job_id=job.id)
@@ -629,7 +652,7 @@ def import_cancel():
     if batch:
         db.session.delete(batch)
         db.session.commit()
-        flash("Import batch cancelled.", "info")
+        flash(_("Import batch cancelled."), "info")
     return redirect(url_for("jobs.import_start"))
 
 
@@ -639,8 +662,13 @@ def _finish_batch(batch, last_job_id):
     db.session.delete(batch)
     db.session.commit()
 
-    summary = f"Batch complete: {saved_count} imported"
-    summary += f", {not_imported} not imported." if not_imported else "."
+    if not_imported:
+        summary = _(
+            "Batch complete: %(saved)d imported, %(not_imported)d not imported.",
+            saved=saved_count, not_imported=not_imported,
+        )
+    else:
+        summary = _("Batch complete: %(saved)d imported.", saved=saved_count)
     flash(summary, "success" if saved_count else "info")
 
     if last_job_id:

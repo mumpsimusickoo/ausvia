@@ -14,6 +14,8 @@ typed search box, and this captures which Job rows were newly created
 (ingest_search's own IngestResult only carries counts, not identities) so
 they can be listed back to the user on the dashboard.
 """
+from flask_babel import gettext as _
+
 from app.extensions import db
 from app.jobs.ingest import ingest_search
 from app.jobs.matching import get_or_compute_match
@@ -40,7 +42,7 @@ def run_job_radar(user):
     fields = (preference.fields if preference else None) or []
     if not fields:
         raise ValueError(
-            "Set at least one desired field in your Ausbildung preferences before checking for new listings."
+            _("Set at least one desired field in your Ausbildung preferences before checking for new listings.")
         )
 
     locations = (preference.locations if preference else None) or []

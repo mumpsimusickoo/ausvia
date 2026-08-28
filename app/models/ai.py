@@ -1,3 +1,5 @@
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.models.user import utcnow
 
@@ -197,12 +199,17 @@ class JobExplainer(db.Model):
     __table_args__ = (db.UniqueConstraint("user_id", "job_id", name="uq_job_explainer_user_job"),)
 
 
+# i18n pass 2, 2026-08-28: these are the real question text the user reads
+# and picks from - in scope for translation, unlike the AI-generated
+# answer text those questions produce (ProcessQAAnswer.answer_text, out of
+# scope this pass - see DECISIONS.md's i18n pass 3 notes). The dict keys
+# stay plain, untranslated identifiers (matched by url_for/routes).
 PROCESS_QA_QUESTIONS = {
-    "ausbildungsverguetung": "What does Ausbildungsvergütung mean?",
-    "unrelated_experience": "Should I mention unrelated work experience?",
-    "response_time": "What's the normal response time for an application?",
-    "document_translation": "Do I need to translate my documents into German?",
-    "ausbildung_vs_duales_studium": "What's the difference between an Ausbildung and a Duales Studium?",
+    "ausbildungsverguetung": _l("What does Ausbildungsvergütung mean?"),
+    "unrelated_experience": _l("Should I mention unrelated work experience?"),
+    "response_time": _l("What's the normal response time for an application?"),
+    "document_translation": _l("Do I need to translate my documents into German?"),
+    "ausbildung_vs_duales_studium": _l("What's the difference between an Ausbildung and a Duales Studium?"),
 }
 
 

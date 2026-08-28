@@ -169,7 +169,13 @@ def test_language_proof_note_native_language():
         level = "Native"
         name = "Croatian"
 
-    assert _language_proof_note(FakeLang(), has_german_certificate=True) == "Native language"
+    # i18n pass 2: returns (text, is_warning) - is_warning is the stable
+    # signal profile/view.html now branches its color on, not a substring
+    # match against the (translatable) text - see the function's own
+    # docstring.
+    text, is_warning = _language_proof_note(FakeLang(), has_german_certificate=True)
+    assert text == "Native language"
+    assert is_warning is False
 
 
 def test_language_proof_note_german_with_and_without_certificate():
@@ -177,8 +183,13 @@ def test_language_proof_note_german_with_and_without_certificate():
         level = "B2"
         name = "German"
 
-    assert _language_proof_note(FakeGerman(), has_german_certificate=True) == "Certificate on file"
-    assert _language_proof_note(FakeGerman(), has_german_certificate=False) == "School-level, no certificate on file"
+    text, is_warning = _language_proof_note(FakeGerman(), has_german_certificate=True)
+    assert text == "Certificate on file"
+    assert is_warning is False
+
+    text, is_warning = _language_proof_note(FakeGerman(), has_german_certificate=False)
+    assert text == "School-level, no certificate on file"
+    assert is_warning is True
 
 
 def test_language_proof_note_non_german_stays_honest_about_missing_data():
@@ -189,7 +200,9 @@ def test_language_proof_note_non_german_stays_honest_about_missing_data():
         level = "B1"
         name = "English"
 
-    assert _language_proof_note(FakeEnglish(), has_german_certificate=False) is None
+    text, is_warning = _language_proof_note(FakeEnglish(), has_german_certificate=False)
+    assert text is None
+    assert is_warning is False
 
 
 def test_language_proof_note_reflects_real_uploaded_certificate(client, db, make_user):

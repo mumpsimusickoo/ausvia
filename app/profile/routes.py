@@ -2,6 +2,9 @@ import io
 from datetime import date
 
 from flask import Blueprint, render_template, redirect, url_for, flash, send_file
+from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _l
+from flask_babel import ngettext
 from flask_login import login_required, current_user
 
 from app.extensions import db, limiter
@@ -45,14 +48,14 @@ def _age(date_of_birth):
 # simplification for that screen's compact rail card, not a general
 # checklist component - see DECISIONS.md).
 _COMPLETENESS_PHRASING = {
-    "Name": ("Name provided", "Name missing"),
-    "Location": ("Location provided", "Location missing"),
-    "Phone number": ("Phone number provided", "Phone number missing"),
-    "Contact email": ("Contact email provided", "Contact email missing"),
-    "Education": ("Education entries added", "No education entries yet"),
-    "Skills": ("Skills added", "No skills added yet"),
-    "Languages": ("Languages added", "No languages added yet"),
-    "Job preferences": ("Ausbildung preferences set", "Ausbildung preferences not set"),
+    "Name": (_l("Name provided"), _l("Name missing")),
+    "Location": (_l("Location provided"), _l("Location missing")),
+    "Phone number": (_l("Phone number provided"), _l("Phone number missing")),
+    "Contact email": (_l("Contact email provided"), _l("Contact email missing")),
+    "Education": (_l("Education entries added"), _l("No education entries yet")),
+    "Skills": (_l("Skills added"), _l("No skills added yet")),
+    "Languages": (_l("Languages added"), _l("No languages added yet")),
+    "Job preferences": (_l("Ausbildung preferences set"), _l("Ausbildung preferences not set")),
 }
 
 
@@ -72,12 +75,22 @@ def _language_proof_note(language, has_german_certificate):
     claim "no evidence" for a language this app has no way to actually
     check, the proof caption is German-only; every other non-native
     language just shows its level, honestly not extended past what's
-    real - see DECISIONS.md."""
+    real - see DECISIONS.md.
+
+    Returns (text, is_warning) - i18n pass 2: profile/view.html used to
+    decide the warning color by checking "no certificate" in note.lower(),
+    which only ever worked because that substring happened to still be
+    English. Once `text` became a real translated string, that check would
+    silently stop matching in German. `is_warning` is a stable, never-
+    translated signal instead - same "code vs. display text" split as
+    APPLICATION_STATUS_LABELS/reason_codes elsewhere in this pass."""
     if language.level == "Native":
-        return "Native language"
+        return _("Native language"), False
     if language.name.strip().lower() == "german":
-        return "Certificate on file" if has_german_certificate else "School-level, no certificate on file"
-    return None
+        if has_german_certificate:
+            return _("Certificate on file"), False
+        return _("School-level, no certificate on file"), True
+    return None, False
 
 
 def _get_or_create_profile():
@@ -121,7 +134,7 @@ def view():
 
     age = _age(profile.date_of_birth)
     meta_parts = [
-        f"{age} years old" if age is not None else None,
+        ngettext("%(num)d year old", "%(num)d years old", age) if age is not None else None,
         profile.nationality,
         profile.city,
         profile.contact_email,
@@ -135,11 +148,11 @@ def view():
 
     pref = profile.preference
     preference_lines = [
-        ("Fields", ", ".join(pref.fields) if pref and pref.fields else "Any"),
-        ("Locations", ", ".join(pref.locations) if pref and pref.locations else "Germany-wide"),
-        ("Relocation", ("Open to it" if pref.open_to_relocation else "Not open to it") if pref else "Not set"),
-        ("Min. German level", pref.min_german_level if pref and pref.min_german_level else "Not set"),
-        ("Desired start", pref.desired_start_date if pref and pref.desired_start_date else "Not set"),
+        (_("Fields"), ", ".join(pref.fields) if pref and pref.fields else _("Any")),
+        (_("Locations"), ", ".join(pref.locations) if pref and pref.locations else _("Germany-wide")),
+        (_("Relocation"), (_("Open to it") if pref.open_to_relocation else _("Not open to it")) if pref else _("Not set")),
+        (_("Min. German level"), pref.min_german_level if pref and pref.min_german_level else _("Not set")),
+        (_("Desired start"), pref.desired_start_date if pref and pref.desired_start_date else _("Not set")),
     ]
 
     return render_template(
@@ -186,7 +199,7 @@ def download_cv():
 def generate_coaching():
     try:
         generate_profile_coaching(current_user)
-        flash("Profile review generated.", "success")
+        flash(_("Profile review generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Profile coaching generation failed: {e}", level="warning", user_id=current_user.id)
@@ -203,7 +216,7 @@ def generate_qa_answer(question_key):
         abort(404)
     try:
         generate_process_qa_answer(current_user, question_key)
-        flash("Answer generated.", "success")
+        flash(_("Answer generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Process Q&A generation failed: {e}", level="warning", user_id=current_user.id)
@@ -218,9 +231,9 @@ def update_personal():
     if form.validate_on_submit():
         form.populate_obj(profile)
         db.session.commit()
-        flash("Personal information updated.", "success")
+        flash(_("Personal information updated."), "success")
     else:
-        flash("Please correct the errors in the personal information form.", "error")
+        flash(_("Please correct the errors in the personal information form."), "error")
     return redirect(url_for("profile.view"))
 
 
@@ -241,9 +254,9 @@ def update_preferences():
         if pref.id is None:
             db.session.add(pref)
         db.session.commit()
-        flash("Preferences updated.", "success")
+        flash(_("Preferences updated."), "success")
     else:
-        flash("Please correct the errors in the preferences form.", "error")
+        flash(_("Please correct the errors in the preferences form."), "error")
     return redirect(url_for("profile.view"))
 
 
@@ -257,9 +270,9 @@ def add_education():
         form.populate_obj(entry)
         db.session.add(entry)
         db.session.commit()
-        flash("Education entry added.", "success")
+        flash(_("Education entry added."), "success")
     else:
-        flash("Please correct the errors in the education form.", "error")
+        flash(_("Please correct the errors in the education form."), "error")
     return redirect(url_for("profile.view"))
 
 
@@ -270,7 +283,7 @@ def delete_education(entry_id):
     entry = _owned_or_404(Education, entry_id, profile.id)
     db.session.delete(entry)
     db.session.commit()
-    flash("Education entry removed.", "info")
+    flash(_("Education entry removed."), "info")
     return redirect(url_for("profile.view"))
 
 
@@ -284,9 +297,9 @@ def add_experience():
         form.populate_obj(entry)
         db.session.add(entry)
         db.session.commit()
-        flash("Experience entry added.", "success")
+        flash(_("Experience entry added."), "success")
     else:
-        flash("Please correct the errors in the experience form.", "error")
+        flash(_("Please correct the errors in the experience form."), "error")
     return redirect(url_for("profile.view"))
 
 
@@ -297,7 +310,7 @@ def delete_experience(entry_id):
     entry = _owned_or_404(Experience, entry_id, profile.id)
     db.session.delete(entry)
     db.session.commit()
-    flash("Experience entry removed.", "info")
+    flash(_("Experience entry removed."), "info")
     return redirect(url_for("profile.view"))
 
 
@@ -310,9 +323,9 @@ def add_skill():
         entry = Skill(profile_id=profile.id, name=form.name.data, proficiency=form.proficiency.data or None)
         db.session.add(entry)
         db.session.commit()
-        flash("Skill added.", "success")
+        flash(_("Skill added."), "success")
     else:
-        flash("Please correct the errors in the skill form.", "error")
+        flash(_("Please correct the errors in the skill form."), "error")
     return redirect(url_for("profile.view"))
 
 
@@ -335,9 +348,9 @@ def add_language():
         entry = Language(profile_id=profile.id, name=form.name.data, level=form.level.data or None)
         db.session.add(entry)
         db.session.commit()
-        flash("Language added.", "success")
+        flash(_("Language added."), "success")
     else:
-        flash("Please correct the errors in the language form.", "error")
+        flash(_("Please correct the errors in the language form."), "error")
     return redirect(url_for("profile.view"))
 
 

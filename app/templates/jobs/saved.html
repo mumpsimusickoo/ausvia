@@ -1,22 +1,22 @@
-﻿{% extends "base.html" %}
-{% block title %}Saved Jobs — AUSVIA{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ _("Saved Jobs") }} — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-t1">Saved Jobs</h1>
+<h1 class="text-2xl font-bold text-t1">{{ _("Saved Jobs") }}</h1>
 <div class="mt-6 space-y-3">
   {% for sj in saved_jobs %}
   <div class="rounded-xl border border-line bg-card shadow-sm p-5 flex items-start justify-between">
     <div>
       <a href="{{ url_for('jobs.detail', job_id=sj.job.id) }}" class="font-semibold text-t1 hover:text-brand">{{ sj.job.title }}</a>
-      <p class="text-sm text-t2">{{ sj.job.company_name or "Unknown company" }}{% if sj.job.location %} · {{ sj.job.location }}{% endif %}</p>
-      <p class="text-xs text-t2 mt-1">Saved {{ sj.saved_at.strftime('%d %b %Y') }}</p>
+      <p class="text-sm text-t2">{{ sj.job.company_name or _("Unknown company") }}{% if sj.job.location %} · {{ sj.job.location }}{% endif %}</p>
+      <p class="text-xs text-t2 mt-1">{{ _("Saved %(date)s", date=format_local_date(sj.saved_at)) }}</p>
     </div>
     <form method="post" action="{{ url_for('jobs.unsave', job_id=sj.job.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="text-xs font-medium text-err hover:underline">Remove</button>
+      <button class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
     </form>
   </div>
   {% else %}
-  <p class="text-sm text-t2">No saved jobs yet. <a href="{{ url_for('jobs.search') }}" class="text-brand hover:underline">Search for opportunities</a>.</p>
+  <p class="text-sm text-t2">{{ _("No saved jobs yet.") }} <a href="{{ url_for('jobs.search') }}" class="text-brand hover:underline">{{ _("Search for opportunities") }}</a>.</p>
   {% endfor %}
 </div>
 {% endblock %}

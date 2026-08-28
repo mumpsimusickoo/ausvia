@@ -1,15 +1,15 @@
 ﻿{% extends "base.html" %}
-{% block title %}Admin — AUSVIA{% endblock %}
+{% block title %}{{ _("Admin") }} — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-t1">Admin Dashboard</h1>
+<h1 class="text-2xl font-bold text-t1">{{ _("Admin Dashboard") }}</h1>
 
 <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
   {% for label, value in [
-    ("Total users", stats.total_users),
-    ("Active users", stats.active_users),
-    ("Active codes", stats.active_codes),
-    ("Documents stored", stats.documents_stored),
-    ("Jobs indexed", stats.jobs_indexed),
+    (_("Total users"), stats.total_users),
+    (_("Active users"), stats.active_users),
+    (_("Active codes"), stats.active_codes),
+    (_("Documents stored"), stats.documents_stored),
+    (_("Jobs indexed"), stats.jobs_indexed),
   ] %}
   <div class="rounded-xl border border-line bg-card shadow-sm p-5">
     <p class="text-xs font-medium uppercase tracking-wide text-t2">{{ label }}</p>
@@ -20,7 +20,7 @@
 
 <section class="mt-8 rounded-xl border border-line bg-card shadow-sm">
   <div class="border-b border-line px-6 py-4">
-    <h2 class="font-semibold text-t1">Recent activity</h2>
+    <h2 class="font-semibold text-t1">{{ _("Recent activity") }}</h2>
   </div>
   {% if recent_logs %}
   <table class="w-full text-sm">
@@ -29,13 +29,13 @@
       <tr class="border-b border-line last:border-0">
         <td class="px-6 py-2.5 text-xs uppercase tracking-wide text-t2 w-28">{{ log.category }}</td>
         <td class="px-6 py-2.5 text-t2">{{ log.message }}</td>
-        <td class="px-6 py-2.5 text-xs text-t2 text-right w-40">{{ log.created_at.strftime('%d %b %Y %H:%M') }}</td>
+        <td class="px-6 py-2.5 text-xs text-t2 text-right w-40">{{ format_local_datetime(log.created_at, format="d MMM y, HH:mm") }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="p-6 text-sm text-t2">No activity yet.</p>
+  <p class="p-6 text-sm text-t2">{{ _("No activity yet.") }}</p>
   {% endif %}
 </section>
 {% endblock %}

@@ -11,6 +11,7 @@ import tempfile
 import uuid
 from abc import ABC, abstractmethod
 
+from flask_babel import gettext as _
 from werkzeug.utils import secure_filename
 
 # extension -> (mime type, magic-byte signatures to verify against the real
@@ -47,7 +48,10 @@ def _validate_and_sniff(file_storage):
     ext = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     if ext not in ALLOWED_TYPES:
         raise UnsupportedFileError(
-            f"Unsupported file type '.{ext}'. Allowed: {', '.join(sorted(ALLOWED_TYPES))}."
+            _(
+                "Unsupported file type '.%(ext)s'. Allowed: %(allowed)s.",
+                ext=ext, allowed=", ".join(sorted(ALLOWED_TYPES)),
+            )
         )
 
     header = file_storage.stream.read(16)
@@ -55,7 +59,7 @@ def _validate_and_sniff(file_storage):
     mime_type, signatures = ALLOWED_TYPES[ext]
     if not any(header.startswith(sig) for sig in signatures):
         raise UnsupportedFileError(
-            "File content doesn't match its extension. The file may be corrupted or mislabeled."
+            _("File content doesn't match its extension. The file may be corrupted or mislabeled.")
         )
 
     return ext, mime_type
@@ -80,7 +84,7 @@ class LocalStorageProvider(StorageProvider):
 
         if file_size > MAX_FILE_SIZE:
             os.remove(abs_path)
-            raise UnsupportedFileError("File exceeds the 15 MB size limit.")
+            raise UnsupportedFileError(_("File exceeds the 15 MB size limit."))
 
         return stored_filename, storage_path, file_size, mime_type
 
@@ -136,7 +140,7 @@ class S3StorageProvider(StorageProvider):
         data = file_storage.stream.read()
         file_storage.stream.seek(0)
         if len(data) > MAX_FILE_SIZE:
-            raise UnsupportedFileError("File exceeds the 15 MB size limit.")
+            raise UnsupportedFileError(_("File exceeds the 15 MB size limit."))
 
         stored_filename = f"{uuid.uuid4().hex}.{ext}"
         storage_path = f"{subdir}/{stored_filename}"

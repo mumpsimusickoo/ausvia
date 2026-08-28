@@ -1,33 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Gmail — AUSVIA{% endblock %}
+{% block title %}{{ _("Gmail") }} — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-t1">Gmail</h1>
+<h1 class="text-2xl font-bold text-t1">{{ _("Gmail") }}</h1>
 <p class="mt-1 text-sm text-t2 mb-6">
-  AUSVIA only ever creates Gmail <strong>drafts</strong> - it can never send email or read your inbox beyond
-  what's needed to detect replies to your own applications. You always review and send yourself.
+  {{ _("AUSVIA only ever creates Gmail drafts - it can never send email or read your inbox beyond what's needed to detect replies to your own applications. You always review and send yourself.") }}
 </p>
 
 <section class="rounded-xl border border-line bg-card shadow-sm p-6">
   {% if not configured %}
   <p class="text-sm text-warn">
-    Gmail isn't configured on this instance yet - an admin needs to set <code>GOOGLE_CREDENTIALS_JSON</code>
-    or add <code>credentials.json</code>. See README.md.
+    {% trans %}Gmail isn't configured on this instance yet - an admin needs to set <code>GOOGLE_CREDENTIALS_JSON</code> or add <code>credentials.json</code>. See README.md.{% endtrans %}
   </p>
   {% elif connection %}
   <div class="flex items-center justify-between">
     <div>
-      <p class="font-semibold text-t1">Connected{% if connection.google_email %}: {{ connection.google_email }}{% endif %}</p>
-      <p class="text-sm text-t2">Since {{ connection.connected_at.strftime('%d %b %Y') }}</p>
+      <p class="font-semibold text-t1">{% if connection.google_email %}{{ _("Connected: %(email)s", email=connection.google_email) }}{% else %}{{ _("Connected") }}{% endif %}</p>
+      <p class="text-sm text-t2">{{ _("Since %(date)s", date=format_local_date(connection.connected_at)) }}</p>
     </div>
     <form method="post" action="{{ url_for('integrations.gmail_disconnect') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="rounded-lg border border-line2 px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">Disconnect</button>
+      <button class="rounded-lg border border-line2 px-4 py-2 text-sm font-semibold text-t2 hover:bg-raised">{{ _("Disconnect") }}</button>
     </form>
   </div>
   {% else %}
-  <p class="text-sm text-t2 mb-4">Connect your Gmail account to create application drafts and detect replies.</p>
+  <p class="text-sm text-t2 mb-4">{{ _("Connect your Gmail account to create application drafts and detect replies.") }}</p>
   <a href="{{ url_for('integrations.gmail_connect') }}" class="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">
-    Connect Gmail
+    {{ _("Connect Gmail") }}
   </a>
   {% endif %}
 </section>

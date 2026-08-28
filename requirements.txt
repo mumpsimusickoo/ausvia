@@ -5,6 +5,12 @@ Flask-Migrate==4.0.7
 Flask-Login==0.6.3
 Flask-WTF==1.2.1
 Flask-Limiter==3.8.0
+# i18n pass 1, 2026-08-28: locale selection, gettext catalogs, and
+# locale-aware date/currency formatting (app/i18n.py, babel.cfg,
+# translations/). Pulls in Babel>=2.12 and pytz>=2022.7 as real
+# dependencies (not dev-only) - both are needed at runtime by every
+# request, not just at build/extraction time.
+Flask-Babel==4.0.0
 email-validator==2.2.0
 python-dotenv==1.0.1
 requests==2.33.0

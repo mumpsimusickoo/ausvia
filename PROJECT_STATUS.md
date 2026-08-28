@@ -660,11 +660,94 @@ for a redesign pass. Status:
   2 new tests. Full detail: `DECISIONS.md`'s "Landing toggle-fix pass"
   entry, `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 toggle-fix pass". Full
   pytest suite: 555 passed / 3 skipped (553 + 2).
+- **i18n pass 1 (infrastructure + switcher) done, 2026-08-28** - first of
+  three i18n passes, split because a half-extracted set of templates is
+  recoverable but a half-configured Babel setup is not. Flask-Babel wired
+  up (`app/i18n.py`, `babel.cfg`, `translations/de/`) with locale
+  selection in priority order (an explicit choice, persisted, over
+  Accept-Language on first visit, over English) - the explicit choice
+  lives in `User.locale` for a logged-in visitor (a column that's existed,
+  unused, since the very first migration - no new migration needed this
+  pass) and a cookie for a logged-out one, converging at login/
+  registration so a choice made while logged out survives into the
+  account, the same way the theme preference already survives login.
+  **Supersedes the AUSVIA 2.0 bundle's own bilingual rule** (English
+  labels over permanently-German prose) - English is the real default,
+  not a mixed-language scheme; recorded as a deliberate supersession in
+  `DECISIONS.md` so a future cold session doesn't read the bundle's
+  Foundations brief and "correct" the app back. The `language_switcher()`
+  component (`_components.html`, beside `theme_toggle()` for exactly the
+  reason that pass reserved the space) renders at all three chrome call
+  sites (desktop top bar, mobile topbar, landing header) - two options,
+  real focus/aria-current states, `next` preserving the current page and
+  its query params through the switch. Proof of concept, not mass
+  extraction: the sidebar/drawer nav labels (7 strings) are the one
+  template wrapped in `_()` this pass; `format_local_date()`/
+  `format_local_currency()` (locale-aware date/currency helpers) are
+  built and wired into two real call sites (Job Detail's deadline,
+  Application Detail's "applied since") plus a literal-value demo at
+  `/admin/components` for currency, since no numeric currency field
+  exists anywhere in the schema to wire a real one into (`Job.salary` is
+  a pre-formatted string from each source adapter, not a number). One
+  real bug found and fixed before it shipped: `BABEL_TRANSLATION_
+  DIRECTORIES` as a bare relative string resolved against Flask's
+  `app.root_path` (the `app/` package directory), not the repo root where
+  `translations/` actually lives - silently found no catalog and fell
+  back to English regardless of locale; fixed with an absolute path, the
+  same `BASE_DIR`-relative pattern `UPLOAD_DIR`/`GENERATED_DIR` already
+  use. Verified live via Playwright: a fresh browser with a German OS
+  locale correctly defaulted to German on the switcher (real
+  Accept-Language detection, not staged); switching en→de→en on the
+  dashboard changed the nav live; the choice survived a reload, survived
+  login for an account whose own stored locale was still the untouched
+  "en" default, and preserved `?keywords=...&min_score=...` through a
+  switch on a filtered search page; both chrome instances (desktop/
+  mobile) swap visibility correctly at 375px with zero horizontal
+  overflow, both themes. 28 new tests, including a translation-catalog
+  staleness guard (recompiles the committed `.po` into a scratch dir and
+  byte-diffs it against the committed `.mo` - same class of gap as the
+  Tailwind CSS staleness check) and an extraction-completeness guard (a
+  fresh `pybabel extract` must produce no `msgid` missing from the
+  committed catalog). Full detail: `DECISIONS.md`'s 2026-08-28 "i18n pass
+  1" entry, `DEPLOYMENT.md`'s new Translations (i18n) section. Full
+  pytest suite: 583 passed / 3 skipped (555 + 28).
+- **i18n pass 2 (mass string extraction) done, 2026-08-28** - second of
+  three i18n passes. Every in-scope template and Python module wrapped in
+  `_()`/`_l()`/`ngettext()`, worked through group by group (shared
+  components, auth, dashboard/digest, jobs, applications, profile/
+  documents, company, landing, errors, integrations, admin), each
+  followed by its own extract/translate/compile cycle rather than one
+  extraction at the end. `format_local_date()`/`format_local_datetime()`
+  mass-applied to every remaining date/time display beyond pass 1's two
+  proof-of-concept sites - `format_local_currency()` still has only the
+  one `/admin/components` demo call site, unchanged, since no numeric
+  currency field exists in the schema. Deliberately still untranslated:
+  `app/ai/prompts/*` and AI-generated content itself (scoped to pass 3),
+  job posting data (source-verbatim rule), and internal audit-log/
+  diagnostic content (`log_event()` messages, `admin/components.html`'s
+  own dev-reference page, the temporary unauthenticated CORS diagnostic
+  route) - all flagged explicitly, not silently skipped. One real,
+  non-obvious fix landed outside i18n's usual "wrap a string" shape:
+  `app/ai/matching.py`'s five deterministic match-scoring functions
+  (never an LLM call) were first mistaken for pass-3 AI-content scope and
+  left alone; live German verification caught the resulting bug directly
+  - every Find Ausbildung result card was rendering a German category
+  name followed by an English gap sentence mid-string - and it was fixed
+  properly rather than deferred a second time. Also caught and fixed: a
+  `LazyString` can't be written directly to a SQLite column (a real
+  `sqlite3.ProgrammingError`, found by the full pytest suite), and a
+  previously-unknown Flask-Babel gotcha where a running process caches
+  its compiled `.mo` catalog for its own lifetime and never reloads it -
+  meaning every environment (this dev server included) needs an actual
+  restart after any `pybabel compile`, a real deploy-checklist addition
+  for Railway. Full pytest suite: 583 passed / 3 skipped (unchanged from
+  pass 1 - this pass touched existing template/string content, not test
+  count). Full detail: `DECISIONS.md`'s 2026-08-28 "i18n pass 2" entry,
+  `DEPLOYMENT.md`'s Translations section.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
-  screen onto the component-layer macros - and the i18n pass (English
-  default, language switcher - reserved space for it already sits beside
-  the theme toggle) - **neither yet scoped or started.** Job Detail,
+  screen onto the component-layer macros - and i18n pass 3 (per-feature
+  AI prompt language) - **neither yet scoped or started.** Job Detail,
   Application Detail, Dashboard, Find Ausbildung, Candidate Profile /
   Documents, Company Detail, and Landing are the reference call sites now
   for how a real screen uses `match_band` (full and compact shapes),

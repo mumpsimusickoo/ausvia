@@ -11,7 +11,7 @@
   external fetch, no hidden data source).
 #}
 <div class="text-xs text-t3">
-  <a href="{{ url_for('jobs.search') }}" class="hover:text-brand hover:underline">Find Ausbildung</a> / {{ company.name }}
+  <a href="{{ url_for('jobs.search') }}" class="hover:text-brand hover:underline">{{ _("Find Ausbildung") }}</a> / {{ company.name }}
 </div>
 
 <div class="flex items-center gap-4 mt-3 pb-6 border-b border-line">
@@ -19,7 +19,7 @@
   <div class="flex-1 min-w-0">
     <h1 class="font-display font-semibold text-2xl text-t1 truncate">{{ company.name }}</h1>
     <p class="text-sm text-t2 mt-1">
-      {{ company.industry or "Industry not specified" }}{% if company.location %} &middot; {{ company.location }}{% endif %}
+      {{ company.industry or _("Industry not specified") }}{% if company.location %} &middot; {{ company.location }}{% endif %}
       {%- if company.website %} &middot; <a href="{{ company.website }}" target="_blank" rel="noopener noreferrer" class="text-brand hover:underline">{{ company.website }}</a>{% endif %}
     </p>
   </div>
@@ -29,12 +29,12 @@
   <div class="min-w-0">
 
     {# ---------- About ---------- #}
-    <h2 class="font-display font-semibold text-[19px] text-t1 mb-3">About the company</h2>
+    <h2 class="font-display font-semibold text-[19px] text-t1 mb-3">{{ _("About the company") }}</h2>
     {% if company.description %}
     <p class="text-[15px] leading-relaxed text-t2 whitespace-pre-line">{{ company.description }}</p>
-    <p class="mt-2.5 text-xs text-t3">From this company's own job postings on file - no external database, nothing added.</p>
+    <p class="mt-2.5 text-xs text-t3">{{ _("From this company's own job postings on file - no external database, nothing added.") }}</p>
     {% else %}
-    <p class="text-sm text-t2">No verified description on file yet. AUSVIA only shows company details that came from real job postings - nothing is invented to fill the gap.</p>
+    <p class="text-sm text-t2">{{ _("No verified description on file yet. AUSVIA only shows company details that came from real job postings - nothing is invented to fill the gap.") }}</p>
     {% endif %}
 
     {# ---------- Company fit insight ---------- #}
@@ -44,16 +44,16 @@
           text=insight.summary_text,
           provider=insight.provider,
           reliability=insight.reliability,
-          provenance="Interprets only the facts above against your profile. No new company information.",
+          provenance=_("Interprets only the facts above against your profile. No new company information."),
           regenerate_href=url_for("companies.generate_insight", company_id=company.id),
         ) }}
       {% else %}
       <div class="text-center rounded-xl border border-dashed border-line2 p-[26px]">
-        <div class="font-display font-semibold text-[15.5px] text-t1">Why this company might fit you</div>
-        <p class="text-[13.5px] text-t2 mt-1.5 max-w-[46ch] mx-auto">Interprets only the facts on this page against your profile - never a source of new company facts.</p>
+        <div class="font-display font-semibold text-[15.5px] text-t1">{{ _("Why this company might fit you") }}</div>
+        <p class="text-[13.5px] text-t2 mt-1.5 max-w-[46ch] mx-auto">{{ _("Interprets only the facts on this page against your profile - never a source of new company facts.") }}</p>
         <form method="post" action="{{ url_for('companies.generate_insight', company_id=company.id) }}" class="mt-3.5">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          {{ btn("Generate AI insight", variant="secondary", compact=true, type="submit") }}
+          {{ btn(_("Generate AI insight"), variant="secondary", compact=true, type="submit") }}
         </form>
       </div>
       {% endif %}
@@ -61,9 +61,9 @@
 
     {# ---------- Positions ---------- #}
     <div class="flex items-baseline gap-3 mt-9 mb-3">
-      <h2 class="font-display font-semibold text-[19px] text-t1">Ausbildung positions at {{ company.name }}</h2>
+      <h2 class="font-display font-semibold text-[19px] text-t1">{{ _("Ausbildung positions at %(company)s", company=company.name) }}</h2>
       {% if jobs %}
-      <span class="text-[13px] text-t3">{{ jobs|length }}{% if last_checked %} &middot; as of {{ last_checked.strftime('%d.%m.%Y') }}{% endif %}</span>
+      <span class="text-[13px] text-t3">{{ jobs|length }}{% if last_checked %} &middot; {{ _("as of %(date)s", date=format_local_date(last_checked)) }}{% endif %}</span>
       {% endif %}
     </div>
     {% if jobs %}
@@ -74,9 +74,9 @@
         <div class="flex-1 min-w-0">
           <div class="font-display font-semibold text-[15.5px] text-t1 break-words">{{ job.title }}</div>
           <div class="text-[13px] text-t2 mt-0.5">
-            {{ job.location or "Location not specified" }}
-            {%- if job.start_date %} &middot; Start {{ job.start_date }}{% endif %}
-            &middot; {{ job.salary or "No salary specified" }}
+            {{ job.location or _("Location not specified") }}
+            {%- if job.start_date %} &middot; {{ _("Start %(date)s", date=job.start_date) }}{% endif %}
+            &middot; {{ job.salary or _("No salary specified") }}
           </div>
         </div>
         {% if m and m.score is not none and not profile_insufficient %}
@@ -86,15 +86,15 @@
         </div>
         {% elif m %}
         <div class="flex-none text-right w-24">
-          <span class="text-xs text-t3">Not scored</span>
+          <span class="text-xs text-t3">{{ _("Not scored") }}</span>
         </div>
         {% endif %}
-        {{ btn("Details", variant="secondary", compact=true, href=url_for("jobs.detail", job_id=job.id)) }}
+        {{ btn(_("Details"), variant="secondary", compact=true, href=url_for("jobs.detail", job_id=job.id)) }}
       </div>
       {% endfor %}
     </div>
     {% else %}
-      {{ empty_state("No positions on file yet", "AUSVIA hasn't found an Ausbildung posting from this company yet - check back after your next search.") }}
+      {{ empty_state(_("No positions on file yet"), _("AUSVIA hasn't found an Ausbildung posting from this company yet - check back after your next search.")) }}
     {% endif %}
 
   </div>
@@ -104,30 +104,30 @@
 
     {# ---------- Facts on file ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">FACTS ON FILE</span>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("FACTS ON FILE") }}</span>
       <div class="flex items-baseline gap-3 py-2 border-b border-line mt-2">
-        <span class="text-[13.5px] text-t2 flex-1">Industry</span>
-        <span class="text-[13.5px] text-t1 text-right">{{ company.industry or "Not specified" }}</span>
+        <span class="text-[13.5px] text-t2 flex-1">{{ _("Industry") }}</span>
+        <span class="text-[13.5px] text-t1 text-right">{{ company.industry or _("Not specified") }}</span>
       </div>
       <div class="flex items-baseline gap-3 py-2 border-b border-line">
-        <span class="text-[13.5px] text-t2 flex-1">Location</span>
-        <span class="text-[13.5px] text-t1 text-right">{{ company.location or "Not specified" }}</span>
+        <span class="text-[13.5px] text-t2 flex-1">{{ _("Location") }}</span>
+        <span class="text-[13.5px] text-t1 text-right">{{ company.location or _("Not specified") }}</span>
       </div>
       <div class="flex items-baseline gap-3 py-2 border-b border-line">
-        <span class="text-[13.5px] text-t2 flex-1">Listings on file</span>
+        <span class="text-[13.5px] text-t2 flex-1">{{ _("Listings on file") }}</span>
         <span class="text-[13.5px] text-t1 text-right tabular-nums">{{ listings_on_file }}</span>
       </div>
       <div class="flex items-baseline gap-3 py-2">
-        <span class="text-[13.5px] text-t2 flex-1">First seen</span>
-        <span class="text-[13.5px] text-t1 text-right tabular-nums">{{ first_seen.strftime('%d.%m.%Y') if first_seen else "Not yet seen" }}</span>
+        <span class="text-[13.5px] text-t2 flex-1">{{ _("First seen") }}</span>
+        <span class="text-[13.5px] text-t1 text-right tabular-nums">{{ format_local_date(first_seen) if first_seen else _("Not yet seen") }}</span>
       </div>
-      <p class="mt-3 pt-3 border-t border-line text-xs text-t3">Employee count, founding year, and revenue aren't available, so they stay blank rather than being estimated.</p>
+      <p class="mt-3 pt-3 border-t border-line text-xs text-t3">{{ _("Employee count, founding year, and revenue aren't available, so they stay blank rather than being estimated.") }}</p>
     </div>
 
     {# ---------- Your application(s) here ---------- #}
     {% if applications %}
     <div class="rounded-r-xl border border-line border-l-[3px] border-l-brand bg-card shadow-sm p-5">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">{{ "YOUR APPLICATIONS HERE" if applications|length > 1 else "YOUR APPLICATION HERE" }}</span>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">{{ _("YOUR APPLICATIONS HERE") if applications|length > 1 else _("YOUR APPLICATION HERE") }}</span>
       <div class="mt-3 divide-y divide-line">
         {% for application in applications %}
         <div class="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
@@ -139,9 +139,9 @@
         {% endfor %}
       </div>
       {% if applications|length == 1 %}
-      {{ btn("Open application", variant="primary", href=url_for("applications.detail", application_id=applications[0].id), extra_classes="w-full mt-2") }}
+      {{ btn(_("Open application"), variant="primary", href=url_for("applications.detail", application_id=applications[0].id), extra_classes="w-full mt-2") }}
       {% else %}
-      <a href="{{ url_for('applications.list_applications') }}" class="mt-2 inline-block text-sm font-medium text-brand hover:underline">View all your applications &rarr;</a>
+      <a href="{{ url_for('applications.list_applications') }}" class="mt-2 inline-block text-sm font-medium text-brand hover:underline">{{ _("View all your applications") }} &rarr;</a>
       {% endif %}
     </div>
     {% endif %}

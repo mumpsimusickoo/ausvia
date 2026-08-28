@@ -559,10 +559,67 @@ for a redesign pass, started 2026-08-24.
       to do a live rendered-in-both-themes visual pass this session -
       verified via CSS values, contrast math, and confirmed template
       rendering instead.
-- [ ] **i18n pass** - English default with a language switcher (reserved
-      space for it already sits beside the new theme toggle), German body
-      copy for AI-generated prose per the bundle's own bilingual rule -
-      not yet scoped or started.
+- **i18n pass - English default with a language switcher** (reserved
+      space for it already sits beside the theme toggle). **Supersedes
+      the bundle's own bilingual rule** (English labels over
+      permanently-German prose, `AUSVIA_2_0_SCREEN_INVENTORY.md`'s
+      section 0.1) - that rule is not the target here, see `DECISIONS.md`.
+      AI-generated content language is a separate, per-feature axis, not
+      tied to the UI language toggle: cover letter/application email/
+      reply suggestions stay German always (real German-employer-facing
+      text); match explanation/company insight/profile coaching/interview
+      prep/CV profile statement follow the UI language; job posting data
+      (titles/descriptions/requirements) is never translated, since it
+      comes from the source verbatim. Split into three passes since a
+      half-extracted set of templates is recoverable but a
+      half-configured Babel setup is not:
+  - [x] **Pass 1: infrastructure + switcher, 2026-08-28** - Flask-Babel
+        wired up (`app/i18n.py`, `babel.cfg`, `translations/de/`), locale
+        selection in priority order (an explicit choice, persisted >
+        Accept-Language on first visit > English), the `language_switcher()`
+        component (`_components.html`, beside `theme_toggle()`) at all
+        three chrome call sites (desktop top bar, mobile topbar, landing
+        header), and locale-aware `format_local_date()`/
+        `format_local_currency()` helpers. Proof of concept only: the
+        sidebar/drawer nav labels (7 strings) are the one template
+        extraction this pass did; `format_local_date()` was wired into
+        two real call sites (Job Detail's deadline, Application Detail's
+        "applied since") plus `format_local_currency()` demonstrated at
+        `/admin/components` with a literal value (no numeric currency
+        field exists anywhere in the schema - `Job.salary` is a
+        pre-formatted string from each source adapter, not a number).
+        `User.locale` needed no migration - it's existed, unused, since
+        the very first migration. Full detail: `DECISIONS.md`'s
+        2026-08-28 "i18n pass 1" entry, `DEPLOYMENT.md`'s Translations
+        section.
+  - [x] **Pass 2: mass string extraction, 2026-08-28** - every in-scope
+        template and Python module wrapped in `_()`/`_l()`/`ngettext()`,
+        German catalog filled in group by group (shared components, auth,
+        dashboard/digest, jobs, applications, profile/documents, company,
+        landing, errors, integrations, admin), each followed by its own
+        extract/translate/compile cycle. `format_local_date()`/
+        `format_local_datetime()` mass-applied to every remaining date/
+        time call site beyond pass 1's two proof-of-concept ones (no new
+        `format_local_currency()` call sites - still no numeric currency
+        field in the schema, unchanged from pass 1). Deliberately still
+        untranslated: `app/ai/prompts/*` and AI-generated content itself
+        (pass 3's job), job posting data (source-verbatim rule, unchanged),
+        internal audit-log/diagnostic content (`log_event()` messages,
+        `admin/components.html`, the temporary CORS diagnostic route).
+        One deterministic-content fix landed outside its originally-
+        assumed scope: `app/ai/matching.py`'s five scorer functions build
+        plain-Python match-summary sentences (never an LLM call) that a
+        first pass through the file mistakenly deferred as "AI content" -
+        corrected once live German verification showed English gap
+        sentences on every Find Ausbildung result card. Full detail:
+        `DECISIONS.md`'s 2026-08-28 "i18n pass 2" entry, `DEPLOYMENT.md`'s
+        Translations section (including a real stale-`.mo`-in-a-running-
+        process gotcha found this pass).
+  - [ ] **Pass 3: AI prompt language** - wiring the per-feature language
+        split described above into the actual prompt builders (most
+        already produce German by necessity - cover letter/email/reply -
+        the ones that should start following the UI language don't yet).
+        Not yet started.
 - [x] **Component layer pass** - 2026-08-26, build-only: 11 macros
       (`btn`, `arrow_link`, `status_pill`, `chip_source`,
       `chip_attribute`, `chip_coverage`, `match_band`, `empty_state`,

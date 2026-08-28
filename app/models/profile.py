@@ -1,3 +1,5 @@
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.models.user import utcnow
 
@@ -51,7 +53,16 @@ class CandidateProfile(db.Model):
         name what's actually missing ("Missing: Skills, Job preferences")
         instead of showing a bare percentage. Same eight checks, same
         order, same weighting as before this pass - only exposing the
-        labels is new, the percentage itself is unchanged."""
+        labels is new, the percentage itself is unchanged.
+
+        i18n pass 2: these eight labels are deliberately plain, untranslated
+        strings - they're stable internal keys other code matches against
+        (app/profile/routes.py's _COMPLETENESS_PHRASING dict), the same
+        "raw code, translated only at the display boundary" pattern as
+        Application.status/Document.doc_type. See CHECKLIST_LABEL_TRANSLATIONS
+        below for the translated version, used wherever one of these eight
+        labels is shown directly rather than routed through
+        _COMPLETENESS_PHRASING's done/missing sentence."""
         return [
             ("Name", bool(self.first_name and self.last_name)),
             ("Location", bool(self.city and self.country)),
@@ -67,6 +78,24 @@ class CandidateProfile(db.Model):
         """Rough profile-completeness signal shown on the dashboard."""
         checks = self.completeness_checklist()
         return round(100 * sum(ok for _, ok in checks) / len(checks))
+
+
+# i18n pass 2, 2026-08-28: translated display label for each of
+# completeness_checklist()'s eight raw label strings - used directly by
+# main/routes.py's dashboard() for the "Missing: X, Y" line (no
+# done/missing phrasing there, just the bare names). See
+# completeness_checklist()'s own docstring for why the checklist labels
+# themselves stay untranslated.
+CHECKLIST_LABEL_TRANSLATIONS = {
+    "Name": _l("Name"),
+    "Location": _l("Location"),
+    "Phone number": _l("Phone number"),
+    "Contact email": _l("Contact email"),
+    "Education": _l("Education"),
+    "Skills": _l("Skills"),
+    "Languages": _l("Languages"),
+    "Job preferences": _l("Job preferences"),
+}
 
 
 class Education(db.Model):

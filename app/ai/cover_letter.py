@@ -8,6 +8,8 @@ Both paths only ever use facts from app/ai/facts.py, never raw job HTML.
 """
 from datetime import date
 
+from flask_babel import gettext as _
+
 from app.ai.facts import format_candidate_facts, format_job_facts
 from app.ai.provider_factory import get_provider
 from app.ai.prompts.cover_letter import build_generation_prompt, build_validation_prompt
@@ -98,21 +100,23 @@ def validate_cover_letter(user, job, letter_text, source):
     text = response.text.strip()
     if text.startswith("CORRECTED:"):
         corrected = text[len("CORRECTED:"):].strip()
-        return False, "AI validation found and corrected issues.", corrected
+        return False, _("AI validation found and corrected issues."), corrected
     if text.startswith("VALID:"):
         return True, text[len("VALID:"):].strip(), None
-    return True, "AI validation returned an unexpected format; treating as unreviewed.", None
+    return True, _("AI validation returned an unexpected format; treating as unreviewed."), None
 
 
 def _deterministic_sanity_check(profile, job, letter_text):
     missing = []
     if job.title and job.title.lower() not in letter_text.lower():
-        missing.append("job title")
+        missing.append(_("job title"))
     if job.company_name and job.company_name.lower() not in letter_text.lower():
-        missing.append("company name")
+        missing.append(_("company name"))
     if profile and profile.full_name and profile.full_name.lower() not in letter_text.lower():
-        missing.append("candidate name")
+        missing.append(_("candidate name"))
 
     if missing:
-        return False, f"Automated check: missing expected mention of: {', '.join(missing)}.", None
-    return True, "Automated check: job title, company, and candidate name all present.", None
+        return False, _(
+            "Automated check: missing expected mention of: %(missing)s.", missing=", ".join(missing)
+        ), None
+    return True, _("Automated check: job title, company, and candidate name all present."), None

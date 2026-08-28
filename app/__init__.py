@@ -4,7 +4,7 @@ from flask import Flask, render_template
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import config_by_name
-from app.extensions import db, migrate, login_manager, csrf, limiter
+from app.extensions import db, migrate, login_manager, csrf, limiter, babel
 
 
 def create_app(config_name=None):
@@ -93,6 +93,30 @@ def create_app(config_name=None):
     login_manager.init_app(app)
     csrf.init_app(app)
     limiter.init_app(app)
+
+    from app.i18n import get_locale, format_local_date, format_local_datetime, format_local_currency
+
+    babel.init_app(app, locale_selector=get_locale)
+    # get_locale here is app.i18n's own callback, not flask_babel's Locale-
+    # object one - templates need "which of the two supported codes is
+    # active" (for the switcher's active-state styling), not a Locale
+    # object. flask_babel's own _/gettext/ngettext/format_* globals are
+    # already auto-registered by babel.init_app() above - these are the
+    # only additions this app needs on top of that.
+    app.jinja_env.globals["get_locale"] = get_locale
+    app.jinja_env.globals["format_local_date"] = format_local_date
+    app.jinja_env.globals["format_local_datetime"] = format_local_datetime
+    app.jinja_env.globals["format_local_currency"] = format_local_currency
+
+    from app.models.application import APPLICATION_STATUS_LABELS
+    from app.models.document import DOCUMENT_TYPE_LABELS
+    from app.models.integration import REPLY_INTENT_LABELS
+    from app.jobs.matching import _CATEGORY_DISPLAY_NAMES
+
+    app.jinja_env.globals["application_status_labels"] = APPLICATION_STATUS_LABELS
+    app.jinja_env.globals["document_type_labels"] = DOCUMENT_TYPE_LABELS
+    app.jinja_env.globals["reply_intent_labels"] = REPLY_INTENT_LABELS
+    app.jinja_env.globals["category_display_names"] = _CATEGORY_DISPLAY_NAMES
 
     with app.app_context():
         _enable_sqlite_foreign_keys(db.engine)

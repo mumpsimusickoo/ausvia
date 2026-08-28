@@ -20,7 +20,7 @@
         {% else %}{{ info(14) }}{% endif %}
       </span>
       <span>
-        <span class="sr-only">{{ {"error": "Error", "success": "Success"}.get(category, "Notice") }}:</span>
+        <span class="sr-only">{{ {"error": _("Error"), "success": _("Success")}.get(category, _("Notice")) }}:</span>
         {{ message }}
       </span>
     </div>

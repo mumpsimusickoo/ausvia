@@ -1,20 +1,24 @@
-﻿{% extends "base.html" %}
-{% block title %}Applications — AUSVIA{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ _("Applications") }} — AUSVIA{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold text-t1">Applications</h1>
+<h1 class="text-2xl font-bold text-t1">{{ _("Applications") }}</h1>
 <div class="mt-6 space-y-3">
   {% for app in applications %}
   <a href="{{ url_for('applications.detail', application_id=app.id) }}" class="block rounded-xl border border-line bg-card shadow-sm p-5 hover:border-tint2">
     <div class="flex items-center justify-between">
       <div>
         <p class="font-semibold text-t1">{{ app.job.title }}</p>
-        <p class="text-sm text-t2">{{ app.job.company_name or "Unknown company" }}</p>
+        <p class="text-sm text-t2">{{ app.job.company_name or _("Unknown company") }}</p>
       </div>
-      <span class="rounded-full bg-line px-3 py-1 text-xs font-medium text-t2">{{ app.status.replace('_', ' ')|title }}</span>
+      {# i18n pass 2: application_status_labels[status] (app/models/
+         application.py, exposed as a Jinja global) - not
+         status.replace('_', ' ')|title, which has no German equivalent
+         (same fix as status_pill()/StatusForm/status_route.py). #}
+      <span class="rounded-full bg-line px-3 py-1 text-xs font-medium text-t2">{{ application_status_labels[app.status] }}</span>
     </div>
   </a>
   {% else %}
-  <p class="text-sm text-t2">No applications yet. Open a job and click "Start application".</p>
+  <p class="text-sm text-t2">{{ _('No applications yet. Open a job and click "Start application".') }}</p>
   {% endfor %}
 </div>
 {% endblock %}

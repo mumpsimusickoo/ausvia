@@ -152,8 +152,28 @@
 </section>
 
 {# ============================== PROGRESS BAR ============================== #}
-<section class="rounded-xl border border-line bg-card shadow-sm p-6">
+<section class="rounded-xl border border-line bg-card shadow-sm p-6 mb-6">
   <h2 class="font-semibold text-t1 mb-4">Progress bar</h2>
   {{ progress_bar(78, label='Profil vollständig') }}
+</section>
+
+{# ============================== LOCALE-AWARE FORMATTING ============================== #}
+<section class="rounded-xl border border-line bg-card shadow-sm p-6">
+  <h2 class="font-semibold text-t1 mb-1">Locale-aware formatting (i18n pass 1)</h2>
+  <p class="text-sm text-t2 mb-4">
+    <code class="font-mono text-xs bg-raised px-1.5 py-0.5 rounded">format_local_date()</code> /
+    <code class="font-mono text-xs bg-raised px-1.5 py-0.5 rounded">format_local_currency()</code>
+    (<code class="font-mono text-xs bg-raised px-1.5 py-0.5 rounded">app/i18n.py</code>), both Jinja
+    globals. Currently rendering in <strong>{{ get_locale() }}</strong> — toggle the language switcher
+    (top right) and reload to see both change. The date is real (this page's own render time); the
+    currency figure is a literal example value, not live data — no numeric currency field exists
+    anywhere in this schema yet (<code class="font-mono text-xs bg-raised px-1.5 py-0.5 rounded">Job.salary</code>
+    is a pre-formatted free-text string from each source adapter), so this is deliberately demonstrated
+    here rather than against a fabricated live call site. See DECISIONS.md.
+  </p>
+  <div class="flex flex-wrap gap-6 font-mono text-sm">
+    <div><span class="text-t3 text-xs block mb-1">format_local_date(now)</span>{{ format_local_date(now) }}</div>
+    <div><span class="text-t3 text-xs block mb-1">format_local_currency(1150)</span>{{ format_local_currency(1150) }}</div>
+  </div>
 </section>
 {% endblock %}

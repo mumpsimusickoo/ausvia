@@ -177,6 +177,100 @@ If step 2 fails on a branch you didn't expect to touch CSS on, that's the
 check doing its job - something (a class name, a token, a purge-relevant
 template edit) changed since the last commit of the compiled file.
 
+## Translations (i18n)
+
+**i18n pass 1, 2026-08-28** (`app/i18n.py`, `babel.cfg`, `translations/`):
+Flask-Babel wires up locale selection and message catalogs. Same
+committed-compiled-artifact discipline as the Tailwind build above and for
+the same reason - Railway's deploy is pure Python with no build step, so
+`translations/de/LC_MESSAGES/messages.mo` (the binary catalog the app
+actually reads at runtime) has to already be correct and committed before
+you push, not regenerated during deploy.
+
+**English is the source language, not a translated one** - every `_()`-
+wrapped string's English text is its own `msgid`, so English needs no
+catalog at all; only `translations/de/` exists. This supersedes the
+AUSVIA 2.0 bundle's own bilingual rule (English labels over permanently-
+German prose) - see `DECISIONS.md`. A translated locale's AI-generated
+content (cover letters, etc.) is a separate, per-feature concern scoped to
+i18n pass 3, not this mechanism.
+
+**Workflow - three `pybabel` commands** (installed as part of
+`Flask-Babel`, callable as `venv/Scripts/pybabel.exe` on this machine's
+venv, or plain `pybabel` once the venv is activated):
+
+1. **After adding or changing any `_('...')`-wrapped string** (in a
+   `.py` file or a Jinja template - `babel.cfg` covers both), regenerate
+   the template:
+   ```
+   pybabel extract -F babel.cfg -k lazy_gettext -k _l -o messages.pot .
+   ```
+   **Both `-k` flags are required, not redundant.** `flask_babel.lazy_gettext`
+   (deferred translation - every WTForms field label/validator message,
+   which is evaluated at class-body/module-import time, outside any
+   request) is always imported under the alias `_l`
+   (`from flask_babel import lazy_gettext as _l`) throughout this app's
+   `forms.py` files. `pybabel extract` matches call sites by the literal
+   identifier used at the call site, not by what it's imported *from* - a
+   real bug hit during i18n pass 2 (2026-08-28): `-k lazy_gettext` alone
+   silently extracted zero of the ~40 `_l(...)`-wrapped form field labels
+   and validator messages, with no warning or error, because every call
+   site in the source reads `_l(...)`, never `lazy_gettext(...)`. Caught
+   by the pass's own extraction-completeness test, not by inspection - see
+   `DECISIONS.md`. If a future session ever imports `lazy_gettext` under a
+   *different* alias, that alias needs its own `-k` flag added here too.
+2. **Update the German catalog against the new template** (preserves
+   existing translations, marks changed/removed strings `#, fuzzy` for
+   review, adds new ones as blank):
+   ```
+   pybabel update -i messages.pot -d translations -l de
+   ```
+   Then translate any new blank `msgstr ""` entries in
+   `translations/de/LC_MESSAGES/messages.po` by hand - this project has no
+   translation-management service, `.po` files are edited directly, the
+   same way `.mo` compilation is a local step, not a service call.
+3. **Compile before every commit that touches a `.po` file:**
+   ```
+   pybabel compile -d translations
+   ```
+   This regenerates `translations/de/LC_MESSAGES/messages.mo` - commit it
+   alongside the `.po` source, same as the Tailwind CSS file above. A
+   `.po` edit with no matching `pybabel compile` run is exactly the
+   Tailwind-staleness trap in a different file: the source is correct, the
+   compiled artifact the running app actually reads isn't.
+
+**A first-time locale (there's only `de` today) needs `init`, not
+`update`:**
+```
+pybabel init -i messages.pot -d translations -l <code>
+```
+
+**i18n pass 2, 2026-08-28: mass extraction complete** - every in-scope
+template and Python module wraps its user-facing strings; only
+`app/ai/prompts/*` (prompt builders), AI-generated content itself, job
+posting data, and internal audit-log/diagnostic content remain
+deliberately untranslated - see `DECISIONS.md`'s pass 2 entry for the
+full scope list and reasoning.
+
+**A compiled `.mo` catalog only loads once per process - a running
+server must be restarted for a new `pybabel compile` to take effect,**
+the same way it already needs a restart to pick up new Python code (but
+unlike Jinja templates, which Flask's debug-mode autoreloader already
+picks up per-request without a restart). Found during pass 2: a long-
+running dev server kept serving an in-memory snapshot of the German
+catalog from early in the session while `messages.po`/`messages.mo` were
+recompiled several more times afterward, so some strings translated
+correctly (whatever was cached at first load) and others - added in a
+later cycle - silently rendered their English `msgid`, in the same
+request, with no error. **On Railway, this means a deploy that changes
+only `translations/de/LC_MESSAGES/messages.mo` still needs the dyno to
+actually restart**, not just receive the new file - the same class of
+"source correct, running process stale" trap the Tailwind CSS / compiled-
+artifact discipline above exists to prevent, just triggered by a process
+boundary instead of a missing build step. A plain `git push` to a
+platform that hot-swaps files without restarting the process would ship
+silently-stale translations.
+
 ## Post-deploy checklist
 
 **Every push that includes a migration must be followed by these three

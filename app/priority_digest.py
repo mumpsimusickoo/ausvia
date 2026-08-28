@@ -11,6 +11,9 @@ none of which are implemented here.
 """
 from dataclasses import dataclass, field
 
+from flask_babel import gettext as _
+from flask_babel import ngettext
+
 from app.models.job import SavedJob
 from app.models.application import Application, APPLICATION_STATUSES
 from app.models.ai import JobMatch
@@ -32,6 +35,16 @@ class DigestItem:
     url_kwargs: dict
     priority: int  # higher = more urgent, purely for sort order - never shown as a fake score
     reasons: list = field(default_factory=list)
+    # i18n pass 2: parallel to `reasons` (same order/length) - a fixed,
+    # never-translated vocabulary the template branches on for the digest
+    # dot color (main/dashboard.html). Added because that branch used to
+    # pattern-match substrings of the rendered *English* reason text
+    # ("deadline" in reason.lower(), "Interview in" in reason, ...) - once
+    # `reasons` became real translated UI copy, that match would silently
+    # stop working the moment the UI renders in German. The reason text is
+    # for reading; the code is for behavior - never derive one from the
+    # other again.
+    reason_codes: list = field(default_factory=list)
 
 
 def _days_between(later, earlier):
@@ -45,30 +58,43 @@ def application_digest_item(application, now):
     just internally by compute_priority_digest()."""
     job = application.job
     reasons = []
+    reason_codes = []
     priority = 0
 
     if application.follow_up_date and application.follow_up_date <= now.date():
-        reasons.append("Follow-up date has arrived")
+        reasons.append(_("Follow-up date has arrived"))
+        reason_codes.append("follow_up_due")
         priority += 100
     if application.interview_date:
         days_until = _days_between(application.interview_date.date(), now.date())
         if 0 <= days_until <= UPCOMING_DAYS_THRESHOLD:
-            reasons.append(f"Interview in {days_until} day{'s' if days_until != 1 else ''}")
+            reasons.append(ngettext("Interview in %(num)d day", "Interview in %(num)d days", days_until))
+            reason_codes.append("interview_soon")
             priority += 90
     if job.application_deadline:
         days_until_deadline = _days_between(job.application_deadline, now.date())
         if 0 <= days_until_deadline <= UPCOMING_DAYS_THRESHOLD:
-            reasons.append(f"Application deadline in {days_until_deadline} day{'s' if days_until_deadline != 1 else ''}")
+            reasons.append(
+                ngettext(
+                    "Application deadline in %(num)d day",
+                    "Application deadline in %(num)d days",
+                    days_until_deadline,
+                )
+            )
+            reason_codes.append("deadline_soon")
             priority += 80
     if application.status == "ready":
-        reasons.append("Approved but not yet sent")
+        reasons.append(_("Approved but not yet sent"))
+        reason_codes.append("approved_not_sent")
         priority += 50
     if application.status == "preparing" and not (application.cover_letter and application.email):
-        reasons.append("Cover letter or email not finished yet")
+        reasons.append(_("Cover letter or email not finished yet"))
+        reason_codes.append("prep_incomplete")
         priority += 30
     days_since_activity = _days_between(now.date(), application.updated_at.date())
     if days_since_activity >= STALLED_DAYS_THRESHOLD and application.status in ("sent", "follow_up"):
-        reasons.append(f"No activity for {days_since_activity} days")
+        reasons.append(ngettext("No activity for %(num)d day", "No activity for %(num)d days", days_since_activity))
+        reason_codes.append("stalled")
         priority += 40
 
     if not reasons:
@@ -81,21 +107,31 @@ def application_digest_item(application, now):
         url_kwargs={"application_id": application.id},
         priority=priority,
         reasons=reasons,
+        reason_codes=reason_codes,
     )
 
 
 def _saved_job_digest_item(saved_job, match, now):
     job = saved_job.job
     reasons = []
+    reason_codes = []
     priority = 0
 
     if match and match.score is not None and match.score >= 80:
-        reasons.append(f"Strong match ({match.score}/100) - no application started yet")
+        reasons.append(_("Strong match (%(score)d/100) - no application started yet", score=match.score))
+        reason_codes.append("strong_match_unapplied")
         priority += 60
     if job.application_deadline:
         days_until_deadline = _days_between(job.application_deadline, now.date())
         if 0 <= days_until_deadline <= UPCOMING_DAYS_THRESHOLD:
-            reasons.append(f"Application deadline in {days_until_deadline} day{'s' if days_until_deadline != 1 else ''}")
+            reasons.append(
+                ngettext(
+                    "Application deadline in %(num)d day",
+                    "Application deadline in %(num)d days",
+                    days_until_deadline,
+                )
+            )
+            reason_codes.append("deadline_soon")
             priority += 70
 
     if not reasons:
@@ -108,6 +144,7 @@ def _saved_job_digest_item(saved_job, match, now):
         url_kwargs={"job_id": job.id},
         priority=priority,
         reasons=reasons,
+        reason_codes=reason_codes,
     )
 
 

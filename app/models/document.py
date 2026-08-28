@@ -1,3 +1,5 @@
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.models.user import utcnow
 
@@ -10,6 +12,25 @@ DOCUMENT_TYPES = (
     "recommendation_letter",
     "other",
 )
+
+# i18n pass 2, 2026-08-28: single source of truth for the translated
+# display label of each document type - applications/detail.html and
+# documents/list.html both read this instead of each mechanically
+# deriving one from the code (doc_type.replace('_', ' ')|capitalize has
+# no German equivalent, same class of fix as APPLICATION_STATUS_LABELS).
+# Deliberately separate from app/applications/routes.py's DOC_TYPE_LABEL_DE,
+# which feeds the application-email AI prompt and stays German always
+# regardless of UI language (see DECISIONS.md's i18n pass 3 scope) - this
+# dict follows the UI locale instead.
+DOCUMENT_TYPE_LABELS = {
+    "cv": _l("CV"),
+    "diploma": _l("Diploma"),
+    "language_certificate": _l("Language certificate"),
+    "training_certificate": _l("Training certificate"),
+    "transcript": _l("Transcript"),
+    "recommendation_letter": _l("Recommendation letter"),
+    "other": _l("Other"),
+}
 
 
 class Document(db.Model):

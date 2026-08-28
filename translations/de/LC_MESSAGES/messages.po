@@ -1,0 +1,3328 @@
+# German translations for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-28 23:48+0100\n"
+"PO-Revision-Date: 2026-08-28 07:28+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: de\n"
+"Language-Team: de <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app/priority_digest.py:65
+msgid "Follow-up date has arrived"
+msgstr "Der Nachfasstermin ist erreicht"
+
+#: app/priority_digest.py:71
+#, python-format
+msgid "Interview in %(num)d day"
+msgid_plural "Interview in %(num)d days"
+msgstr[0] "Vorstellungsgespräch in %(num)d Tag"
+msgstr[1] "Vorstellungsgespräch in %(num)d Tagen"
+
+#: app/priority_digest.py:79 app/priority_digest.py:129
+#, python-format
+msgid "Application deadline in %(num)d day"
+msgid_plural "Application deadline in %(num)d days"
+msgstr[0] "Bewerbungsfrist in %(num)d Tag"
+msgstr[1] "Bewerbungsfrist in %(num)d Tagen"
+
+#: app/priority_digest.py:87
+msgid "Approved but not yet sent"
+msgstr "Freigegeben, aber noch nicht gesendet"
+
+#: app/priority_digest.py:91
+msgid "Cover letter or email not finished yet"
+msgstr "Anschreiben oder E-Mail noch nicht fertig"
+
+#: app/priority_digest.py:96
+#, python-format
+msgid "No activity for %(num)d day"
+msgid_plural "No activity for %(num)d days"
+msgstr[0] "Seit %(num)d Tag keine Aktivität"
+msgstr[1] "Seit %(num)d Tagen keine Aktivität"
+
+#: app/priority_digest.py:121
+#, python-format
+msgid "Strong match (%(score)d/100) - no application started yet"
+msgstr "Starke Übereinstimmung (%(score)d/100) – noch keine Bewerbung gestartet"
+
+#: app/admin/forms.py:10 app/templates/admin/codes.html:26 app/templates/documents/list.html:24
+msgid "Type"
+msgstr "Typ"
+
+#: app/admin/forms.py:11
+msgid "Max uses"
+msgstr "Maximale Nutzungen"
+
+#: app/admin/forms.py:12
+msgid "Expires on (optional)"
+msgstr "Läuft ab am (optional)"
+
+#: app/admin/forms.py:13
+msgid "Notes (optional)"
+msgstr "Notizen (optional)"
+
+#: app/admin/routes.py:49
+msgid "You can't deactivate your own account."
+msgstr "Du kannst dein eigenes Konto nicht deaktivieren."
+
+#: app/admin/routes.py:58
+msgid "User activated."
+msgstr "Nutzer aktiviert."
+
+#: app/admin/routes.py:58
+msgid "User deactivated."
+msgstr "Nutzer deaktiviert."
+
+#: app/admin/routes.py:85
+#, python-format
+msgid "Code created: %(code)s"
+msgstr "Code erstellt: %(code)s"
+
+#: app/admin/routes.py:98
+msgid "Code revoked."
+msgstr "Code widerrufen."
+
+#: app/admin/routes.py:120
+#, python-format
+msgid "%(source)s enabled."
+msgstr "%(source)s aktiviert."
+
+#: app/admin/routes.py:122
+#, python-format
+msgid "%(source)s disabled."
+msgstr "%(source)s deaktiviert."
+
+#: app/ai/cover_letter.py:103
+msgid "AI validation found and corrected issues."
+msgstr "KI-Prüfung hat Probleme gefunden und korrigiert."
+
+#: app/ai/cover_letter.py:106
+msgid "AI validation returned an unexpected format; treating as unreviewed."
+msgstr "KI-Prüfung hat ein unerwartetes Format zurückgegeben; wird als ungeprüft behandelt."
+
+#: app/ai/cover_letter.py:112
+msgid "job title"
+msgstr "Berufsbezeichnung"
+
+#: app/ai/cover_letter.py:114
+msgid "company name"
+msgstr "Firmenname"
+
+#: app/ai/cover_letter.py:116
+msgid "candidate name"
+msgstr "Bewerbername"
+
+#: app/ai/cover_letter.py:120
+#, python-format
+msgid "Automated check: missing expected mention of: %(missing)s."
+msgstr "Automatische Prüfung: erwartete Erwähnung fehlt: %(missing)s."
+
+#: app/ai/cover_letter.py:122
+msgid "Automated check: job title, company, and candidate name all present."
+msgstr "Automatische Prüfung: Berufsbezeichnung, Firmenname und Bewerbername sind alle enthalten."
+
+#: app/ai/matching.py:120
+#, python-format
+msgid "%(language)s %(level)s (required: %(required)s)"
+msgstr "%(language)s %(level)s (erforderlich: %(required)s)"
+
+#: app/ai/matching.py:126
+#, python-format
+msgid "%(language)s %(level)s preferred"
+msgstr "%(language)s %(level)s bevorzugt"
+
+#: app/ai/matching.py:128
+#, python-format
+msgid "candidate has %(level)s"
+msgstr "du hast %(level)s"
+
+#: app/ai/matching.py:154
+#, python-format
+msgid "Education background aligns: %(label)s"
+msgstr "Ausbildungshintergrund passt: %(label)s"
+
+#: app/ai/matching.py:158
+msgid "Education / field of study"
+msgstr "Ausbildung / Fachrichtung"
+
+#: app/ai/matching.py:160
+msgid "Could not confirm alignment automatically - review manually."
+msgstr "Übereinstimmung konnte nicht automatisch bestätigt werden - bitte manuell prüfen."
+
+#: app/ai/matching.py:168
+msgid "Open to opportunities Germany-wide"
+msgstr "Offen für Angebote bundesweit"
+
+#: app/ai/matching.py:175
+#, python-format
+msgid "Location matches preference (%(location)s)"
+msgstr "Ort entspricht deiner Präferenz (%(location)s)"
+
+#: app/ai/matching.py:178
+msgid "This location"
+msgstr "Dieser Ort"
+
+#: app/ai/matching.py:182 app/ai/matching.py:193 app/jobs/forms.py:76 app/jobs/matching.py:139 app/models/profile.py:91 app/templates/companies/detail.html:113
+msgid "Location"
+msgstr "Ort"
+
+#: app/ai/matching.py:185
+#, python-format
+msgid "%(location)s is outside stated preferences, but candidate is open to relocation."
+msgstr "%(location)s liegt außerhalb deiner angegebenen Präferenzen, aber du bist offen für einen Umzug."
+
+#: app/ai/matching.py:196
+#, python-format
+msgid "%(location)s is outside stated preferences and candidate is not open to relocation."
+msgstr "%(location)s liegt außerhalb deiner angegebenen Präferenzen, und du bist nicht offen für einen Umzug."
+
+#: app/ai/matching.py:214
+#, python-format
+msgid "Start date matches (%(date)s)"
+msgstr "Startdatum passt (%(date)s)"
+
+#: app/ai/matching.py:217 app/jobs/forms.py:77 app/jobs/matching.py:139 app/profile/forms.py:40 app/profile/forms.py:49 app/templates/jobs/detail.html:25
+msgid "Start date"
+msgstr "Startdatum"
+
+#: app/ai/matching.py:220
+#, python-format
+msgid "Job starts %(job_date)s, candidate prefers %(pref_date)s."
+msgstr "Die Stelle beginnt am %(job_date)s, du bevorzugst %(pref_date)s."
+
+#: app/ai/reply_ai.py:17
+msgid "AI classification isn't available (no AI provider is configured)."
+msgstr "KI-Klassifizierung ist nicht verfügbar (kein KI-Anbieter konfiguriert)."
+
+#: app/ai/reply_ai.py:38
+#, python-format
+msgid "Classification failed: %(error)s"
+msgstr "Klassifizierung fehlgeschlagen: %(error)s"
+
+#: app/applications/forms.py:8 app/auth/forms.py:14 app/jobs/forms.py:9
+msgid "This field is required."
+msgstr "Dieses Feld ist erforderlich."
+
+#: app/applications/forms.py:12 app/auth/forms.py:31 app/jobs/forms.py:13 app/profile/forms.py:10
+#, python-format
+msgid "Must be at most %(max)d characters long."
+msgstr "Darf höchstens %(max)d Zeichen lang sein."
+
+#: app/applications/forms.py:17 app/templates/applications/detail.html:124
+msgid "Cover letter"
+msgstr "Anschreiben"
+
+#: app/applications/forms.py:23 app/applications/forms.py:32
+msgid "Subject"
+msgstr "Betreff"
+
+#: app/applications/forms.py:26 app/applications/forms.py:35 app/templates/applications/detail.html:169 app/templates/applications/detail.html:370
+msgid "Body"
+msgstr "Nachricht"
+
+#: app/applications/forms.py:46 app/templates/applications/detail.html:128 app/templates/applications/detail.html:305
+msgid "Interview prep"
+msgstr "Vorbereitung aufs Vorstellungsgespräch"
+
+#: app/applications/forms.py:52 app/templates/applications/detail.html:321 app/templates/applications/detail.html:342
+msgid "CV profile statement"
+msgstr "Lebenslauf-Kurzprofil"
+
+#: app/applications/forms.py:58 app/templates/applications/detail.html:275
+msgid "Suggested reply"
+msgstr "Vorgeschlagene Antwort"
+
+#: app/applications/forms.py:66 app/templates/admin/codes.html:29 app/templates/admin/job_sources.html:12 app/templates/admin/users.html:12
+msgid "Status"
+msgstr "Status"
+
+#: app/applications/forms.py:67
+msgid "Contact person"
+msgstr "Ansprechperson"
+
+#: app/applications/forms.py:68 app/models/profile.py:93 app/profile/forms.py:31
+msgid "Contact email"
+msgstr "Kontakt-E-Mail"
+
+#: app/applications/forms.py:69
+msgid "Interview date/time"
+msgstr "Datum/Uhrzeit des Vorstellungsgesprächs"
+
+#: app/applications/forms.py:70
+msgid "Follow-up date"
+msgstr "Nachfasstermin"
+
+#: app/applications/forms.py:71
+msgid "Notes"
+msgstr "Notizen"
+
+#: app/applications/routes.py:207 app/applications/status_route.py:225
+msgid "Cover letter generated."
+msgstr "Anschreiben erstellt."
+
+#: app/applications/routes.py:230
+msgid "Cover letter saved."
+msgstr "Anschreiben gespeichert."
+
+#: app/applications/routes.py:232
+msgid "Please enter cover letter text."
+msgstr "Bitte gib einen Anschreibentext ein."
+
+#: app/applications/routes.py:252
+msgid "Email generated."
+msgstr "E-Mail erstellt."
+
+#: app/applications/routes.py:275
+msgid "Email saved."
+msgstr "E-Mail gespeichert."
+
+#: app/applications/routes.py:277 app/applications/routes.py:323
+msgid "Please fill in subject and body."
+msgstr "Bitte gib Betreff und Text ein."
+
+#: app/applications/routes.py:287
+msgid "Follow-up emails are only available once an application has been sent."
+msgstr "Nachfass-E-Mails sind erst verfügbar, sobald eine Bewerbung gesendet wurde."
+
+#: app/applications/routes.py:298
+msgid "Follow-up email drafted."
+msgstr "Nachfass-E-Mail entworfen."
+
+#: app/applications/routes.py:321
+msgid "Follow-up email saved."
+msgstr "Nachfass-E-Mail gespeichert."
+
+#: app/applications/routes.py:334
+msgid "Interview prep generated."
+msgstr "Vorbereitung aufs Vorstellungsgespräch erstellt."
+
+#: app/applications/routes.py:361
+msgid "Interview prep saved."
+msgstr "Vorbereitung aufs Vorstellungsgespräch gespeichert."
+
+#: app/applications/routes.py:363
+msgid "Please enter interview prep text."
+msgstr "Bitte gib einen Text zur Vorbereitung ein."
+
+#: app/applications/routes.py:374
+msgid "CV profile statement generated."
+msgstr "Lebenslauf-Kurzprofil erstellt."
+
+#: app/applications/routes.py:396
+msgid "CV profile statement saved."
+msgstr "Lebenslauf-Kurzprofil gespeichert."
+
+#: app/applications/routes.py:398
+msgid "Please enter statement text."
+msgstr "Bitte gib einen Kurzprofil-Text ein."
+
+#: app/applications/routes.py:419
+msgid "Document selection saved."
+msgstr "Dokumentenauswahl gespeichert."
+
+#: app/applications/routes.py:429
+msgid "Generate or write a cover letter before approving."
+msgstr "Erstelle oder schreibe ein Anschreiben, bevor du freigibst."
+
+#: app/applications/routes.py:432
+msgid "Select at least one document to include before approving."
+msgstr "Wähle mindestens ein Dokument aus, bevor du freigibst."
+
+#: app/applications/routes.py:451
+msgid "Could not build the package - one of the selected documents appears to be corrupted or unreadable. Please re-upload it and try again."
+msgstr "Das Paket konnte nicht erstellt werden - eines der ausgewählten Dokumente scheint beschädigt oder nicht lesbar zu sein. Bitte lade es erneut hoch und versuche es noch einmal."
+
+#: app/applications/routes.py:465
+msgid "Application approved. Package ready to download."
+msgstr "Bewerbung freigegeben. Paket bereit zum Herunterladen."
+
+#: app/applications/routes.py:483
+msgid "Approve the application (generate the package) before marking it sent."
+msgstr "Gib die Bewerbung frei (erstelle das Paket), bevor du sie als gesendet markierst."
+
+#: app/applications/routes.py:492 app/applications/status_route.py:246
+msgid "Marked as sent."
+msgstr "Als gesendet markiert."
+
+#: app/applications/routes.py:504
+msgid "Approve the application first to build the package."
+msgstr "Gib die Bewerbung zuerst frei, um das Paket zu erstellen."
+
+#: app/applications/routes.py:507
+msgid "Generate or write an application email first."
+msgstr "Erstelle oder schreibe zuerst eine Bewerbungs-E-Mail."
+
+#: app/applications/routes.py:510
+msgid "Add a contact email for this application first."
+msgstr "Füge zuerst eine Kontakt-E-Mail für diese Bewerbung hinzu."
+
+#: app/applications/routes.py:524
+msgid "Gmail draft created - check your Drafts folder, review, and send it yourself."
+msgstr "Gmail-Entwurf erstellt - prüfe deinen Entwürfe-Ordner, kontrolliere ihn und sende ihn selbst."
+
+#: app/applications/routes.py:526 app/applications/routes.py:626 app/applications/routes.py:734
+msgid "Connect your Gmail account first."
+msgstr "Verbinde zuerst dein Gmail-Konto."
+
+#: app/applications/routes.py:533
+msgid "Could not create the Gmail draft. Please try again."
+msgstr "Der Gmail-Entwurf konnte nicht erstellt werden. Bitte versuche es erneut."
+
+#: app/applications/routes.py:550
+msgid "Application updated."
+msgstr "Bewerbung aktualisiert."
+
+#: app/applications/routes.py:552
+msgid "Please correct the errors in the form."
+msgstr "Bitte korrigiere die Fehler im Formular."
+
+#: app/applications/routes.py:569
+#, python-format
+msgid "This application is past \"preparing\" and represents real history - type %(phrase)s to confirm permanent deletion."
+msgstr "Diese Bewerbung ist über \"In Vorbereitung\" hinaus und stellt echte Historie dar - gib %(phrase)s ein, um die endgültige Löschung zu bestätigen."
+
+#: app/applications/routes.py:601
+msgid "Application deleted."
+msgstr "Bewerbung gelöscht."
+
+#: app/applications/routes.py:629
+msgid "Add a contact email above to check for replies."
+msgstr "Füge oben eine Kontakt-E-Mail hinzu, um auf Antworten zu prüfen."
+
+#: app/applications/routes.py:640
+msgid "Checking for replies in the background - refresh in a few seconds to see results."
+msgstr "Antworten werden im Hintergrund geprüft - aktualisiere die Seite in ein paar Sekunden, um die Ergebnisse zu sehen."
+
+#: app/applications/routes.py:700
+msgid "Reply saved."
+msgstr "Antwort gespeichert."
+
+#: app/applications/routes.py:702
+msgid "Please enter reply text."
+msgstr "Bitte gib einen Antworttext ein."
+
+#: app/applications/routes.py:714
+msgid "Write or generate a reply first."
+msgstr "Schreibe oder erstelle zuerst eine Antwort."
+
+#: app/applications/routes.py:717
+msgid "This message has no sender address on file."
+msgstr "Für diese Nachricht ist keine Absenderadresse hinterlegt."
+
+#: app/applications/routes.py:732
+msgid "Reply draft created in Gmail - review and send it yourself."
+msgstr "Antwortentwurf in Gmail erstellt - prüfe ihn und sende ihn selbst."
+
+#: app/applications/routes.py:738
+msgid "Could not create the reply draft. Please try again."
+msgstr "Der Antwortentwurf konnte nicht erstellt werden. Bitte versuche es erneut."
+
+#: app/applications/status_route.py:40
+msgid "Discovered"
+msgstr "Gefunden"
+
+#: app/applications/status_route.py:41
+msgid "Matched"
+msgstr "Übereinstimmung berechnet"
+
+#: app/applications/status_route.py:42
+msgid "Prepared"
+msgstr "Vorbereitet"
+
+#: app/applications/status_route.py:43
+msgid "Approved"
+msgstr "Freigegeben"
+
+#: app/applications/status_route.py:45 app/templates/landing.html:168
+msgid "Reply"
+msgstr "Antwort"
+
+#: app/applications/status_route.py:126
+#, python-format
+msgid "Interview %(when)s — today"
+msgstr "Vorstellungsgespräch %(when)s — heute"
+
+#: app/applications/status_route.py:128
+#, python-format
+msgid "Interview %(when)s — in %(num)d day"
+msgid_plural "Interview %(when)s — in %(num)d days"
+msgstr[0] "Vorstellungsgespräch %(when)s — in %(num)d Tag"
+msgstr[1] "Vorstellungsgespräch %(when)s — in %(num)d Tagen"
+
+#: app/applications/status_route.py:133
+#, python-format
+msgid "%(num)d station remaining"
+msgid_plural "%(num)d stations remaining"
+msgstr[0] "%(num)d Station verbleibt"
+msgstr[1] "%(num)d Stationen verbleiben"
+
+#: app/applications/status_route.py:201
+msgid "AUSVIA found this posting."
+msgstr "AUSVIA hat diese Anzeige gefunden."
+
+#: app/applications/status_route.py:207
+msgid "Your match score was computed for this posting."
+msgstr "Dein Match-Wert für diese Anzeige wurde berechnet."
+
+#: app/applications/status_route.py:217
+msgid "Not yet computed."
+msgstr "Noch nicht berechnet."
+
+#: app/applications/status_route.py:223
+msgid "Cover letter and application email generated."
+msgstr "Anschreiben und Bewerbungs-E-Mail erstellt."
+
+#: app/applications/status_route.py:227
+msgid "Application email generated."
+msgstr "Bewerbungs-E-Mail erstellt."
+
+#: app/applications/status_route.py:229
+msgid "Application started."
+msgstr "Bewerbung gestartet."
+
+#: app/applications/status_route.py:236
+msgid "You approved the application. PDF package built."
+msgstr "Du hast die Bewerbung freigegeben. PDF-Paket erstellt."
+
+#: app/applications/status_route.py:239 app/applications/status_route.py:250 app/applications/status_route.py:267 app/applications/status_route.py:280 app/applications/status_route.py:288
+msgid "Not reached yet."
+msgstr "Noch nicht erreicht."
+
+#: app/applications/status_route.py:245
+#, python-format
+msgid "Marked as sent to %(contact)s."
+msgstr "Als gesendet an %(contact)s markiert."
+
+#: app/applications/status_route.py:255
+#, python-format
+msgid "Reply received from %(contact)s."
+msgstr "Antwort von %(contact)s erhalten."
+
+#: app/applications/status_route.py:256
+msgid "A reply was detected."
+msgstr "Eine Antwort wurde erkannt."
+
+#: app/applications/status_route.py:264
+msgid "Skipped."
+msgstr "Übersprungen."
+
+#: app/applications/status_route.py:276
+msgid "Interview stage reached."
+msgstr "Phase Vorstellungsgespräch erreicht."
+
+#: app/applications/status_route.py:284
+msgid "Offer received."
+msgstr "Angebot erhalten."
+
+#: app/auth/forms.py:19 app/templates/landing.html:212 app/templates/landing.html:213
+msgid "Access code"
+msgstr "Zugangscode"
+
+#: app/auth/forms.py:22
+msgid "Format: XXXX-XXXX-XXXX"
+msgstr "Format: XXXX-XXXX-XXXX"
+
+#: app/auth/forms.py:27 app/auth/forms.py:52 app/auth/forms.py:61 app/templates/admin/users.html:9 app/templates/applications/detail.html:125
+msgid "Email"
+msgstr "E-Mail"
+
+#: app/auth/forms.py:30 app/auth/forms.py:53 app/auth/forms.py:62 app/profile/forms.py:32
+msgid "Please enter a valid email address."
+msgstr "Bitte gib eine gültige E-Mail-Adresse ein."
+
+#: app/auth/forms.py:35 app/auth/forms.py:55
+msgid "Password"
+msgstr "Passwort"
+
+#: app/auth/forms.py:38 app/auth/forms.py:71 app/profile/forms.py:37 app/profile/forms.py:47 app/profile/forms.py:56 app/profile/forms.py:65
+#, python-format
+msgid "Must be between %(min)d and %(max)d characters long."
+msgstr "Muss zwischen %(min)d und %(max)d Zeichen lang sein."
+
+#: app/auth/forms.py:42
+msgid "Confirm password"
+msgstr "Passwort bestätigen"
+
+#: app/auth/forms.py:45 app/auth/forms.py:78
+msgid "Passwords must match."
+msgstr "Die Passwörter müssen übereinstimmen."
+
+#: app/auth/forms.py:56
+msgid "Remember me"
+msgstr "Angemeldet bleiben"
+
+#: app/auth/forms.py:68
+msgid "New password"
+msgstr "Neues Passwort"
+
+#: app/auth/forms.py:75
+msgid "Confirm new password"
+msgstr "Neues Passwort bestätigen"
+
+#: app/auth/routes.py:33
+msgid "Invalid access code."
+msgstr "Ungültiger Zugangscode."
+
+#: app/auth/routes.py:42
+msgid "An account with this email already exists."
+msgstr "Für diese E-Mail-Adresse existiert bereits ein Konto."
+
+#: app/auth/routes.py:75
+msgid "This access code just became invalid (it may have already been used, expired, or been deactivated). Please request a new one."
+msgstr "Dieser Zugangscode ist soeben ungültig geworden (er wurde möglicherweise bereits verwendet, ist abgelaufen oder wurde deaktiviert). Bitte fordere einen neuen an."
+
+#: app/auth/routes.py:94
+msgid "Welcome! Let's set up your candidate profile."
+msgstr "Willkommen! Lass uns dein Kandidatenprofil einrichten."
+
+#: app/auth/routes.py:123
+msgid "Invalid email or password."
+msgstr "E-Mail-Adresse oder Passwort ungültig."
+
+#: app/auth/routes.py:134
+msgid "You have been logged out."
+msgstr "Du wurdest abgemeldet."
+
+#: app/auth/routes.py:152
+msgid "If an account with that email exists, a reset link has been generated."
+msgstr "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen erstellt."
+
+#: app/auth/routes.py:165
+msgid "This reset link has expired. Please request a new one."
+msgstr "Dieser Link zum Zurücksetzen ist abgelaufen. Bitte fordere einen neuen an."
+
+#: app/auth/routes.py:168 app/auth/routes.py:173
+msgid "This reset link is invalid."
+msgstr "Dieser Link zum Zurücksetzen ist ungültig."
+
+#: app/auth/routes.py:181
+msgid "Your password has been reset. Please log in."
+msgstr "Dein Passwort wurde zurückgesetzt. Bitte melde dich an."
+
+#: app/documents/routes.py:48
+msgid "Please choose a file to upload."
+msgstr "Bitte wähle eine Datei zum Hochladen."
+
+#: app/documents/routes.py:87
+#, python-format
+msgid "Document uploaded. This looks like it might be a \"%(suggested)s\" rather than \"%(chosen)s\" - you can confirm the suggestion below if that's right."
+msgstr "Dokument hochgeladen. Das könnte eher \"%(suggested)s\" statt \"%(chosen)s\" sein - du kannst den Vorschlag unten bestätigen, falls das stimmt."
+
+#: app/documents/routes.py:94
+msgid "Document uploaded."
+msgstr "Dokument hochgeladen."
+
+#: app/documents/routes.py:106
+msgid "Document type updated."
+msgstr "Dokumenttyp aktualisiert."
+
+#: app/documents/routes.py:144
+msgid "Document deleted."
+msgstr "Dokument gelöscht."
+
+#: app/documents/routes.py:166
+msgid "Primary document updated."
+msgstr "Primärdokument aktualisiert."
+
+#: app/documents/storage.py:52
+#, python-format
+msgid "Unsupported file type '.%(ext)s'. Allowed: %(allowed)s."
+msgstr "Nicht unterstützter Dateityp '.%(ext)s'. Erlaubt: %(allowed)s."
+
+#: app/documents/storage.py:62
+msgid "File content doesn't match its extension. The file may be corrupted or mislabeled."
+msgstr "Der Dateiinhalt passt nicht zur Dateiendung. Die Datei könnte beschädigt oder falsch benannt sein."
+
+#: app/documents/storage.py:87 app/documents/storage.py:143
+msgid "File exceeds the 15 MB size limit."
+msgstr "Die Datei überschreitet das Limit von 15 MB."
+
+#: app/integrations/routes.py:30
+msgid "Gmail isn't configured yet - an admin needs to set GOOGLE_CREDENTIALS_JSON or add credentials.json. See README.md."
+msgstr "Gmail ist noch nicht konfiguriert – ein Administrator muss GOOGLE_CREDENTIALS_JSON setzen oder credentials.json hinzufügen. Siehe README.md."
+
+#: app/integrations/routes.py:46
+msgid "Could not start the Gmail connection. Please try again."
+msgstr "Die Gmail-Verbindung konnte nicht gestartet werden. Bitte versuche es erneut."
+
+#: app/integrations/routes.py:63
+msgid "Gmail connection was cancelled or denied."
+msgstr "Die Gmail-Verbindung wurde abgebrochen oder abgelehnt."
+
+#: app/integrations/routes.py:67
+msgid "Gmail connection failed - the request could not be verified. Please try again."
+msgstr "Die Gmail-Verbindung ist fehlgeschlagen – die Anfrage konnte nicht verifiziert werden. Bitte versuche es erneut."
+
+#: app/integrations/routes.py:81
+msgid "Could not complete the Gmail connection. Please try again."
+msgstr "Die Gmail-Verbindung konnte nicht abgeschlossen werden. Bitte versuche es erneut."
+
+#: app/integrations/routes.py:86
+msgid "Gmail connected."
+msgstr "Gmail verbunden."
+
+#: app/integrations/routes.py:95
+msgid "Gmail disconnected."
+msgstr "Gmail getrennt."
+
+#: app/jobs/forms.py:23 app/jobs/forms.py:31 app/profile/routes.py:151
+msgid "Any"
+msgstr "Beliebig"
+
+#: app/jobs/forms.py:32
+msgid "40+ (some gaps)"
+msgstr "40+ (einige Lücken)"
+
+#: app/jobs/forms.py:33
+msgid "60+ (good match)"
+msgstr "60+ (gute Übereinstimmung)"
+
+#: app/jobs/forms.py:34
+msgid "80+ (strong match)"
+msgstr "80+ (starke Übereinstimmung)"
+
+#: app/jobs/forms.py:39
+msgid "Best match"
+msgstr "Beste Übereinstimmung"
+
+#: app/jobs/forms.py:39
+msgid "Newest"
+msgstr "Neueste"
+
+#: app/jobs/forms.py:43
+msgid "Keywords"
+msgstr "Suchbegriffe"
+
+#: app/jobs/forms.py:44
+msgid "Location (city, optional)"
+msgstr "Ort (Stadt, optional)"
+
+#: app/jobs/forms.py:49
+msgid "Start year, from"
+msgstr "Startjahr, von"
+
+#: app/jobs/forms.py:50
+msgid "Start year, to"
+msgstr "Startjahr, bis"
+
+#: app/jobs/forms.py:51
+msgid "Minimum match score"
+msgstr "Mindest-Match-Wert"
+
+#: app/jobs/forms.py:52
+msgid "Sort by"
+msgstr "Sortieren nach"
+
+#: app/jobs/forms.py:57 app/templates/landing.html:233
+msgid "Sources"
+msgstr "Quellen"
+
+#: app/jobs/forms.py:68
+msgid "Job posting URL(s) - one per line"
+msgstr "URL(s) der Stellenanzeige(n) - eine pro Zeile"
+
+#: app/jobs/forms.py:74
+msgid "Job title"
+msgstr "Berufsbezeichnung"
+
+#: app/jobs/forms.py:75 app/profile/forms.py:47
+msgid "Company"
+msgstr "Unternehmen"
+
+#: app/jobs/forms.py:78
+msgid "Application URL"
+msgstr "Bewerbungs-URL"
+
+#: app/jobs/forms.py:78
+msgid "Please enter a valid URL."
+msgstr "Bitte gib eine gültige URL ein."
+
+#: app/jobs/forms.py:79
+msgid "Description / pasted job text"
+msgstr "Beschreibung / eingefügter Anzeigentext"
+
+#: app/jobs/manual_import.py:29
+msgid "That doesn't look like a valid URL."
+msgstr "Das sieht nicht nach einer gültigen URL aus."
+
+#: app/jobs/manual_import.py:39
+#, python-format
+msgid "Could not reach that page (%(reason)s)."
+msgstr "Diese Seite war nicht erreichbar (%(reason)s)."
+
+#: app/jobs/manual_import.py:44
+msgid "That site declined the request (access-restricted or rate-limited). Please paste the job text manually instead."
+msgstr "Diese Seite hat die Anfrage abgelehnt (zugriffsbeschränkt oder Ratenlimit). Bitte füge den Anzeigentext stattdessen manuell ein."
+
+#: app/jobs/manual_import.py:49
+#, python-format
+msgid "That page returned HTTP %(status)d."
+msgstr "Diese Seite hat mit HTTP %(status)d geantwortet."
+
+#: app/jobs/manual_import.py:53
+msgid "That page is too large to import automatically."
+msgstr "Diese Seite ist zu groß, um sie automatisch zu importieren."
+
+#: app/jobs/manual_import.py:57
+msgid "That URL doesn't point to a readable web page."
+msgstr "Diese URL verweist nicht auf eine lesbare Webseite."
+
+#: app/jobs/manual_import.py:69
+msgid "Couldn't find readable content on that page."
+msgstr "Auf dieser Seite wurde kein lesbarer Inhalt gefunden."
+
+#: app/jobs/matching.py:115 app/templates/landing.html:119
+msgid "Strong match"
+msgstr "Starke Übereinstimmung"
+
+#: app/jobs/matching.py:116 app/templates/landing.html:121
+msgid "Good match"
+msgstr "Gute Übereinstimmung"
+
+#: app/jobs/matching.py:117 app/templates/landing.html:123
+msgid "Some gaps"
+msgstr "Einige Lücken"
+
+#: app/jobs/matching.py:118 app/templates/jobs/detail.html:20
+msgid "Weak match"
+msgstr "Schwache Übereinstimmung"
+
+#: app/jobs/matching.py:119 app/jobs/matching.py:124 app/templates/companies/detail.html:89 app/templates/jobs/_search_result_card.html:54 app/templates/jobs/search.html:107
+msgid "Not scored"
+msgstr "Nicht bewertet"
+
+#: app/jobs/matching.py:138 app/models/profile.py:95 app/templates/jobs/detail.html:25
+msgid "Skills"
+msgstr "Fähigkeiten"
+
+#: app/jobs/matching.py:138 app/profile/forms.py:65 app/templates/jobs/detail.html:25
+msgid "Language"
+msgstr "Sprache"
+
+#: app/jobs/matching.py:138 app/models/profile.py:94 app/templates/jobs/detail.html:25 app/templates/profile/view.html:54
+msgid "Education"
+msgstr "Ausbildung"
+
+#: app/jobs/matching.py:166
+msgid "All requirements met"
+msgstr "Alle Anforderungen erfüllt"
+
+#: app/jobs/matching.py:176
+#, python-format
+msgid "%(all_but_last)s and %(last)s"
+msgstr "%(all_but_last)s und %(last)s"
+
+#: app/jobs/matching.py:177
+#, python-format
+msgid "%(categories)s met"
+msgstr "%(categories)s erfüllt"
+
+#: app/jobs/radar.py:45
+msgid "Set at least one desired field in your Ausbildung preferences before checking for new listings."
+msgstr "Lege mindestens ein gewünschtes Berufsfeld in deinen Ausbildungswünschen fest, bevor du nach neuen Anzeigen suchst."
+
+#: app/jobs/routes.py:112
+#, python-format
+msgid "Start %(lo)s–%(hi)s"
+msgstr "Start %(lo)s–%(hi)s"
+
+#: app/jobs/routes.py:114
+#, python-format
+msgid "Start from %(lo)s"
+msgstr "Start ab %(lo)s"
+
+#: app/jobs/routes.py:116
+#, python-format
+msgid "Start by %(hi)s"
+msgstr "Start bis %(hi)s"
+
+#: app/jobs/routes.py:120
+#, python-format
+msgid "Score ≥ %(score)s"
+msgstr "Score ≥ %(score)s"
+
+#: app/jobs/routes.py:229
+msgid "Please enter valid search terms."
+msgstr "Bitte gib gültige Suchbegriffe ein."
+
+#: app/jobs/routes.py:266
+#, python-format
+msgid "%(num)d new listing found."
+msgid_plural "%(num)d new listings found."
+msgstr[0] "%(num)d neue Anzeige gefunden."
+msgstr[1] "%(num)d neue Anzeigen gefunden."
+
+#: app/jobs/routes.py:268
+msgid "No new listings found for your preferences right now."
+msgstr "Gerade keine neuen Anzeigen für deine Wünsche gefunden."
+
+#: app/jobs/routes.py:344
+msgid "Plain-language summary generated."
+msgstr "Verständliche Zusammenfassung erstellt."
+
+#: app/jobs/routes.py:386
+msgid "Saved."
+msgstr "Gespeichert."
+
+#: app/jobs/routes.py:397
+msgid "Removed from saved jobs."
+msgstr "Aus gespeicherten Stellen entfernt."
+
+#: app/jobs/routes.py:496
+#, python-format
+msgid "Couldn't fetch %(url)s: %(error)s Paste the text yourself below, or skip it."
+msgstr "Konnte %(url)s nicht abrufen: %(error)s Füge den Text unten selbst ein oder überspringe diesen Eintrag."
+
+#: app/jobs/routes.py:520 app/jobs/routes.py:525
+msgid "Please paste at least one URL."
+msgstr "Bitte füge mindestens eine URL ein."
+
+#: app/jobs/routes.py:558
+#, python-format
+msgid "Only the first %(max)d URLs were used - that's the limit per batch."
+msgstr "Nur die ersten %(max)d URLs wurden verwendet - das ist das Limit pro Stapel."
+
+#: app/jobs/routes.py:560
+#, python-format
+msgid "Fetched %(succeeded)d of %(total)d page successfully."
+msgid_plural "Fetched %(succeeded)d of %(total)d pages successfully."
+msgstr[0] "%(succeeded)d von %(total)d Seite erfolgreich abgerufen."
+msgstr[1] "%(succeeded)d von %(total)d Seiten erfolgreich abgerufen."
+
+#: app/jobs/routes.py:567
+#, python-format
+msgid "%(num)d failed - you'll get a chance to paste those in manually."
+msgid_plural "%(num)d failed - you'll get a chance to paste those in manually."
+msgstr[0] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
+msgstr[1] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
+
+#: app/jobs/routes.py:592
+msgid "Please fill in at least the job title and company."
+msgstr "Bitte gib mindestens Berufsbezeichnung und Unternehmen an."
+
+#: app/jobs/routes.py:614 app/jobs/routes.py:624
+msgid "Job imported."
+msgstr "Anzeige importiert."
+
+#: app/jobs/routes.py:614
+msgid "This matched an already-known opportunity - merged."
+msgstr "Das entspricht einer bereits bekannten Anzeige - zusammengeführt."
+
+#: app/jobs/routes.py:624
+msgid "Matched an already-known opportunity - merged."
+msgstr "Entspricht einer bereits bekannten Anzeige - zusammengeführt."
+
+#: app/jobs/routes.py:655
+msgid "Import batch cancelled."
+msgstr "Import-Stapel abgebrochen."
+
+#: app/jobs/routes.py:667
+#, python-format
+msgid "Batch complete: %(saved)d imported, %(not_imported)d not imported."
+msgstr "Stapel abgeschlossen: %(saved)d importiert, %(not_imported)d nicht importiert."
+
+#: app/jobs/routes.py:671
+#, python-format
+msgid "Batch complete: %(saved)d imported."
+msgstr "Stapel abgeschlossen: %(saved)d importiert."
+
+#: app/main/routes.py:35
+msgid "Good morning"
+msgstr "Guten Morgen"
+
+#: app/main/routes.py:37
+msgid "Good afternoon"
+msgstr "Guten Tag"
+
+#: app/main/routes.py:38
+msgid "Good evening"
+msgstr "Guten Abend"
+
+#: app/main/routes.py:52 app/templates/jobs/detail.html:247
+msgid "today"
+msgstr "heute"
+
+#: app/main/routes.py:54
+msgid "yesterday"
+msgstr "gestern"
+
+#: app/main/routes.py:56
+#, python-format
+msgid "%(num)d day ago"
+msgid_plural "%(num)d days ago"
+msgstr[0] "vor %(num)d Tag"
+msgstr[1] "vor %(num)d Tagen"
+
+#: app/main/routes.py:73
+msgid "Nothing urgent right now — good time to keep applying."
+msgstr "Gerade nichts Dringendes — ein guter Zeitpunkt, um weiter Bewerbungen zu schreiben."
+
+#: app/main/routes.py:76
+#, python-format
+msgid "%(num)d item needs your attention this week."
+msgid_plural "%(num)d items need your attention this week."
+msgstr[0] "%(num)d Punkt braucht diese Woche deine Aufmerksamkeit."
+msgstr[1] "%(num)d Punkte brauchen diese Woche deine Aufmerksamkeit."
+
+#: app/main/routes.py:85
+msgid "One has a deadline coming up."
+msgstr "Bei einem Punkt steht eine Frist bevor."
+
+#: app/main/routes.py:152
+#, python-format
+msgid "unchanged for %(num)d day"
+msgid_plural "unchanged for %(num)d days"
+msgstr[0] "seit %(num)d Tag unverändert"
+msgstr[1] "seit %(num)d Tagen unverändert"
+
+#: app/models/access_code.py:56
+msgid "This access code has been deactivated."
+msgstr "Dieser Zugangscode wurde deaktiviert."
+
+#: app/models/access_code.py:58
+msgid "This access code has expired."
+msgstr "Dieser Zugangscode ist abgelaufen."
+
+#: app/models/access_code.py:60
+msgid "This access code has already been used the maximum number of times."
+msgstr "Dieser Zugangscode wurde bereits die maximale Anzahl an Malen verwendet."
+
+#: app/models/ai.py:208
+msgid "What does Ausbildungsvergütung mean?"
+msgstr "Was bedeutet Ausbildungsvergütung?"
+
+#: app/models/ai.py:209
+msgid "Should I mention unrelated work experience?"
+msgstr "Sollte ich fachfremde Berufserfahrung erwähnen?"
+
+#: app/models/ai.py:210
+msgid "What's the normal response time for an application?"
+msgstr "Wie lange dauert es normalerweise, bis man eine Antwort auf eine Bewerbung erhält?"
+
+#: app/models/ai.py:211
+msgid "Do I need to translate my documents into German?"
+msgstr "Muss ich meine Unterlagen ins Deutsche übersetzen?"
+
+#: app/models/ai.py:212
+msgid "What's the difference between an Ausbildung and a Duales Studium?"
+msgstr "Was ist der Unterschied zwischen einer Ausbildung und einem dualen Studium?"
+
+#: app/models/application.py:32 app/templates/main/dashboard.html:187
+msgid "In preparation"
+msgstr "In Vorbereitung"
+
+#: app/models/application.py:33
+msgid "Ready"
+msgstr "Bereit"
+
+#: app/models/application.py:34 app/templates/main/dashboard.html:188
+msgid "Sent"
+msgstr "Gesendet"
+
+#: app/models/application.py:35
+msgid "Follow-up"
+msgstr "Nachfassen"
+
+#: app/models/application.py:36 app/templates/landing.html:168
+msgid "Interview"
+msgstr "Vorstellungsgespräch"
+
+#: app/models/application.py:37 app/models/integration.py:27 app/templates/landing.html:168
+msgid "Offer"
+msgstr "Angebot"
+
+#: app/models/application.py:38
+msgid "Accepted"
+msgstr "Angenommen"
+
+#: app/models/application.py:39
+msgid "Rejected"
+msgstr "Abgelehnt"
+
+#: app/models/application.py:40
+msgid "Withdrawn"
+msgstr "Zurückgezogen"
+
+#: app/models/application.py:41
+msgid "Expired"
+msgstr "Abgelaufen"
+
+#: app/models/document.py:26
+msgid "CV"
+msgstr "Lebenslauf"
+
+#: app/models/document.py:27
+msgid "Diploma"
+msgstr "Zeugnis/Diplom"
+
+#: app/models/document.py:28
+msgid "Language certificate"
+msgstr "Sprachzertifikat"
+
+#: app/models/document.py:29
+msgid "Training certificate"
+msgstr "Ausbildungszertifikat"
+
+#: app/models/document.py:30
+msgid "Transcript"
+msgstr "Notenübersicht"
+
+#: app/models/document.py:31
+msgid "Recommendation letter"
+msgstr "Empfehlungsschreiben"
+
+#: app/models/document.py:32
+msgid "Other"
+msgstr "Sonstiges"
+
+#: app/models/integration.py:24
+msgid "Interview invitation"
+msgstr "Einladung zum Vorstellungsgespräch"
+
+#: app/models/integration.py:25
+msgid "Rejection"
+msgstr "Absage"
+
+#: app/models/integration.py:26
+msgid "Document request"
+msgstr "Dokumentenanfrage"
+
+#: app/models/integration.py:28
+msgid "Acknowledgement"
+msgstr "Bestätigung"
+
+#: app/models/integration.py:29
+msgid "Unclear"
+msgstr "Unklar"
+
+#: app/models/profile.py:90
+msgid "Name"
+msgstr "Name"
+
+#: app/models/profile.py:92
+msgid "Phone number"
+msgstr "Telefonnummer"
+
+#: app/models/profile.py:96
+msgid "Languages"
+msgstr "Sprachen"
+
+#: app/models/profile.py:97
+msgid "Job preferences"
+msgstr "Ausbildungswünsche"
+
+#: app/profile/forms.py:17 app/templates/applications/detail.html:477 app/templates/companies/detail.html:110 app/templates/companies/detail.html:114 app/templates/jobs/detail.html:69
+#: app/templates/jobs/detail.html:73 app/templates/jobs/detail.html:77
+msgid "Not specified"
+msgstr "Nicht angegeben"
+
+#: app/profile/forms.py:21
+msgid "First name"
+msgstr "Vorname"
+
+#: app/profile/forms.py:22
+msgid "Last name"
+msgstr "Nachname"
+
+#: app/profile/forms.py:23
+msgid "Date of birth"
+msgstr "Geburtsdatum"
+
+#: app/profile/forms.py:24
+msgid "Nationality"
+msgstr "Staatsangehörigkeit"
+
+#: app/profile/forms.py:25
+msgid "Address"
+msgstr "Adresse"
+
+#: app/profile/forms.py:26
+msgid "City"
+msgstr "Stadt"
+
+#: app/profile/forms.py:27
+msgid "Postal code"
+msgstr "Postleitzahl"
+
+#: app/profile/forms.py:28 app/profile/forms.py:42
+msgid "Country"
+msgstr "Land"
+
+#: app/profile/forms.py:29
+msgid "Phone"
+msgstr "Telefon"
+
+#: app/profile/forms.py:37
+msgid "Institution"
+msgstr "Einrichtung"
+
+#: app/profile/forms.py:38
+msgid "Degree / diploma"
+msgstr "Abschluss / Diplom"
+
+#: app/profile/forms.py:39
+msgid "Field of study"
+msgstr "Studien-/Fachrichtung"
+
+#: app/profile/forms.py:41 app/profile/forms.py:50
+msgid "End date"
+msgstr "Enddatum"
+
+#: app/profile/forms.py:43 app/templates/jobs/detail.html:173
+msgid "Description"
+msgstr "Beschreibung"
+
+#: app/profile/forms.py:48 app/templates/admin/users.html:10
+msgid "Role"
+msgstr "Rolle"
+
+#: app/profile/forms.py:51
+msgid "Responsibilities"
+msgstr "Aufgaben"
+
+#: app/profile/forms.py:52
+msgid "Achievements"
+msgstr "Erfolge"
+
+#: app/profile/forms.py:56
+msgid "Skill"
+msgstr "Fähigkeit"
+
+#: app/profile/forms.py:58
+msgid "Proficiency"
+msgstr "Niveau"
+
+#: app/profile/forms.py:67
+msgid "Level"
+msgstr "Niveau"
+
+#: app/profile/forms.py:72
+msgid "Ausbildung fields (comma-separated)"
+msgstr "Ausbildungsfelder (kommagetrennt)"
+
+#: app/profile/forms.py:74
+msgid "Preferred locations (comma-separated, blank = Germany-wide)"
+msgstr "Bevorzugte Orte (kommagetrennt, leer = deutschlandweit)"
+
+#: app/profile/forms.py:77
+msgid "Desired start date"
+msgstr "Gewünschter Startzeitpunkt"
+
+#: app/profile/forms.py:79
+msgid "Minimum German level"
+msgstr "Mindest-Deutschniveau"
+
+#: app/profile/forms.py:83
+msgid "Max distance (km)"
+msgstr "Maximale Entfernung (km)"
+
+#: app/profile/forms.py:84
+msgid "Open to relocation"
+msgstr "Umzugsbereit"
+
+#: app/profile/forms.py:85
+msgid "Other preferences"
+msgstr "Weitere Wünsche"
+
+#: app/profile/routes.py:51
+msgid "Name provided"
+msgstr "Name angegeben"
+
+#: app/profile/routes.py:51
+msgid "Name missing"
+msgstr "Name fehlt"
+
+#: app/profile/routes.py:52
+msgid "Location provided"
+msgstr "Ort angegeben"
+
+#: app/profile/routes.py:52
+msgid "Location missing"
+msgstr "Ort fehlt"
+
+#: app/profile/routes.py:53
+msgid "Phone number provided"
+msgstr "Telefonnummer angegeben"
+
+#: app/profile/routes.py:53
+msgid "Phone number missing"
+msgstr "Telefonnummer fehlt"
+
+#: app/profile/routes.py:54
+msgid "Contact email provided"
+msgstr "Kontakt-E-Mail angegeben"
+
+#: app/profile/routes.py:54
+msgid "Contact email missing"
+msgstr "Kontakt-E-Mail fehlt"
+
+#: app/profile/routes.py:55
+msgid "Education entries added"
+msgstr "Ausbildungseinträge hinzugefügt"
+
+#: app/profile/routes.py:55 app/templates/profile/view.html:72
+msgid "No education entries yet"
+msgstr "Noch keine Ausbildungseinträge"
+
+#: app/profile/routes.py:56
+msgid "Skills added"
+msgstr "Fähigkeiten hinzugefügt"
+
+#: app/profile/routes.py:56
+msgid "No skills added yet"
+msgstr "Noch keine Fähigkeiten hinzugefügt"
+
+#: app/profile/routes.py:57
+msgid "Languages added"
+msgstr "Sprachen hinzugefügt"
+
+#: app/profile/routes.py:57
+msgid "No languages added yet"
+msgstr "Noch keine Sprachen hinzugefügt"
+
+#: app/profile/routes.py:58
+msgid "Ausbildung preferences set"
+msgstr "Ausbildungswünsche festgelegt"
+
+#: app/profile/routes.py:58
+msgid "Ausbildung preferences not set"
+msgstr "Ausbildungswünsche nicht festgelegt"
+
+#: app/profile/routes.py:88
+msgid "Native language"
+msgstr "Muttersprache"
+
+#: app/profile/routes.py:91
+msgid "Certificate on file"
+msgstr "Zertifikat hinterlegt"
+
+#: app/profile/routes.py:92
+msgid "School-level, no certificate on file"
+msgstr "Schulniveau, kein Zertifikat hinterlegt"
+
+#: app/profile/routes.py:137
+#, python-format
+msgid "%(num)d year old"
+msgid_plural "%(num)d years old"
+msgstr[0] "%(num)d Jahr alt"
+msgstr[1] "%(num)d Jahre alt"
+
+#: app/profile/routes.py:151
+msgid "Fields"
+msgstr "Felder"
+
+#: app/profile/routes.py:152
+msgid "Locations"
+msgstr "Orte"
+
+#: app/profile/routes.py:152
+msgid "Germany-wide"
+msgstr "Deutschlandweit"
+
+#: app/profile/routes.py:153
+msgid "Relocation"
+msgstr "Umzug"
+
+#: app/profile/routes.py:153
+msgid "Open to it"
+msgstr "Offen dafür"
+
+#: app/profile/routes.py:153
+msgid "Not open to it"
+msgstr "Nicht offen dafür"
+
+#: app/profile/routes.py:153 app/profile/routes.py:154 app/profile/routes.py:155 app/templates/applications/detail.html:478 app/templates/applications/detail.html:479
+msgid "Not set"
+msgstr "Nicht festgelegt"
+
+#: app/profile/routes.py:154
+msgid "Min. German level"
+msgstr "Min. Deutschniveau"
+
+#: app/profile/routes.py:155
+msgid "Desired start"
+msgstr "Gewünschter Start"
+
+#: app/profile/routes.py:202
+msgid "Profile review generated."
+msgstr "Profil-Feedback erstellt."
+
+#: app/profile/routes.py:219
+msgid "Answer generated."
+msgstr "Antwort erstellt."
+
+#: app/profile/routes.py:234
+msgid "Personal information updated."
+msgstr "Persönliche Daten aktualisiert."
+
+#: app/profile/routes.py:236
+msgid "Please correct the errors in the personal information form."
+msgstr "Bitte korrigiere die Fehler im Formular für persönliche Daten."
+
+#: app/profile/routes.py:257
+msgid "Preferences updated."
+msgstr "Wünsche aktualisiert."
+
+#: app/profile/routes.py:259
+msgid "Please correct the errors in the preferences form."
+msgstr "Bitte korrigiere die Fehler im Wünsche-Formular."
+
+#: app/profile/routes.py:273
+msgid "Education entry added."
+msgstr "Ausbildungseintrag hinzugefügt."
+
+#: app/profile/routes.py:275
+msgid "Please correct the errors in the education form."
+msgstr "Bitte korrigiere die Fehler im Ausbildungsformular."
+
+#: app/profile/routes.py:286
+msgid "Education entry removed."
+msgstr "Ausbildungseintrag entfernt."
+
+#: app/profile/routes.py:300
+msgid "Experience entry added."
+msgstr "Erfahrungseintrag hinzugefügt."
+
+#: app/profile/routes.py:302
+msgid "Please correct the errors in the experience form."
+msgstr "Bitte korrigiere die Fehler im Erfahrungsformular."
+
+#: app/profile/routes.py:313
+msgid "Experience entry removed."
+msgstr "Erfahrungseintrag entfernt."
+
+#: app/profile/routes.py:326
+msgid "Skill added."
+msgstr "Fähigkeit hinzugefügt."
+
+#: app/profile/routes.py:328
+msgid "Please correct the errors in the skill form."
+msgstr "Bitte korrigiere die Fehler im Formular für Fähigkeiten."
+
+#: app/profile/routes.py:351
+msgid "Language added."
+msgstr "Sprache hinzugefügt."
+
+#: app/profile/routes.py:353
+msgid "Please correct the errors in the language form."
+msgstr "Bitte korrigiere die Fehler im Sprachformular."
+
+#: app/templates/_components.html:168 app/templates/jobs/saved.html:15 app/templates/profile/view.html:66 app/templates/profile/view.html:104
+msgid "Remove"
+msgstr "Entfernen"
+
+#: app/templates/_components.html:191
+msgid "Fulfilled"
+msgstr "Erfüllt"
+
+#: app/templates/_components.html:193
+msgid "Partial"
+msgstr "Teilweise"
+
+#: app/templates/_components.html:195
+msgid "Missing"
+msgstr "Fehlt"
+
+#: app/templates/_components.html:197
+msgid "Not evaluated"
+msgstr "Nicht bewertet"
+
+#: app/templates/_components.html:247
+msgid "MATCH"
+msgstr "MATCH"
+
+#: app/templates/_components.html:277
+#, python-format
+msgid "Segment width = weighting (%(breakdown)s), fill = achieved proportion."
+msgstr "Segmentbreite = Gewichtung (%(breakdown)s), Füllung = erreichter Anteil."
+
+#: app/templates/_components.html:277
+#, python-format
+msgid "Not evaluated: %(categories)s."
+msgstr "Nicht bewertet: %(categories)s."
+
+#: app/templates/_components.html:280
+msgid "Show breakdown"
+msgstr "Details anzeigen"
+
+#: app/templates/_components.html:322
+#, python-format
+msgid "%(num)d source was unreachable."
+msgid_plural "%(num)d sources were unreachable."
+msgstr[0] "%(num)d Quelle war nicht erreichbar."
+msgstr[1] "%(num)d Quellen waren nicht erreichbar."
+
+#: app/templates/_components.html:374
+msgid "HIGH"
+msgstr "HOCH"
+
+#: app/templates/_components.html:374
+msgid "MEDIUM"
+msgstr "MITTEL"
+
+#: app/templates/_components.html:374
+msgid "LOW"
+msgstr "NIEDRIG"
+
+#: app/templates/_components.html:375
+msgid "NO PROVIDER"
+msgstr "KEIN ANBIETER"
+
+#: app/templates/_components.html:379
+msgid "EDITED BY YOU"
+msgstr "VON DIR BEARBEITET"
+
+#: app/templates/_components.html:380
+#, python-format
+msgid "LAST EDITED %(when)s"
+msgstr "ZULETZT BEARBEITET %(when)s"
+
+#: app/templates/_components.html:382
+#, python-format
+msgid "INTELLIGENCE · %(provider)s"
+msgstr "INTELLIGENCE · %(provider)s"
+
+#: app/templates/_components.html:383 app/templates/applications/detail.html:245
+#, python-format
+msgid "RELIABILITY %(level)s"
+msgstr "ZUVERLÄSSIGKEIT %(level)s"
+
+#: app/templates/_components.html:388 app/templates/applications/detail.html:140 app/templates/applications/detail.html:161 app/templates/applications/detail.html:298
+#: app/templates/applications/detail.html:324 app/templates/applications/detail.html:359 app/templates/jobs/detail.html:183 app/templates/profile/view.html:189
+msgid "Regenerate"
+msgstr "Neu erzeugen"
+
+#: app/templates/_components.html:457 app/templates/base.html:301
+msgid "Switch to dark theme"
+msgstr "Zu dunklem Modus wechseln"
+
+#: app/templates/_flashes.html:23
+msgid "Error"
+msgstr "Fehler"
+
+#: app/templates/_flashes.html:23
+msgid "Success"
+msgstr "Erfolg"
+
+#: app/templates/_flashes.html:23
+msgid "Notice"
+msgstr "Hinweis"
+
+#: app/templates/base.html:6 app/templates/landing.html:4
+msgid "AUSVIA — Your path to Ausbildung"
+msgstr "AUSVIA — Dein Weg zur Ausbildung"
+
+#: app/templates/base.html:74 app/templates/main/dashboard.html:3
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: app/templates/base.html:75 app/templates/companies/detail.html:14 app/templates/jobs/detail.html:38 app/templates/jobs/search.html:4 app/templates/jobs/search.html:14
+msgid "Find Ausbildung"
+msgstr "Ausbildung finden"
+
+#: app/templates/base.html:76 app/templates/jobs/saved.html:2 app/templates/jobs/saved.html:4
+msgid "Saved Jobs"
+msgstr "Gespeicherte Stellen"
+
+#: app/templates/applications/detail.html:14 app/templates/applications/list.html:2 app/templates/applications/list.html:4 app/templates/base.html:77 app/templates/main/dashboard.html:134
+msgid "Applications"
+msgstr "Bewerbungen"
+
+#: app/templates/base.html:78 app/templates/profile/view.html:4
+msgid "Candidate Profile"
+msgstr "Kandidatenprofil"
+
+#: app/templates/applications/detail.html:126 app/templates/base.html:79 app/templates/documents/list.html:3 app/templates/documents/list.html:12
+msgid "Documents"
+msgstr "Dokumente"
+
+#: app/templates/base.html:80 app/templates/integrations/gmail.html:2 app/templates/integrations/gmail.html:4
+msgid "Gmail"
+msgstr "Gmail"
+
+#: app/templates/admin/ai_usage.html:2 app/templates/admin/codes.html:3 app/templates/admin/job_sources.html:2 app/templates/admin/overview.html:2 app/templates/admin/users.html:2
+#: app/templates/base.html:114
+msgid "Admin"
+msgstr "Admin"
+
+#: app/templates/admin/overview.html:4 app/templates/base.html:115
+msgid "Admin Dashboard"
+msgstr "Admin-Dashboard"
+
+#: app/templates/admin/codes.html:3 app/templates/admin/codes.html:5 app/templates/base.html:115
+msgid "Invitation Codes"
+msgstr "Einladungscodes"
+
+#: app/templates/admin/users.html:2 app/templates/admin/users.html:4 app/templates/base.html:115
+msgid "Users"
+msgstr "Nutzer"
+
+#: app/templates/admin/job_sources.html:2 app/templates/admin/job_sources.html:4 app/templates/base.html:115
+msgid "Job Sources"
+msgstr "Jobquellen"
+
+#: app/templates/admin/ai_usage.html:2 app/templates/admin/ai_usage.html:4 app/templates/base.html:115
+msgid "AI Usage"
+msgstr "KI-Nutzung"
+
+#: app/templates/base.html:115
+msgid "Components"
+msgstr "Komponenten"
+
+#: app/templates/base.html:140
+msgid "Log out"
+msgstr "Abmelden"
+
+#: app/templates/base.html:181
+msgid "Open menu"
+msgstr "Menü öffnen"
+
+#: app/templates/base.html:188
+msgid "Navigation"
+msgstr "Navigation"
+
+#: app/templates/base.html:193
+msgid "Close menu"
+msgstr "Menü schließen"
+
+#: app/templates/base.html:300
+msgid "Switch to light theme"
+msgstr "Zu hellem Modus wechseln"
+
+#: app/templates/landing.html:42
+msgid "Access code only"
+msgstr "Nur mit Zugangscode"
+
+#: app/templates/landing.html:44 app/templates/landing.html:99
+msgid "See how it works"
+msgstr "So funktioniert's"
+
+#: app/templates/auth/login.html:3 app/templates/auth/login.html:6 app/templates/auth/login.html:14 app/templates/auth/register.html:19 app/templates/landing.html:49
+msgid "Log in"
+msgstr "Anmelden"
+
+#: app/templates/landing.html:78
+msgid "AUSBILDUNG · NATIONWIDE"
+msgstr "AUSBILDUNG · BUNDESWEIT"
+
+#: app/templates/landing.html:80
+msgid "Your path to Ausbildung."
+msgstr "Dein Weg zur Ausbildung."
+
+#: app/templates/landing.html:85
+msgid "AUSVIA searches real Ausbildung postings, works out transparently why each one fits you, helps you prepare a complete application, and tracks it through to a reply. Nothing is ever sent without you."
+msgstr ""
+"AUSVIA durchsucht echte Ausbildungsstellen, zeigt dir transparent, warum sie zu dir passen, hilft dir bei einer vollständigen Bewerbung und verfolgt sie bis zur Antwort. Nichts wird ohne dich "
+"verschickt."
+
+#: app/templates/landing.html:96 app/templates/landing.html:235
+msgid "Enter access code"
+msgstr "Zugangscode eingeben"
+
+#: app/templates/landing.html:107
+msgid "FIND AUSBILDUNG · LEIPZIG"
+msgstr "AUSBILDUNG FINDEN · LEIPZIG"
+
+#: app/templates/landing.html:108
+#, python-format
+msgid "%(num)s SOURCE"
+msgid_plural "%(num)s SOURCES"
+msgstr[0] "%(num)s QUELLE"
+msgstr[1] "%(num)s QUELLEN"
+
+#: app/templates/landing.html:142
+msgid "APPLICATION · HANSEATIK SYSTEME"
+msgstr "BEWERBUNG · HANSEATIK SYSTEME"
+
+#: app/templates/landing.html:146
+msgid "Sent 18 Aug · Reply pending · Cover letter, email, and PDF package included."
+msgstr "Gesendet 18. Aug. · Antwort ausstehend · Anschreiben, E-Mail und PDF-Paket enthalten."
+
+#: app/templates/landing.html:168
+msgid "Discover"
+msgstr "Entdecken"
+
+#: app/templates/landing.html:168
+msgid "Match"
+msgstr "Match"
+
+#: app/templates/landing.html:168
+msgid "Prepare"
+msgstr "Vorbereiten"
+
+#: app/templates/landing.html:168
+msgid "Apply"
+msgstr "Bewerben"
+
+#: app/templates/landing.html:168
+msgid "Track"
+msgstr "Verfolgen"
+
+#: app/templates/landing.html:178
+msgid "TRANSPARENT"
+msgstr "TRANSPARENT"
+
+#: app/templates/landing.html:178
+msgid "Every score you can check yourself"
+msgstr "Jede Bewertung selbst nachvollziehbar"
+
+#: app/templates/landing.html:178
+msgid "Five criteria with fixed weights — Skills, Language, Education, Location, Start. You see exactly what's met and what's missing. Never a black box."
+msgstr "Fünf Kriterien mit fester Gewichtung — Fähigkeiten, Sprache, Ausbildung, Ort, Start. Du siehst genau, was erfüllt ist und was fehlt. Nie eine Black Box."
+
+#: app/templates/landing.html:179
+msgid "PREPARED"
+msgstr "VORBEREITET"
+
+#: app/templates/landing.html:179
+msgid "Cover letter, email, PDF package"
+msgstr "Anschreiben, E-Mail, PDF-Paket"
+
+#: app/templates/landing.html:179
+msgid "Generated from your real profile and the real posting — never invented experience, never invented company details."
+msgstr "Erstellt aus deinem echten Profil und der echten Stellenanzeige — nie erfundene Erfahrung, nie erfundene Unternehmensdetails."
+
+#: app/templates/landing.html:180
+msgid "IN YOUR HANDS"
+msgstr "IN DEINER HAND"
+
+#: app/templates/landing.html:180
+msgid "Nothing goes out without your OK"
+msgstr "Nichts wird ohne dein OK verschickt"
+
+#: app/templates/landing.html:180
+msgid "AUSVIA drafts the cover letter and the email; you review and send them yourself. Replies stay your decision too."
+msgstr "AUSVIA entwirft Anschreiben und E-Mail; du prüfst und versendest sie selbst. Auch Antworten bleiben deine Entscheidung."
+
+#: app/templates/landing.html:205
+msgid "Ready for your first match?"
+msgstr "Bereit für dein erstes Match?"
+
+#: app/templates/landing.html:207
+msgid "AUSVIA is currently invite-only. Enter your access code, fill in your profile, and see your first match — in under ten minutes."
+msgstr "AUSVIA ist derzeit nur auf Einladung. Gib deinen Zugangscode ein, fülle dein Profil aus und sieh dein erstes Match — in unter zehn Minuten."
+
+#: app/templates/landing.html:216
+msgid "Continue"
+msgstr "Weiter"
+
+#: app/templates/admin/job_sources.html:11 app/templates/landing.html:233
+msgid "Source"
+msgstr "Quelle"
+
+#: app/templates/admin/ai_usage.html:5
+msgid "Match narratives and improvement tips are the only AI-metered features so far - matching scores themselves are computed without AI and never appear here."
+msgstr "Match-Begründungen und Verbesserungstipps sind bisher die einzigen KI-abgerechneten Funktionen – die Match-Scores selbst werden ohne KI berechnet und erscheinen hier nie."
+
+#: app/templates/admin/ai_usage.html:8
+msgid "Total AI calls"
+msgstr "KI-Aufrufe gesamt"
+
+#: app/templates/admin/ai_usage.html:8
+msgid "Input tokens"
+msgstr "Eingabe-Tokens"
+
+#: app/templates/admin/ai_usage.html:8
+msgid "Output tokens"
+msgstr "Ausgabe-Tokens"
+
+#: app/templates/admin/ai_usage.html:20
+msgid "When"
+msgstr "Wann"
+
+#: app/templates/admin/ai_usage.html:21
+msgid "Feature"
+msgstr "Funktion"
+
+#: app/templates/admin/ai_usage.html:22
+msgid "Provider / model"
+msgstr "Anbieter / Modell"
+
+#: app/templates/admin/ai_usage.html:23
+msgid "Tokens (in / out)"
+msgstr "Tokens (ein / aus)"
+
+#: app/templates/admin/ai_usage.html:35
+msgid "No AI calls logged yet."
+msgstr "Noch keine KI-Aufrufe protokolliert."
+
+#: app/templates/admin/codes.html:8
+msgid "Create a code"
+msgstr "Code erstellen"
+
+#: app/templates/admin/codes.html:16
+msgid "Generate code"
+msgstr "Code erzeugen"
+
+#: app/templates/admin/codes.html:25
+msgid "Code"
+msgstr "Code"
+
+#: app/templates/admin/codes.html:27
+msgid "Uses"
+msgstr "Nutzungen"
+
+#: app/templates/admin/codes.html:28
+msgid "Expires"
+msgstr "Läuft ab"
+
+#: app/templates/admin/codes.html:41 app/templates/admin/users.html:24
+msgid "Active"
+msgstr "Aktiv"
+
+#: app/templates/admin/codes.html:42
+msgid "Revoked"
+msgstr "Widerrufen"
+
+#: app/templates/admin/codes.html:46
+msgid "Revoke this code?"
+msgstr "Diesen Code widerrufen?"
+
+#: app/templates/admin/codes.html:48
+msgid "Revoke"
+msgstr "Widerrufen"
+
+#: app/templates/admin/codes.html:54
+msgid "No codes created yet."
+msgstr "Noch keine Codes erstellt."
+
+#: app/templates/admin/job_sources.html:5
+msgid "Enable or disable each source independently. Disabling a source stops it from being queried on new searches - previously discovered jobs from it aren't removed."
+msgstr "Aktiviere oder deaktiviere jede Quelle unabhängig. Das Deaktivieren einer Quelle stoppt ihre Abfrage bei neuen Suchen – bereits gefundene Stellen daraus werden nicht entfernt."
+
+#: app/templates/admin/job_sources.html:13
+msgid "Last run"
+msgstr "Letzter Lauf"
+
+#: app/templates/admin/job_sources.html:22
+msgid "Enabled"
+msgstr "Aktiviert"
+
+#: app/templates/admin/job_sources.html:23
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+#: app/templates/admin/job_sources.html:30
+msgid "Never run"
+msgstr "Noch nie gelaufen"
+
+#: app/templates/admin/job_sources.html:36
+msgid "Disable"
+msgstr "Deaktivieren"
+
+#: app/templates/admin/job_sources.html:36
+msgid "Enable"
+msgstr "Aktivieren"
+
+#: app/templates/admin/overview.html:8
+msgid "Total users"
+msgstr "Nutzer gesamt"
+
+#: app/templates/admin/overview.html:9
+msgid "Active users"
+msgstr "Aktive Nutzer"
+
+#: app/templates/admin/overview.html:10
+msgid "Active codes"
+msgstr "Aktive Codes"
+
+#: app/templates/admin/overview.html:11
+msgid "Documents stored"
+msgstr "Gespeicherte Dokumente"
+
+#: app/templates/admin/overview.html:12
+msgid "Jobs indexed"
+msgstr "Indexierte Stellen"
+
+#: app/templates/admin/overview.html:23
+msgid "Recent activity"
+msgstr "Letzte Aktivität"
+
+#: app/templates/admin/overview.html:38
+msgid "No activity yet."
+msgstr "Noch keine Aktivität."
+
+#: app/templates/admin/users.html:11
+msgid "Plan"
+msgstr "Plan"
+
+#: app/templates/admin/users.html:13
+msgid "Joined"
+msgstr "Beigetreten"
+
+#: app/templates/admin/users.html:25
+msgid "Inactive"
+msgstr "Inaktiv"
+
+#: app/templates/admin/users.html:33
+msgid "Deactivate"
+msgstr "Deaktivieren"
+
+#: app/templates/admin/users.html:33
+msgid "Activate"
+msgstr "Aktivieren"
+
+#: app/templates/applications/detail.html:4 app/templates/main/digest.html:20
+msgid "Application"
+msgstr "Bewerbung"
+
+#: app/templates/applications/detail.html:14 app/templates/applications/detail.html:20 app/templates/applications/list.html:11 app/templates/jobs/_search_result_card.html:26
+#: app/templates/jobs/detail.html:38 app/templates/jobs/detail.html:46 app/templates/jobs/saved.html:10 app/templates/main/dashboard.html:120 app/templates/main/dashboard.html:148
+#: app/templates/main/digest.html:17
+msgid "Unknown company"
+msgstr "Unbekanntes Unternehmen"
+
+#: app/templates/applications/detail.html:24
+#, python-format
+msgid "applied since %(date)s"
+msgstr "beworben seit %(date)s"
+
+#: app/templates/applications/detail.html:29
+msgid "View job posting"
+msgstr "Stellenanzeige ansehen"
+
+#: app/templates/applications/detail.html:39
+msgid "APPLICATION JOURNEY"
+msgstr "BEWERBUNGSVERLAUF"
+
+#: app/templates/applications/detail.html:78
+msgid "Review and approve"
+msgstr "Prüfen und freigeben"
+
+#: app/templates/applications/detail.html:79
+msgid "Nothing is ever sent automatically. Review the cover letter, email, and documents below, then approve to build the final PDF package."
+msgstr "Es wird nie automatisch etwas gesendet. Prüfe unten Anschreiben, E-Mail und Dokumente und gib die Bewerbung dann frei, um das finale PDF-Paket zu erstellen."
+
+#: app/templates/applications/detail.html:83
+msgid "Approve application"
+msgstr "Bewerbung freigeben"
+
+#: app/templates/applications/detail.html:86
+msgid "Download PDF package"
+msgstr "PDF-Paket herunterladen"
+
+#: app/templates/applications/detail.html:91
+msgid "I sent this myself — mark as sent"
+msgstr "Ich habe das selbst gesendet — als gesendet markieren"
+
+#: app/templates/applications/detail.html:95
+msgid "Create Gmail draft (optional)"
+msgstr "Gmail-Entwurf erstellen (optional)"
+
+#: app/templates/applications/detail.html:123
+msgid "Application materials"
+msgstr "Bewerbungsunterlagen"
+
+#: app/templates/applications/detail.html:127
+msgid "Replies"
+msgstr "Antworten"
+
+#: app/templates/applications/detail.html:134 app/templates/applications/detail.html:365
+#, python-format
+msgid "Source: %(source)s"
+msgstr "Quelle: %(source)s"
+
+#: app/templates/applications/detail.html:135
+msgid "Validated"
+msgstr "Geprüft"
+
+#: app/templates/applications/detail.html:135
+msgid "Needs review"
+msgstr "Prüfung erforderlich"
+
+#: app/templates/applications/detail.html:140 app/templates/applications/detail.html:161
+msgid "Generate"
+msgstr "Erstellen"
+
+#: app/templates/applications/detail.html:144 app/templates/applications/detail.html:165 app/templates/applications/detail.html:339
+msgid "Grounded in your profile and this posting - nothing invented."
+msgstr "Basierend auf deinem Profil und dieser Anzeige - nichts erfunden."
+
+#: app/templates/applications/detail.html:147
+msgid "Cover letter text"
+msgstr "Anschreibentext"
+
+#: app/templates/applications/detail.html:149 app/templates/applications/detail.html:171 app/templates/applications/detail.html:277 app/templates/applications/detail.html:307
+#: app/templates/applications/detail.html:344 app/templates/applications/detail.html:372
+msgid "Save edits"
+msgstr "Änderungen speichern"
+
+#: app/templates/applications/detail.html:153
+msgid "No cover letter yet."
+msgstr "Noch kein Anschreiben."
+
+#: app/templates/applications/detail.html:175
+msgid "No email drafted yet."
+msgstr "Noch keine E-Mail entworfen."
+
+#: app/templates/applications/detail.html:189
+msgid "No documents in your library yet."
+msgstr "Noch keine Dokumente in deiner Bibliothek."
+
+#: app/templates/applications/detail.html:189
+msgid "Upload some"
+msgstr "Lade welche hoch"
+
+#: app/templates/applications/detail.html:192
+msgid "Save selection"
+msgstr "Auswahl speichern"
+
+#: app/templates/applications/detail.html:199
+#, python-format
+msgid "connected as %(email)s"
+msgstr "verbunden als %(email)s"
+
+#: app/templates/applications/detail.html:199
+#, python-format
+msgid "last checked %(time)s"
+msgstr "zuletzt geprüft %(time)s"
+
+#: app/templates/applications/detail.html:204
+msgid "Check for replies"
+msgstr "Auf Antworten prüfen"
+
+#: app/templates/applications/detail.html:210
+msgid "Checking for replies in the background — refresh to see results."
+msgstr "Antworten werden im Hintergrund geprüft — aktualisiere die Seite, um Ergebnisse zu sehen."
+
+#: app/templates/applications/detail.html:212
+#, python-format
+msgid "Last check failed: %(error)s"
+msgstr "Letzte Prüfung fehlgeschlagen: %(error)s"
+
+#: app/templates/applications/detail.html:217 app/templates/integrations/gmail.html:28
+msgid "Connect Gmail"
+msgstr "Gmail verbinden"
+
+#: app/templates/applications/detail.html:218
+msgid "to detect replies to this application."
+msgstr "um Antworten auf diese Bewerbung zu erkennen."
+
+#: app/templates/applications/detail.html:221
+msgid "Add a contact email in Contact & tracking details to check for replies."
+msgstr "Füge unter Kontakt- und Verlaufsdetails eine Kontakt-E-Mail hinzu, um auf Antworten zu prüfen."
+
+#: app/templates/applications/detail.html:223
+msgid "No messages detected yet."
+msgstr "Noch keine Nachrichten erkannt."
+
+#: app/templates/applications/detail.html:230
+msgid "(no subject)"
+msgstr "(kein Betreff)"
+
+#: app/templates/applications/detail.html:256
+msgid "Classify with AI"
+msgstr "Mit KI einordnen"
+
+#: app/templates/applications/detail.html:265
+msgid "Suggest a reply"
+msgstr "Antwort vorschlagen"
+
+#: app/templates/applications/detail.html:272
+msgid "Grounded in your profile and this message - nothing invented."
+msgstr "Basierend auf deinem Profil und dieser Nachricht - nichts erfunden."
+
+#: app/templates/applications/detail.html:283
+msgid "Open in Gmail"
+msgstr "In Gmail öffnen"
+
+#: app/templates/applications/detail.html:295
+msgid "Likely questions and talking points for this role, grounded in your profile and the real job/company facts."
+msgstr "Wahrscheinliche Fragen und Gesprächspunkte für diese Stelle, basierend auf deinem Profil und den echten Fakten zu Stelle/Unternehmen."
+
+#: app/templates/applications/detail.html:298
+msgid "Generate interview prep"
+msgstr "Vorbereitung erstellen"
+
+#: app/templates/applications/detail.html:302
+msgid "Grounded in your profile and this job/company's real facts - nothing invented."
+msgstr "Basierend auf deinem Profil und den echten Fakten zu Stelle/Unternehmen - nichts erfunden."
+
+#: app/templates/applications/detail.html:311 app/templates/applications/detail.html:348
+msgid "Not generated yet."
+msgstr "Noch nicht erstellt."
+
+#: app/templates/applications/detail.html:324
+msgid "Generate CV profile statement"
+msgstr "Lebenslauf-Kurzprofil erstellen"
+
+#: app/templates/applications/detail.html:327
+msgid ""
+"A short, job-specific summary paragraph (\"Kurzprofil\") for the top of your CV - review before adding it; AUSVIA only uses information from your profile and this posting, never invented experience"
+" or skills."
+msgstr ""
+"Ein kurzer, stellenspezifischer Absatz (\"Kurzprofil\") für den Anfang deines Lebenslaufs - prüfe ihn, bevor du ihn übernimmst; AUSVIA verwendet dafür nur Informationen aus deinem Profil und dieser"
+" Anzeige, nie erfundene Erfahrung oder Fähigkeiten."
+
+#: app/templates/applications/detail.html:330
+msgid "Skills this posting values that you already have"
+msgstr "Fähigkeiten, die diese Anzeige verlangt und die du bereits hast"
+
+#: app/templates/applications/detail.html:355
+msgid "Follow-up email"
+msgstr "Nachfass-E-Mail"
+
+#: app/templates/applications/detail.html:359
+msgid "Draft a follow-up"
+msgstr "Nachfass-E-Mail entwerfen"
+
+#: app/templates/applications/detail.html:375
+msgid "No follow-up drafted yet."
+msgstr "Noch keine Nachfass-E-Mail entworfen."
+
+#: app/templates/applications/detail.html:381
+msgid "Contact & tracking details"
+msgstr "Kontakt- und Verlaufsdetails"
+
+#: app/templates/applications/detail.html:400
+msgid "Manually correct status"
+msgstr "Status manuell korrigieren"
+
+#: app/templates/applications/detail.html:405
+msgid "Update"
+msgstr "Aktualisieren"
+
+#: app/templates/applications/detail.html:410
+msgid "Delete this application"
+msgstr "Diese Bewerbung löschen"
+
+#: app/templates/applications/detail.html:412
+msgid "Nothing has been sent yet - this only removes draft work in progress."
+msgstr "Es wurde noch nichts gesendet - das entfernt nur laufende Entwurfsarbeit."
+
+#: app/templates/applications/detail.html:415 app/templates/applications/detail.html:434
+msgid "Delete application"
+msgstr "Bewerbung löschen"
+
+#: app/templates/applications/detail.html:419
+msgid "Delete this application? This cannot be undone."
+msgstr "Diese Bewerbung löschen? Das kann nicht rückgängig gemacht werden."
+
+#: app/templates/applications/detail.html:426
+msgid "This application is past \"preparing\" and represents real history (dates, correspondence, notes) - type DELETE below to permanently remove it."
+msgstr "Diese Bewerbung ist über \"In Vorbereitung\" hinaus und stellt echte Historie dar (Daten, Korrespondenz, Notizen) - gib unten DELETE ein, um sie endgültig zu entfernen."
+
+#: app/templates/applications/detail.html:431
+msgid "Type DELETE to confirm"
+msgstr "Gib DELETE ein, um zu bestätigen"
+
+#: app/templates/applications/detail.html:442
+msgid "PDF PACKAGE"
+msgstr "PDF-PAKET"
+
+#: app/templates/applications/detail.html:449
+#, python-format
+msgid "%(num)s page"
+msgid_plural "%(num)s pages"
+msgstr[0] "%(num)s Seite"
+msgstr[1] "%(num)s Seiten"
+
+#: app/templates/applications/detail.html:450
+#, python-format
+msgid "%(size).1f MB"
+msgstr "%(size).1f MB"
+
+#: app/templates/applications/detail.html:455
+msgid "Download package"
+msgstr "Paket herunterladen"
+
+#: app/templates/applications/detail.html:457
+msgid "Not built yet - approve the application to generate it."
+msgstr "Noch nicht erstellt - gib die Bewerbung frei, um es zu erzeugen."
+
+#: app/templates/applications/detail.html:462
+msgid "CONTAINED DOCUMENTS"
+msgstr "ENTHALTENE DOKUMENTE"
+
+#: app/templates/applications/detail.html:470
+msgid "No documents selected yet."
+msgstr "Noch keine Dokumente ausgewählt."
+
+#: app/templates/applications/detail.html:476
+msgid "CONTACT & DATES"
+msgstr "KONTAKT & TERMINE"
+
+#: app/templates/applications/detail.html:477
+msgid "CONTACT"
+msgstr "KONTAKT"
+
+#: app/templates/applications/detail.html:478
+msgid "INTERVIEW"
+msgstr "VORSTELLUNGSGESPRÄCH"
+
+#: app/templates/applications/detail.html:479
+msgid "FOLLOW-UP"
+msgstr "NACHFASSEN"
+
+#: app/templates/applications/detail.html:483
+msgid "NEXT STEP"
+msgstr "NÄCHSTER SCHRITT"
+
+#: app/templates/applications/detail.html:487
+msgid "Nothing time-sensitive right now."
+msgstr "Gerade nichts Zeitkritisches."
+
+#: app/templates/applications/list.html:21
+msgid "No applications yet. Open a job and click \"Start application\"."
+msgstr "Noch keine Bewerbungen. Öffne eine Anzeige und klicke auf \"Bewerbung starten\"."
+
+#: app/templates/auth/login.html:7
+msgid "Welcome back."
+msgstr "Willkommen zurück."
+
+#: app/templates/auth/login.html:18 app/templates/auth/register.html:3
+msgid "Activate access code"
+msgstr "Zugangscode aktivieren"
+
+#: app/templates/auth/login.html:19
+msgid "Forgot password?"
+msgstr "Passwort vergessen?"
+
+#: app/templates/auth/register.html:6
+msgid "Create your account"
+msgstr "Erstelle dein Konto"
+
+#: app/templates/auth/register.html:7
+msgid "Enter the access code you were given, then set up your login."
+msgstr "Gib den Zugangscode ein, den du erhalten hast, und richte dann deinen Zugang ein."
+
+#: app/templates/auth/register.html:15
+msgid "Create account"
+msgstr "Konto erstellen"
+
+#: app/templates/auth/register.html:19
+msgid "Already have an account?"
+msgstr "Hast du bereits ein Konto?"
+
+#: app/templates/auth/request_reset.html:3
+msgid "Reset password"
+msgstr "Passwort zurücksetzen"
+
+#: app/templates/auth/request_reset.html:6
+msgid "Reset your password"
+msgstr "Setze dein Passwort zurück"
+
+#: app/templates/auth/request_reset.html:7
+msgid "We'll generate a one-time reset link."
+msgstr "Wir erstellen einen einmaligen Link zum Zurücksetzen."
+
+#: app/templates/auth/request_reset.html:12
+msgid "Generate reset link"
+msgstr "Link zum Zurücksetzen erstellen"
+
+#: app/templates/auth/request_reset.html:17
+msgid "Development mode — no email provider is configured"
+msgstr "Entwicklungsmodus — es ist kein E-Mail-Anbieter konfiguriert"
+
+#: app/templates/auth/request_reset.html:18
+msgid "Normally this link would be emailed to you. For now, here it is directly:"
+msgstr "Normalerweise würde dir dieser Link per E-Mail zugeschickt. Hier ist er vorerst direkt:"
+
+#: app/templates/auth/request_reset.html:20
+msgid "Valid for 1 hour."
+msgstr "Gültig für 1 Stunde."
+
+#: app/templates/auth/reset_password.html:3
+msgid "Set new password"
+msgstr "Neues Passwort festlegen"
+
+#: app/templates/auth/reset_password.html:6
+msgid "Set a new password"
+msgstr "Lege ein neues Passwort fest"
+
+#: app/templates/auth/reset_password.html:12
+msgid "Update password"
+msgstr "Passwort aktualisieren"
+
+#: app/templates/companies/detail.html:22
+msgid "Industry not specified"
+msgstr "Branche nicht angegeben"
+
+#: app/templates/companies/detail.html:32
+msgid "About the company"
+msgstr "Über das Unternehmen"
+
+#: app/templates/companies/detail.html:35
+msgid "From this company's own job postings on file - no external database, nothing added."
+msgstr "Aus den eigenen hinterlegten Stellenanzeigen dieses Unternehmens – keine externe Datenbank, nichts hinzugefügt."
+
+#: app/templates/companies/detail.html:37
+msgid "No verified description on file yet. AUSVIA only shows company details that came from real job postings - nothing is invented to fill the gap."
+msgstr "Noch keine geprüfte Beschreibung hinterlegt. AUSVIA zeigt nur Unternehmensdetails, die aus echten Stellenanzeigen stammen – nichts wird erfunden, um die Lücke zu füllen."
+
+#: app/templates/companies/detail.html:47
+msgid "Interprets only the facts above against your profile. No new company information."
+msgstr "Interpretiert nur die oben stehenden Fakten im Abgleich mit deinem Profil. Keine neuen Unternehmensinformationen."
+
+#: app/templates/companies/detail.html:52
+msgid "Why this company might fit you"
+msgstr "Warum dieses Unternehmen zu dir passen könnte"
+
+#: app/templates/companies/detail.html:53
+msgid "Interprets only the facts on this page against your profile - never a source of new company facts."
+msgstr "Interpretiert nur die Fakten auf dieser Seite im Abgleich mit deinem Profil – nie eine Quelle neuer Unternehmensfakten."
+
+#: app/templates/companies/detail.html:56
+msgid "Generate AI insight"
+msgstr "KI-Einschätzung erzeugen"
+
+#: app/templates/companies/detail.html:64
+#, python-format
+msgid "Ausbildung positions at %(company)s"
+msgstr "Ausbildungsstellen bei %(company)s"
+
+#: app/templates/companies/detail.html:66
+#, python-format
+msgid "as of %(date)s"
+msgstr "Stand %(date)s"
+
+#: app/templates/companies/detail.html:77
+msgid "Location not specified"
+msgstr "Ort nicht angegeben"
+
+#: app/templates/companies/detail.html:78
+#, python-format
+msgid "Start %(date)s"
+msgstr "Start %(date)s"
+
+#: app/templates/companies/detail.html:79
+msgid "No salary specified"
+msgstr "Gehalt nicht angegeben"
+
+#: app/templates/companies/detail.html:92 app/templates/jobs/_search_result_card.html:73
+msgid "Details"
+msgstr "Details"
+
+#: app/templates/companies/detail.html:97
+msgid "No positions on file yet"
+msgstr "Noch keine Stellen hinterlegt"
+
+#: app/templates/companies/detail.html:97
+msgid "AUSVIA hasn't found an Ausbildung posting from this company yet - check back after your next search."
+msgstr "AUSVIA hat noch keine Ausbildungsstelle dieses Unternehmens gefunden – schau nach deiner nächsten Suche noch einmal vorbei."
+
+#: app/templates/companies/detail.html:107
+msgid "FACTS ON FILE"
+msgstr "HINTERLEGTE FAKTEN"
+
+#: app/templates/companies/detail.html:109
+msgid "Industry"
+msgstr "Branche"
+
+#: app/templates/companies/detail.html:117
+msgid "Listings on file"
+msgstr "Hinterlegte Anzeigen"
+
+#: app/templates/companies/detail.html:121
+msgid "First seen"
+msgstr "Erstmals gesehen"
+
+#: app/templates/companies/detail.html:122
+msgid "Not yet seen"
+msgstr "Noch nicht gesehen"
+
+#: app/templates/companies/detail.html:124
+msgid "Employee count, founding year, and revenue aren't available, so they stay blank rather than being estimated."
+msgstr "Mitarbeiterzahl, Gründungsjahr und Umsatz liegen nicht vor und bleiben daher leer, statt geschätzt zu werden."
+
+#: app/templates/companies/detail.html:130
+msgid "YOUR APPLICATIONS HERE"
+msgstr "DEINE BEWERBUNGEN HIER"
+
+#: app/templates/companies/detail.html:130
+msgid "YOUR APPLICATION HERE"
+msgstr "DEINE BEWERBUNG HIER"
+
+#: app/templates/companies/detail.html:142
+msgid "Open application"
+msgstr "Bewerbung öffnen"
+
+#: app/templates/companies/detail.html:144
+msgid "View all your applications"
+msgstr "Alle Bewerbungen ansehen"
+
+#: app/templates/documents/list.html:13
+msgid "Originals are never modified - application PDFs are built separately, from copies."
+msgstr "Originale werden nie verändert - Bewerbungs-PDFs werden separat aus Kopien erstellt."
+
+#: app/templates/documents/list.html:18
+msgid "Upload a document"
+msgstr "Ein Dokument hochladen"
+
+#: app/templates/documents/list.html:19
+msgid "PDF, JPG, or PNG, up to 15 MB. The type is suggested from the file where possible - you confirm it."
+msgstr "PDF, JPG oder PNG, bis zu 15 MB. Der Typ wird nach Möglichkeit aus der Datei vorgeschlagen - du bestätigst ihn."
+
+#: app/templates/documents/list.html:35
+msgid "File"
+msgstr "Datei"
+
+#: app/templates/documents/list.html:39
+msgid "Description (optional)"
+msgstr "Beschreibung (optional)"
+
+#: app/templates/documents/list.html:42
+msgid "Upload"
+msgstr "Hochladen"
+
+#: app/templates/documents/list.html:55
+msgid "FILE"
+msgstr "DATEI"
+
+#: app/templates/documents/list.html:56
+msgid "TYPE"
+msgstr "TYP"
+
+#: app/templates/documents/list.html:57
+msgid "SIZE"
+msgstr "GRÖSSE"
+
+#: app/templates/documents/list.html:58
+msgid "UPLOADED"
+msgstr "HOCHGELADEN"
+
+#: app/templates/documents/list.html:72
+#, python-format
+msgid "Used in %(num)d application"
+msgid_plural "Used in %(num)d applications"
+msgstr[0] "Verwendet in %(num)d Bewerbung"
+msgstr[1] "Verwendet in %(num)d Bewerbungen"
+
+#: app/templates/documents/list.html:72
+msgid "Not used in any application"
+msgstr "In keiner Bewerbung verwendet"
+
+#: app/templates/documents/list.html:78
+#, python-format
+msgid "Intelligence suggests: %(type)s"
+msgstr "Intelligence schlägt vor: %(type)s"
+
+#: app/templates/documents/list.html:82
+msgid "Use this"
+msgstr "Verwenden"
+
+#: app/templates/documents/list.html:86
+msgid "Dismiss"
+msgstr "Verwerfen"
+
+#: app/templates/documents/list.html:96
+msgid "Primary CV"
+msgstr "Primärer Lebenslauf"
+
+#: app/templates/documents/list.html:97
+msgid "Set as primary CV"
+msgstr "Als primären Lebenslauf festlegen"
+
+#: app/templates/documents/list.html:100
+msgid "Primary diploma"
+msgstr "Primäres Zeugnis"
+
+#: app/templates/documents/list.html:101
+msgid "Set as primary diploma"
+msgstr "Als primäres Zeugnis festlegen"
+
+#: app/templates/documents/list.html:104
+msgid "Primary German cert."
+msgstr "Primäres Deutschzertifikat"
+
+#: app/templates/documents/list.html:105
+msgid "Set as primary German cert."
+msgstr "Als primäres Deutschzertifikat festlegen"
+
+#: app/templates/documents/list.html:110
+msgid "Delete this document?"
+msgstr "Dieses Dokument löschen?"
+
+#: app/templates/documents/list.html:112
+msgid "Delete"
+msgstr "Löschen"
+
+#: app/templates/documents/list.html:123
+msgid "No documents yet"
+msgstr "Noch keine Dokumente"
+
+#: app/templates/documents/list.html:123
+msgid "Upload your CV, diploma, and any certificates - AUSVIA builds application packages from copies of what's here, and never modifies the originals."
+msgstr "Lade deinen Lebenslauf, dein Zeugnis und etwaige Zertifikate hoch - AUSVIA erstellt Bewerbungspakete aus Kopien davon und verändert nie die Originale."
+
+#: app/templates/errors/403.html:2
+msgid "Forbidden"
+msgstr "Zugriff verweigert"
+
+#: app/templates/errors/403.html:5 app/templates/errors/403.html:11
+msgid "403 — Forbidden"
+msgstr "403 — Zugriff verweigert"
+
+#: app/templates/errors/403.html:6 app/templates/errors/403.html:12
+msgid "You don't have permission to view this page."
+msgstr "Du hast keine Berechtigung, diese Seite anzusehen."
+
+#: app/templates/errors/404.html:2
+msgid "Not found"
+msgstr "Nicht gefunden"
+
+#: app/templates/errors/404.html:5 app/templates/errors/404.html:11
+msgid "404 — Not found"
+msgstr "404 — Nicht gefunden"
+
+#: app/templates/errors/404.html:6 app/templates/errors/404.html:12
+msgid "This page doesn't exist."
+msgstr "Diese Seite existiert nicht."
+
+#: app/templates/errors/413.html:2
+msgid "File too large"
+msgstr "Datei zu groß"
+
+#: app/templates/errors/413.html:5 app/templates/errors/413.html:11
+msgid "413 — File too large"
+msgstr "413 — Datei zu groß"
+
+#: app/templates/errors/413.html:6 app/templates/errors/413.html:12
+msgid "The file you tried to upload exceeds the size limit."
+msgstr "Die Datei, die du hochladen wolltest, überschreitet das Größenlimit."
+
+#: app/templates/errors/500.html:2
+msgid "Something went wrong"
+msgstr "Etwas ist schiefgelaufen"
+
+#: app/templates/errors/500.html:5 app/templates/errors/500.html:11
+msgid "500 — Something went wrong"
+msgstr "500 — Etwas ist schiefgelaufen"
+
+#: app/templates/errors/500.html:6 app/templates/errors/500.html:12
+msgid "An unexpected error occurred. It's been logged; please try again."
+msgstr "Ein unerwarteter Fehler ist aufgetreten. Er wurde protokolliert; bitte versuche es erneut."
+
+#: app/templates/integrations/gmail.html:6
+msgid "AUSVIA only ever creates Gmail drafts - it can never send email or read your inbox beyond what's needed to detect replies to your own applications. You always review and send yourself."
+msgstr ""
+"AUSVIA erstellt ausschließlich Gmail-Entwürfe – es kann niemals E-Mails senden oder dein Postfach lesen, außer was nötig ist, um Antworten auf deine eigenen Bewerbungen zu erkennen. Du prüfst und "
+"versendest immer selbst."
+
+#: app/templates/integrations/gmail.html:12
+msgid "Gmail isn't configured on this instance yet - an admin needs to set <code>GOOGLE_CREDENTIALS_JSON</code> or add <code>credentials.json</code>. See README.md."
+msgstr "Gmail ist auf dieser Instanz noch nicht konfiguriert – ein Administrator muss <code>GOOGLE_CREDENTIALS_JSON</code> setzen oder <code>credentials.json</code> hinzufügen. Siehe README.md."
+
+#: app/templates/integrations/gmail.html:17
+#, python-format
+msgid "Connected: %(email)s"
+msgstr "Verbunden: %(email)s"
+
+#: app/templates/integrations/gmail.html:17
+msgid "Connected"
+msgstr "Verbunden"
+
+#: app/templates/integrations/gmail.html:18
+#, python-format
+msgid "Since %(date)s"
+msgstr "Seit %(date)s"
+
+#: app/templates/integrations/gmail.html:22
+msgid "Disconnect"
+msgstr "Trennen"
+
+#: app/templates/integrations/gmail.html:26
+msgid "Connect your Gmail account to create application drafts and detect replies."
+msgstr "Verbinde dein Gmail-Konto, um Bewerbungsentwürfe zu erstellen und Antworten zu erkennen."
+
+#: app/templates/jobs/_search_result_card.html:29
+#, python-format
+msgid "START %(date)s"
+msgstr "START %(date)s"
+
+#: app/templates/jobs/_search_result_card.html:38
+#, python-format
+msgid "DEADLINE %(date)s"
+msgstr "FRIST %(date)s"
+
+#: app/templates/jobs/_search_result_card.html:40
+msgid "NO DEADLINE GIVEN"
+msgstr "KEINE FRIST ANGEGEBEN"
+
+#: app/templates/jobs/_search_result_card.html:68 app/templates/jobs/detail.html:295
+msgid "Saved"
+msgstr "Gespeichert"
+
+#: app/templates/jobs/_search_result_card.html:70 app/templates/jobs/detail.html:295 app/templates/profile/view.html:49
+msgid "Save"
+msgstr "Speichern"
+
+#: app/templates/jobs/detail.html:17
+msgid "Strong fit"
+msgstr "Starke Passung"
+
+#: app/templates/jobs/detail.html:18
+msgid "Possible fit"
+msgstr "Mögliche Passung"
+
+#: app/templates/jobs/detail.html:19
+msgid "Significant gaps"
+msgstr "Deutliche Lücken"
+
+#: app/templates/jobs/detail.html:28
+#, python-format
+msgid "%(category)s — not evaluated (missing data)"
+msgstr "%(category)s — nicht bewertet (fehlende Daten)"
+
+#: app/templates/jobs/detail.html:53
+msgid "Remove from saved"
+msgstr "Aus Gespeichertem entfernen"
+
+#: app/templates/jobs/detail.html:53
+msgid "Save this opportunity"
+msgstr "Diese Anzeige speichern"
+
+#: app/templates/jobs/detail.html:56 app/templates/jobs/detail.html:229 app/templates/jobs/detail.html:298
+msgid "Go to application"
+msgstr "Zur Bewerbung"
+
+#: app/templates/jobs/detail.html:60 app/templates/jobs/detail.html:233 app/templates/jobs/detail.html:302 app/templates/main/dashboard.html:71
+msgid "Start application"
+msgstr "Bewerbung starten"
+
+#: app/templates/jobs/detail.html:68
+msgid "START DATE"
+msgstr "STARTDATUM"
+
+#: app/templates/jobs/detail.html:72
+msgid "SALARY"
+msgstr "VERGÜTUNG"
+
+#: app/templates/jobs/detail.html:76 app/templates/jobs/detail.html:275
+msgid "SOURCE"
+msgstr "QUELLE"
+
+#: app/templates/jobs/detail.html:91
+msgid "Not enough data to compute a match"
+msgstr "Nicht genug Daten für eine Übereinstimmungsberechnung"
+
+#: app/templates/jobs/detail.html:92
+msgid "Add skills, languages, or education to"
+msgstr "Füge Fähigkeiten, Sprachen oder Bildungsabschlüsse zu"
+
+#: app/templates/jobs/detail.html:92
+msgid "your profile"
+msgstr "deinem Profil"
+
+#: app/templates/jobs/detail.html:92
+msgid "to see how well this posting fits."
+msgstr "hinzu, um zu sehen, wie gut diese Anzeige passt."
+
+#: app/templates/jobs/detail.html:95
+msgid "Computed directly from your profile and this posting's listed requirements — not an AI guess."
+msgstr "Direkt aus deinem Profil und den in dieser Anzeige genannten Anforderungen berechnet — kein KI-Ratespiel."
+
+#: app/templates/jobs/detail.html:98
+msgid "STRENGTHS"
+msgstr "STÄRKEN"
+
+#: app/templates/jobs/detail.html:103 app/templates/jobs/detail.html:117
+msgid "None identified."
+msgstr "Keine festgestellt."
+
+#: app/templates/jobs/detail.html:106
+msgid "GAPS"
+msgstr "LÜCKEN"
+
+#: app/templates/jobs/detail.html:126
+msgid "REQUIREMENTS FROM THE POSTING"
+msgstr "ANFORDERUNGEN AUS DER ANZEIGE"
+
+#: app/templates/jobs/detail.html:142 app/templates/jobs/detail.html:159
+msgid "Based on your profile, this posting, and the computed score."
+msgstr "Basierend auf deinem Profil, dieser Anzeige und dem berechneten Score."
+
+#: app/templates/jobs/detail.html:148
+msgid "Generate AI explanation"
+msgstr "KI-Erklärung erzeugen"
+
+#: app/templates/jobs/detail.html:165
+msgid "How can I improve my fit for this role?"
+msgstr "Wie kann ich besser zu dieser Stelle passen?"
+
+#: app/templates/jobs/detail.html:177
+msgid "Plain-language summary"
+msgstr "Verständliche Zusammenfassung"
+
+#: app/templates/jobs/detail.html:180 app/templates/profile/view.html:186
+#, python-format
+msgid "Generated by %(provider)s."
+msgstr "Erstellt von %(provider)s."
+
+#: app/templates/jobs/detail.html:188
+msgid "Explain this posting in plain language"
+msgstr "Diese Anzeige verständlich erklären"
+
+#: app/templates/jobs/detail.html:197
+msgid "Requirements"
+msgstr "Anforderungen"
+
+#: app/templates/jobs/detail.html:218
+msgid "Contact"
+msgstr "Kontakt"
+
+#: app/templates/jobs/detail.html:226
+msgid "APPLY"
+msgstr "BEWERBEN"
+
+#: app/templates/jobs/detail.html:227
+msgid "AUSVIA drafts the cover letter, email, and PDF package. Review and sending stay with you."
+msgstr "AUSVIA entwirft Anschreiben, E-Mail und PDF-Paket. Prüfung und Versand bleiben bei dir."
+
+#: app/templates/jobs/detail.html:245
+#, python-format
+msgid "Deadline %(date)s"
+msgstr "Frist %(date)s"
+
+#: app/templates/jobs/detail.html:247
+#, python-format
+msgid "passed %(num)d day ago"
+msgid_plural "passed %(num)d days ago"
+msgstr[0] "vor %(num)d Tag abgelaufen"
+msgstr[1] "vor %(num)d Tagen abgelaufen"
+
+#: app/templates/jobs/detail.html:247
+#, python-format
+msgid "in %(num)d day"
+msgid_plural "in %(num)d days"
+msgstr[0] "in %(num)d Tag"
+msgstr[1] "in %(num)d Tagen"
+
+#: app/templates/jobs/detail.html:251
+msgid "No deadline listed"
+msgstr "Keine Frist angegeben"
+
+#: app/templates/jobs/detail.html:258
+msgid "COMPANY"
+msgstr "UNTERNEHMEN"
+
+#: app/templates/jobs/detail.html:264
+msgid "INDUSTRY"
+msgstr "BRANCHE"
+
+#: app/templates/jobs/detail.html:266
+msgid "OPEN POSITIONS"
+msgstr "OFFENE STELLEN"
+
+#: app/templates/jobs/detail.html:268
+msgid "WEBSITE"
+msgstr "WEBSEITE"
+
+#: app/templates/jobs/detail.html:270
+msgid "View company page"
+msgstr "Unternehmensseite ansehen"
+
+#: app/templates/jobs/detail.html:277
+#, python-format
+msgid "Found via %(sources)s on %(date)s."
+msgstr "Gefunden über %(sources)s am %(date)s."
+
+#: app/templates/jobs/detail.html:277
+msgid "manual entry"
+msgstr "manuelle Eingabe"
+
+#: app/templates/jobs/detail.html:278
+msgid "A duplicate listing of this posting was automatically merged into this one."
+msgstr "Eine doppelte Anzeige dieser Stelle wurde automatisch mit dieser zusammengeführt."
+
+#: app/templates/jobs/detail.html:281
+msgid "Open original posting"
+msgstr "Original-Anzeige öffnen"
+
+#: app/templates/jobs/import.html:4
+msgid "Import a Job"
+msgstr "Anzeige importieren"
+
+#: app/templates/jobs/import.html:6
+msgid "Import a job posting"
+msgstr "Eine Stellenanzeige importieren"
+
+#: app/templates/jobs/import.html:7
+msgid ""
+"Paste a link - or several, one per line - and we'll try to fetch the readable text for each. If a site blocks automatic access, paste the job text yourself. Nothing here bypasses logins, paywalls, "
+"or bot protection."
+msgstr ""
+"Füge einen Link ein - oder mehrere, einen pro Zeile - und wir versuchen, den lesbaren Text für jeden abzurufen. Blockiert eine Seite den automatischen Zugriff, füge den Anzeigentext selbst ein. "
+"Nichts hier umgeht Logins, Bezahlschranken oder Bot-Schutz."
+
+#: app/templates/jobs/import.html:11
+msgid "1. Fetch from a URL (optional)"
+msgstr "1. Von einer URL abrufen (optional)"
+
+#: app/templates/jobs/import.html:15
+#, python-format
+msgid "One URL per line. Up to %(max)d at a time."
+msgstr "Eine URL pro Zeile. Bis zu %(max)d auf einmal."
+
+#: app/templates/jobs/import.html:16
+msgid "Fetch"
+msgstr "Abrufen"
+
+#: app/templates/jobs/import.html:24
+#, python-format
+msgid "Reviewing %(current)d of %(total)d"
+msgstr "Überprüfe %(current)d von %(total)d"
+
+#: app/templates/jobs/import.html:27
+msgid "Cancel batch"
+msgstr "Stapel abbrechen"
+
+#: app/templates/jobs/import.html:34
+msgid "saved"
+msgstr "gespeichert"
+
+#: app/templates/jobs/import.html:36
+msgid "skipped"
+msgstr "übersprungen"
+
+#: app/templates/jobs/import.html:38
+msgid "fetch failed"
+msgstr "Abruf fehlgeschlagen"
+
+#: app/templates/jobs/import.html:40
+msgid "reviewing now"
+msgstr "wird gerade überprüft"
+
+#: app/templates/jobs/import.html:42
+msgid "pending"
+msgstr "ausstehend"
+
+#: app/templates/jobs/import.html:52 app/templates/jobs/import_bookmarklet.html:5
+msgid "Review and save"
+msgstr "Überprüfen und speichern"
+
+#: app/templates/jobs/import.html:52
+msgid "2. Review and save"
+msgstr "2. Überprüfen und speichern"
+
+#: app/templates/jobs/import.html:66 app/templates/jobs/import_bookmarklet.html:21
+msgid "Save opportunity"
+msgstr "Anzeige speichern"
+
+#: app/templates/jobs/import.html:68
+msgid "Skip this one"
+msgstr "Diese überspringen"
+
+#: app/templates/jobs/import.html:73
+msgid "Fetch a URL above, or use the bookmarklet below - either will fill in this form for you to review."
+msgstr "Rufe oben eine URL ab oder nutze das Lesezeichen-Tool unten - beides füllt dieses Formular zur Überprüfung für dich aus."
+
+#: app/templates/jobs/import.html:78
+msgid "Browser bookmarklet"
+msgstr "Browser-Lesezeichen-Tool"
+
+#: app/templates/jobs/import.html:80
+msgid ""
+"Drag this to your bookmarks bar. While viewing any job posting in your own browser, click it to send that page's title, URL, and visible text straight into the review form above - nothing is "
+"fetched from AUSVIA's side, it just reads what's already loaded on your screen, the same as if you'd copy-pasted it yourself. Nothing saves until you review it here and press \"Save opportunity\"."
+msgstr ""
+"Ziehe dies in deine Lesezeichenleiste. Klicke es beim Betrachten einer Stellenanzeige in deinem eigenen Browser an, um Titel, URL und sichtbaren Text dieser Seite direkt in das Formular oben zu "
+"übertragen - AUSVIA ruft dabei nichts ab, sondern liest nur, was bereits auf deinem Bildschirm geladen ist, genau wie beim eigenen Kopieren und Einfügen. Nichts wird gespeichert, bevor du es hier "
+"prüfst und auf \"Anzeige speichern\" klickst."
+
+#: app/templates/jobs/import.html:84
+msgid "Import to AUSVIA"
+msgstr "Zu AUSVIA importieren"
+
+#: app/templates/jobs/import.html:98
+msgid "Drag this link to your bookmarks bar, then click it later while viewing a job posting."
+msgstr "Ziehe diesen Link in deine Lesezeichenleiste und klicke ihn später beim Betrachten einer Stellenanzeige an."
+
+#: app/templates/jobs/import_bookmarklet.html:3
+msgid "Import from bookmarklet"
+msgstr "Import über Lesezeichen-Tool"
+
+#: app/templates/jobs/import_bookmarklet.html:7
+msgid "This form is filling in from the page you were just viewing in your own browser - AUSVIA didn't fetch anything. Nothing is saved until you review it and press \"Save opportunity\" below."
+msgstr ""
+"Dieses Formular wird aus der Seite befüllt, die du gerade in deinem eigenen Browser betrachtet hast - AUSVIA hat nichts abgerufen. Nichts wird gespeichert, bevor du es prüfst und unten auf "
+"\"Anzeige speichern\" klickst."
+
+#: app/templates/jobs/saved.html:11
+#, python-format
+msgid "Saved %(date)s"
+msgstr "Gespeichert am %(date)s"
+
+#: app/templates/jobs/saved.html:19
+msgid "No saved jobs yet."
+msgstr "Noch keine gespeicherten Stellen."
+
+#: app/templates/jobs/saved.html:19
+msgid "Search for opportunities"
+msgstr "Nach Angeboten suchen"
+
+#: app/templates/jobs/search.html:16
+#, python-format
+msgid "Searches %(sources)s."
+msgstr "Durchsucht %(sources)s."
+
+#: app/templates/jobs/search.html:16
+msgid "no sources (none enabled)"
+msgstr "keine Quellen (keine aktiviert)"
+
+#: app/templates/jobs/search.html:17
+msgid "Can't find a posting?"
+msgstr "Findest du eine Anzeige nicht?"
+
+#: app/templates/jobs/search.html:17
+msgid "Import it manually by URL"
+msgstr "Manuell per URL importieren"
+
+#: app/templates/jobs/search.html:25
+msgid "Search"
+msgstr "Suchen"
+
+#: app/templates/jobs/search.html:29
+msgid "Filters"
+msgstr "Filter"
+
+#: app/templates/jobs/search.html:38
+msgid "SOURCES"
+msgstr "QUELLEN"
+
+#: app/templates/jobs/search.html:54
+msgid "FILTER"
+msgstr "FILTER"
+
+#: app/templates/jobs/search.html:65
+msgid "Other sources still ran normally. You can also import specific postings manually."
+msgstr "Andere Quellen liefen normal weiter. Du kannst einzelne Anzeigen auch manuell importieren."
+
+#: app/templates/jobs/search.html:73
+msgid "Your profile doesn't have enough data yet to score these results - skills, languages, education, location preference, or desired start date."
+msgstr "Dein Profil hat noch nicht genug Daten, um diese Ergebnisse zu bewerten - Fähigkeiten, Sprachen, Bildung, Ortspräferenz oder gewünschtes Startdatum."
+
+#: app/templates/jobs/search.html:73
+msgid "Search still works without it; scores just can't. Complete your profile to see match scores."
+msgstr "Die Suche funktioniert auch so; nur die Bewertung nicht. Vervollständige dein Profil, um Match-Werte zu sehen."
+
+#: app/templates/jobs/search.html:79
+#, python-format
+msgid "%(num)d result scored below your minimum and isn't shown."
+msgid_plural "%(num)d results scored below your minimum and aren't shown."
+msgstr[0] "%(num)d Ergebnis liegt unter deinem Minimum und wird nicht angezeigt."
+msgstr[1] "%(num)d Ergebnisse liegen unter deinem Minimum und werden nicht angezeigt."
+
+#: app/templates/jobs/search.html:90
+#, python-format
+msgid "%(num)s result"
+msgid_plural "%(num)s results"
+msgstr[0] "%(num)s Ergebnis"
+msgstr[1] "%(num)s Ergebnisse"
+
+#: app/templates/jobs/search.html:91
+#, python-format
+msgid "%(num)s source"
+msgid_plural "%(num)s sources"
+msgstr[0] "%(num)s Quelle"
+msgstr[1] "%(num)s Quellen"
+
+#: app/templates/jobs/search.html:92
+#, python-format
+msgid "%(num)s duplicate merged"
+msgid_plural "%(num)s duplicates merged"
+msgstr[0] "%(num)s Duplikat zusammengeführt"
+msgstr[1] "%(num)s Duplikate zusammengeführt"
+
+#: app/templates/jobs/search.html:94
+#, python-format
+msgid "Sorted by %(criterion)s"
+msgstr "Sortiert nach %(criterion)s"
+
+#: app/templates/jobs/search.html:94
+msgid "match"
+msgstr "Übereinstimmung"
+
+#: app/templates/jobs/search.html:94
+msgid "newest"
+msgstr "Neueste"
+
+#: app/templates/jobs/search.html:108
+msgid "Your profile doesn't have enough data to evaluate these results - shown here rather than hidden, since an unscored job isn't a failing one."
+msgstr "Dein Profil hat noch nicht genug Daten, um diese Ergebnisse zu bewerten - sie werden hier gezeigt statt versteckt, denn eine unbewertete Stelle ist keine schlecht bewertete."
+
+#: app/templates/jobs/search.html:118
+msgid "No results found"
+msgstr "Keine Ergebnisse gefunden"
+
+#: app/templates/jobs/search.html:118
+msgid "Try different keywords, a broader location, or removing some filters."
+msgstr "Versuche andere Suchbegriffe, einen weiteren Ort oder entferne einige Filter."
+
+#: app/templates/jobs/search.html:118
+msgid "Import a posting manually"
+msgstr "Anzeige manuell importieren"
+
+#: app/templates/jobs/search.html:121
+msgid "Search for an Ausbildung posting"
+msgstr "Nach einer Ausbildungsstelle suchen"
+
+#: app/templates/jobs/search.html:121
+msgid "Enter keywords above to search every enabled job source at once - postings already on file match instantly, new ones are fetched live."
+msgstr "Gib oben Suchbegriffe ein, um alle aktivierten Stellenquellen gleichzeitig zu durchsuchen - bereits erfasste Anzeigen erscheinen sofort, neue werden live abgerufen."
+
+#: app/templates/main/dashboard.html:36 app/templates/main/dashboard.html:80
+msgid "NEXT UP"
+msgstr "ALS NÄCHSTES"
+
+#: app/templates/main/dashboard.html:41
+#, python-format
+msgid "%(title)s at %(company)s — %(reason)s."
+msgstr "%(title)s bei %(company)s — %(reason)s."
+
+#: app/templates/main/dashboard.html:41 app/templates/main/dashboard.html:43
+msgid "this company"
+msgstr "diesem Unternehmen"
+
+#: app/templates/main/dashboard.html:43
+#, python-format
+msgid "%(title)s at %(company)s looks like a strong match — no application started yet."
+msgstr "%(title)s bei %(company)s sieht nach einer starken Übereinstimmung aus — noch keine Bewerbung gestartet."
+
+#: app/templates/main/dashboard.html:50
+msgid "Nothing else needs attention on this one right now."
+msgstr "Hier braucht gerade nichts anderes deine Aufmerksamkeit."
+
+#: app/templates/main/dashboard.html:52
+msgid "Saved but not started - your profile lines up well with what this posting is asking for."
+msgstr "Gespeichert, aber noch nicht begonnen – dein Profil passt gut zu den Anforderungen dieser Anzeige."
+
+#: app/templates/main/dashboard.html:58
+msgid "Open package"
+msgstr "Paket öffnen"
+
+#: app/templates/main/dashboard.html:60 app/templates/main/dashboard.html:111
+msgid "View application"
+msgstr "Bewerbung ansehen"
+
+#: app/templates/main/dashboard.html:65
+msgid "Mark as sent"
+msgstr "Als gesendet markieren"
+
+#: app/templates/main/dashboard.html:77
+msgid "Nothing to show yet"
+msgstr "Noch nichts zu zeigen"
+
+#: app/templates/main/dashboard.html:77
+msgid "Save a posting or start an application and AUSVIA will surface what needs your attention here first."
+msgstr "Speichere eine Anzeige oder starte eine Bewerbung, und AUSVIA zeigt dir hier zuerst, was deine Aufmerksamkeit braucht."
+
+#: app/templates/main/dashboard.html:77 app/templates/main/dashboard.html:83 app/templates/main/dashboard.html:127 app/templates/main/dashboard.html:156
+msgid "Search Ausbildung postings"
+msgstr "Ausbildungsangebote durchsuchen"
+
+#: app/templates/main/dashboard.html:81
+msgid "Nothing needs your attention right now."
+msgstr "Gerade braucht nichts deine Aufmerksamkeit."
+
+#: app/templates/main/dashboard.html:82
+msgid "No deadlines, interviews, or follow-ups are due, and nothing is stalled - good time to keep applying."
+msgstr "Keine Fristen, Vorstellungsgespräche oder Nachfasstermine stehen an, und nichts stockt – ein guter Zeitpunkt, um weiter Bewerbungen zu schreiben."
+
+#: app/templates/main/dashboard.html:89 app/templates/main/digest.html:4
+msgid "Priority digest"
+msgstr "Prioritäten-Übersicht"
+
+#: app/templates/main/dashboard.html:91
+#, python-format
+msgid "%(num)s item with a real reason"
+msgid_plural "%(num)s items with a real reason"
+msgstr[0] "%(num)s Punkt mit einem echten Grund"
+msgstr[1] "%(num)s Punkte mit einem echten Grund"
+
+#: app/templates/main/dashboard.html:114
+msgid "View job"
+msgstr "Anzeige ansehen"
+
+#: app/templates/main/dashboard.html:127
+msgid "Nothing to prioritize yet"
+msgstr "Noch nichts zu priorisieren"
+
+#: app/templates/main/dashboard.html:127
+msgid "Once you save a posting or start an application, real deadlines, interviews, and follow-ups will show up here."
+msgstr "Sobald du eine Anzeige speicherst oder eine Bewerbung startest, erscheinen hier echte Fristen, Vorstellungsgespräche und Nachfasstermine."
+
+#: app/templates/main/dashboard.html:129
+msgid "All caught up"
+msgstr "Alles erledigt"
+
+#: app/templates/main/dashboard.html:129
+msgid "Nothing here is overdue, upcoming, or stalled right now. Check back after your next update."
+msgstr "Hier ist gerade nichts überfällig, bevorstehend oder ins Stocken geraten. Schau nach deinem nächsten Update wieder vorbei."
+
+#: app/templates/main/dashboard.html:136
+#, python-format
+msgid "%(num)d active"
+msgstr "%(num)d aktiv"
+
+#: app/templates/main/dashboard.html:136
+#, python-format
+msgid "%(num)d closed"
+msgstr "%(num)d abgeschlossen"
+
+#: app/templates/main/dashboard.html:139
+msgid "View all"
+msgstr "Alle ansehen"
+
+#: app/templates/main/dashboard.html:156 app/templates/main/dashboard.html:158
+msgid "No applications yet"
+msgstr "Noch keine Bewerbungen"
+
+#: app/templates/main/dashboard.html:156
+msgid "Start an application from a job posting and it will show up here with its live status."
+msgstr "Starte eine Bewerbung von einer Anzeige aus, und sie erscheint hier mit ihrem aktuellen Status."
+
+#: app/templates/main/dashboard.html:158
+#, python-format
+msgid "You have %(num)d saved job - start an application from one to track it here."
+msgid_plural "You have %(num)d saved jobs - start an application from one to track it here."
+msgstr[0] "Du hast %(num)d gespeicherte Stelle – starte von dort eine Bewerbung, um sie hier zu verfolgen."
+msgstr[1] "Du hast %(num)d gespeicherte Stellen – starte von einer davon eine Bewerbung, um sie hier zu verfolgen."
+
+#: app/templates/main/dashboard.html:158
+msgid "View saved jobs"
+msgstr "Gespeicherte Stellen ansehen"
+
+#: app/templates/main/dashboard.html:169 app/templates/profile/view.html:209
+msgid "PROFILE COMPLETENESS"
+msgstr "PROFIL VOLLSTÄNDIGKEIT"
+
+#: app/templates/main/dashboard.html:174
+#, python-format
+msgid "Missing: %(items)s."
+msgstr "Es fehlt noch: %(items)s."
+
+#: app/templates/main/dashboard.html:176
+msgid "Your profile is complete."
+msgstr "Dein Profil ist vollständig."
+
+#: app/templates/main/dashboard.html:179
+msgid "Complete your profile"
+msgstr "Profil vervollständigen"
+
+#: app/templates/main/dashboard.html:185
+msgid "SEARCH & APPLICATIONS"
+msgstr "SUCHE & BEWERBUNGEN"
+
+#: app/templates/main/dashboard.html:189
+msgid "Interviews"
+msgstr "Vorstellungsgespräche"
+
+#: app/templates/main/dashboard.html:190
+msgid "Follow-ups due"
+msgstr "Nachfassen fällig"
+
+#: app/templates/main/dashboard.html:191
+msgid "Saved jobs"
+msgstr "Gespeicherte Stellen"
+
+#: app/templates/main/dashboard.html:202 app/templates/main/dashboard.html:213
+msgid "Cross-application insight"
+msgstr "Übergreifende Erkenntnis"
+
+#: app/templates/main/dashboard.html:202
+msgid "Add a second application and AUSVIA will look for a real pattern across them - a shared gap, a common thread worth knowing about."
+msgstr "Füge eine zweite Bewerbung hinzu, und AUSVIA sucht nach einem echten Muster zwischen ihnen – eine gemeinsame Lücke, ein roter Faden, den es sich zu kennen lohnt."
+
+#: app/templates/main/dashboard.html:208
+msgid "Based on your applications and profile."
+msgstr "Basierend auf deinen Bewerbungen und deinem Profil."
+
+#: app/templates/main/dashboard.html:214
+msgid "See whether your applications share a pattern - a common industry, a shared gap, something worth double-checking."
+msgstr "Sieh nach, ob deine Bewerbungen ein gemeinsames Muster zeigen – eine gemeinsame Branche, eine gemeinsame Lücke, etwas, das sich zu prüfen lohnt."
+
+#: app/templates/main/dashboard.html:217
+msgid "Generate insight"
+msgstr "Erkenntnis erzeugen"
+
+#: app/templates/main/dashboard.html:225
+msgid "JOB RADAR"
+msgstr "STELLENRADAR"
+
+#: app/templates/main/dashboard.html:226
+#, python-format
+msgid "Checked %(when)s"
+msgstr "Geprüft %(when)s"
+
+#: app/templates/main/dashboard.html:229
+#, python-format
+msgid "%(num)s new listing for your profile"
+msgid_plural "%(num)s new listings for your profile"
+msgstr[0] "%(num)s neue Anzeige für dein Profil"
+msgstr[1] "%(num)s neue Anzeigen für dein Profil"
+
+#: app/templates/main/dashboard.html:230
+msgid "Checked on demand, not automatically."
+msgstr "Wird auf Wunsch geprüft, nicht automatisch."
+
+#: app/templates/main/dashboard.html:232
+msgid "Search your enabled job sources right now for new postings matching your Ausbildung preferences - on demand, not automatically. You haven't run a check yet."
+msgstr "Durchsucht jetzt deine aktivierten Stellenquellen nach neuen Anzeigen, die zu deinen Ausbildungswünschen passen – auf Wunsch, nicht automatisch. Du hast noch keine Prüfung durchgeführt."
+
+#: app/templates/main/dashboard.html:237
+msgid "Check now"
+msgstr "Jetzt prüfen"
+
+#: app/templates/main/dashboard.html:239
+msgid "Open Find Ausbildung"
+msgstr "Ausbildung finden öffnen"
+
+#: app/templates/main/digest.html:2
+msgid "Priority Digest"
+msgstr "Prioritäten-Übersicht"
+
+#: app/templates/main/digest.html:6
+msgid ""
+"Which saved jobs and active applications deserve attention this week - computed from real deadlines, interview dates, follow-up dates, match scores, and how long it's been since anything moved. "
+"Nothing here is AI-written or invented; it's the same data you already see elsewhere on the site, just sorted by what's time-sensitive."
+msgstr ""
+"Welche gespeicherten Stellen und laufenden Bewerbungen diese Woche Aufmerksamkeit verdienen – berechnet aus echten Fristen, Terminen für Vorstellungsgespräche, Nachfassterminen, Match-Werten und "
+"der Zeit seit der letzten Aktivität. Nichts hier ist von einer KI geschrieben oder erfunden; es sind dieselben Daten, die du auch anderswo auf der Seite siehst, nur sortiert nach Dringlichkeit."
+
+#: app/templates/main/digest.html:20
+msgid "Saved job"
+msgstr "Gespeicherte Stelle"
+
+#: app/templates/main/digest.html:33
+msgid "Nothing needs attention right now - no upcoming deadlines, interviews, or follow-ups due, and nothing has been sitting idle. Check back later or after you save/apply to more opportunities."
+msgstr ""
+"Gerade braucht nichts Aufmerksamkeit – keine bevorstehenden Fristen, Vorstellungsgespräche oder Nachfasstermine, und nichts ist liegen geblieben. Schau später wieder vorbei oder nachdem du weitere "
+"Angebote gespeichert oder dich beworben hast."
+
+#: app/templates/profile/view.html:16
+msgid "Candidate profile"
+msgstr "Kandidatenprofil"
+
+#: app/templates/profile/view.html:17
+msgid ""
+"This is the only source AUSVIA generates anything from - match scores, cover letters, emails, every AI feature on this site. If it isn't written here, AUSVIA doesn't know it, and nothing is ever "
+"invented to fill the gap."
+msgstr ""
+"Dies ist die einzige Quelle, aus der AUSVIA etwas erzeugt - Match-Werte, Anschreiben, E-Mails, jede KI-Funktion dieser Seite. Was hier nicht steht, weiß AUSVIA nicht, und nichts wird erfunden, um "
+"die Lücke zu füllen."
+
+#: app/templates/profile/view.html:19
+msgid "Export as CV"
+msgstr "Als Lebenslauf exportieren"
+
+#: app/templates/profile/view.html:29
+msgid "Name not set"
+msgstr "Name nicht festgelegt"
+
+#: app/templates/profile/view.html:30
+msgid "Add your personal details below"
+msgstr "Füge unten deine persönlichen Daten hinzu"
+
+#: app/templates/profile/view.html:34
+msgid "Edit personal information"
+msgstr "Persönliche Daten bearbeiten"
+
+#: app/templates/profile/view.html:63 app/templates/profile/view.html:101
+msgid "present"
+msgstr "heute"
+
+#: app/templates/profile/view.html:72
+msgid "Add your school, vocational training, or language course history - it feeds your match score and cover letters."
+msgstr "Füge deine Schul-, Ausbildungs- oder Sprachkurshistorie hinzu - sie fließt in deinen Match-Wert und deine Anschreiben ein."
+
+#: app/templates/profile/view.html:75
+msgid "Add education entry"
+msgstr "Ausbildungseintrag hinzufügen"
+
+#: app/templates/profile/view.html:87 app/templates/profile/view.html:124 app/templates/profile/view.html:142 app/templates/profile/view.html:172
+msgid "Add"
+msgstr "Hinzufügen"
+
+#: app/templates/profile/view.html:92
+msgid "Experience"
+msgstr "Erfahrung"
+
+#: app/templates/profile/view.html:110
+msgid "No experience entries yet"
+msgstr "Noch keine Erfahrungseinträge"
+
+#: app/templates/profile/view.html:110
+msgid "Add internships, part-time work, or apprenticeships - concrete tasks and responsibilities strengthen your cover letters far more than a bare job title."
+msgstr "Füge Praktika, Nebenjobs oder Ausbildungsstationen hinzu - konkrete Aufgaben und Verantwortlichkeiten stärken dein Anschreiben weit mehr als eine bloße Berufsbezeichnung."
+
+#: app/templates/profile/view.html:113
+msgid "Add experience entry"
+msgstr "Erfahrungseintrag hinzufügen"
+
+#: app/templates/profile/view.html:129
+msgid "Skills & languages"
+msgstr "Fähigkeiten & Sprachen"
+
+#: app/templates/profile/view.html:135
+msgid "No skills added yet."
+msgstr "Noch keine Fähigkeiten hinzugefügt."
+
+#: app/templates/profile/view.html:154
+msgid "Remove language"
+msgstr "Sprache entfernen"
+
+#: app/templates/profile/view.html:166
+msgid "No languages added yet."
+msgstr "Noch keine Sprachen hinzugefügt."
+
+#: app/templates/profile/view.html:177
+msgid "Common questions"
+msgstr "Häufige Fragen"
+
+#: app/templates/profile/view.html:178
+msgid "Grounded answers to common Ausbildung process questions - pick one, no free-text chat."
+msgstr "Fundierte Antworten auf häufige Fragen zum Ausbildungsprozess - wähle eine aus, kein Freitext-Chat."
+
+#: app/templates/profile/view.html:194
+msgid "Show answer"
+msgstr "Antwort anzeigen"
+
+#: app/templates/profile/view.html:229
+msgid "Based only on what's in your profile - never invents achievements."
+msgstr "Basierend nur auf dem, was in deinem Profil steht - erfindet nie Erfolge."
+
+#: app/templates/profile/view.html:234
+msgid "Profile coaching"
+msgstr "Profil-Coaching"
+
+#: app/templates/profile/view.html:235
+msgid "An AI review of your whole profile - never invents achievements, only suggests presenting what's real more effectively."
+msgstr "Eine KI-Durchsicht deines gesamten Profils - erfindet nie Erfolge, schlägt nur vor, wie du Echtes wirkungsvoller darstellst."
+
+#: app/templates/profile/view.html:238
+msgid "Get AI feedback"
+msgstr "KI-Feedback erhalten"
+
+#: app/templates/profile/view.html:245
+msgid "AUSBILDUNG PREFERENCES"
+msgstr "AUSBILDUNGSWÜNSCHE"
+
+#: app/templates/profile/view.html:253
+msgid "Edit preferences"
+msgstr "Wünsche bearbeiten"
+
+#: app/templates/profile/view.html:263
+msgid "Save preferences"
+msgstr "Wünsche speichern"
+
+#~ msgid "Gmail isn't configured on this instance yet - an admin needs to set"
+#~ msgstr ""
+
+#~ msgid "or add"
+#~ msgstr "Hinzufügen"
+
+#~ msgid "See README.md."
+#~ msgstr ""
+

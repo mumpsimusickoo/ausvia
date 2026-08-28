@@ -1,6 +1,24 @@
 # Design System — AUSVIA
 
-Status: **Screens pass 2 (Application Detail) implemented**, 2026-08-27 —
+Status: **i18n pass 1 (infrastructure + switcher) implemented**,
+2026-08-28 — see "Language switcher — i18n pass 1" below. A real
+`language_switcher()` component (`_components.html`, beside
+`theme_toggle()`) at all three chrome call sites (desktop top bar, mobile
+topbar, landing header), English as the real default (supersedes the
+AUSVIA 2.0 bundle's own bilingual rule - see `DECISIONS.md`), proof of
+concept on a small number of strings (the sidebar nav). Mass string
+extraction (pass 2) and the AI-content language split (pass 3) are not
+yet started.
+
+Prior status - screens passes 3 through the Landing toggle-fix pass
+(2026-08-27/2026-08-28) shipped between the entry below and this one but
+were not folded back into this banner at the time; see `PROJECT_STATUS.md`
+for the complete, currently-accurate pass-by-pass list and `DECISIONS.md`
+for each pass's full write-up. Not backfilled here as part of this pass -
+out of its scope.
+
+Prior status, still accurate: **Screens pass 2 (Application Detail)
+implemented**, 2026-08-27 —
 the densest screen in the bundle, second real screen on the component
 layer. See "Application Detail — 2026-08-27 pass" below: the eight-
 station journey (extended from six), an accessible tab bar (new
@@ -52,6 +70,62 @@ a real product page, but the authoritative token source). No screens,
 components, or the logo changed. Everything below the new section is the
 prior rev-1.0 record, kept for history; two of its subsections (Typography
 decision, Color tokens) are explicitly superseded and say so at the top.
+
+## Language switcher — i18n pass 1, 2026-08-28
+
+`language_switcher(fixed_ink=false)` in `_components.html`, immediately
+after `theme_toggle()` - the space the Landing toggle-fix pass and the
+Theme pass's desktop top bar both explicitly reserved for it. Two options
+only (`en`/`EN`, `de`/`DE`), not a dropdown - the product decision is a
+two-language switch, not an open language list, so a segmented pair reads
+correctly where a `<select>` would imply more choices than exist.
+
+**No client-side JS at all, unlike `theme_toggle()`.** The theme toggle is
+pure CSS-variable-swap + `localStorage`, so a client-side click is
+sufficient. The language actually has to change on the *server* before
+anything can render in it (Jinja's `_()` calls are resolved server-side),
+so `language_switcher()` is a real `<form method="post">` targeting
+`main.set_locale`, with `lang` as the clicked submit button's
+`name`/`value` pair - the same zero-JS server-round-trip pattern this
+app's other small POST actions already use (`chip_attribute`'s
+remove-form, `intelligence_surface`'s regenerate-form). A hidden `next`
+field carries `request.full_path` so the switch lands back on the same
+page with the same query string, not the referrer or a fixed redirect
+target.
+
+**Both buttons stay real, always-focusable submit buttons, including the
+currently-active one** - clicking the active language is a harmless
+same-locale resubmit, not a disabled/inert state. Considered marking the
+active button `disabled` (a common segmented-control pattern) and
+rejected it: a disabled element drops out of the tab order, so the
+switcher's keyboard-reachable surface would silently shrink by one stop
+depending on which language happens to be active - not worth it to save
+one redundant POST. The active language is marked with `aria-current`,
+not color alone, following the same "state is never color alone" rule
+`status_pill()`/`chip_coverage()` already carry.
+
+**Color roles mirror `theme_toggle()`'s own light/fixed-ink split
+exactly** - `fixed_ink=false` (desktop top bar): inactive `text-t2`,
+active `text-brand bg-tint`, `focus:outline-brand`; `fixed_ink=true`
+(mobile topbar, landing header): inactive `text-ink-t2`, active
+`text-white bg-white/10`, `focus:outline-bright`. No new tokens - every
+class here already exists and is already the exact pairing
+`theme_toggle()` uses on the same two surfaces.
+
+**One real bug caught by an existing, unrelated regression test, not by
+inspection:** the group's first `aria-label="Language"` (capital L)
+collided with `test_landing_screen.py::test_value_blocks_state_fixed_
+weights_and_real_category_order`'s own `body.index("Language")` position
+check (part of the value-blocks section's weighting-order assertion,
+`Skills`/`Language`/`Education`/`Location`/`Start` - unrelated to this
+pass). The switcher's label rendered earlier in the page than the real
+"Language 25" weighting text the test was actually looking for, breaking
+the ordering assertion. Fixed by renaming the group label to `"Choose
+language"` (lowercase `l`) rather than adjusting the older, correct test.
+
+Full detail on the locale-resolution logic behind this component
+(priority order, cookie/account persistence, the `flask_babel.refresh()`
+fix): `DECISIONS.md`'s 2026-08-28 "i18n pass 1" entry, `app/i18n.py`.
 
 ## Foundation tokens — 2026-08-25 pass
 

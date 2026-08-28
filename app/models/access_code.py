@@ -1,6 +1,8 @@
 import secrets
 import string
 
+from flask_babel import gettext as _
+
 from app.extensions import db
 from app.models.user import utcnow
 
@@ -51,11 +53,11 @@ class InvitationCode(db.Model):
 
     def is_valid(self):
         if not self.is_active:
-            return False, "This access code has been deactivated."
+            return False, _("This access code has been deactivated.")
         if self.expires_at and self.expires_at < utcnow():
-            return False, "This access code has expired."
+            return False, _("This access code has expired.")
         if self.use_count >= self.max_uses:
-            return False, "This access code has already been used the maximum number of times."
+            return False, _("This access code has already been used the maximum number of times.")
         return True, None
 
     def __repr__(self):

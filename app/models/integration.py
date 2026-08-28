@@ -1,4 +1,6 @@
 from app.extensions import db
+from flask_babel import lazy_gettext as _l
+
 from app.models.user import utcnow
 
 REPLY_INTENTS = (
@@ -9,6 +11,23 @@ REPLY_INTENTS = (
     "acknowledgement",
     "unclear",
 )
+
+# i18n pass 2, 2026-08-28: UI display label per intent code -
+# applications/detail.html's reply-classification chip reads this instead
+# of classified_intent.replace('_', ' ')|title, which has no German
+# equivalent (same class of fix as APPLICATION_STATUS_LABELS/
+# DOCUMENT_TYPE_LABELS). This is a display concern only - the classifier
+# itself (app/ai/prompts/email_classification.py) still classifies into
+# these exact English codes; that prompt is untouched, out of scope for
+# this pass (see DECISIONS.md).
+REPLY_INTENT_LABELS = {
+    "interview_invitation": _l("Interview invitation"),
+    "rejection": _l("Rejection"),
+    "document_request": _l("Document request"),
+    "offer": _l("Offer"),
+    "acknowledgement": _l("Acknowledgement"),
+    "unclear": _l("Unclear"),
+}
 
 
 class GmailConnection(db.Model):

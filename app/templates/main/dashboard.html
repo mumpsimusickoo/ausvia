@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_components.html" import btn, arrow_link, status_pill, empty_state, intelligence_surface, progress_bar %}
-{% block title %}Dashboard — AUSVIA{% endblock %}
+{% block title %}{{ _("Dashboard") }} — AUSVIA{% endblock %}
 {% block content %}
 {#
   Screens pass 3, 2026-08-27 - Dashboard. Bundle structure (lines 858-957
@@ -10,13 +10,20 @@
   construction rather than intelligence_surface(). Brand-new/empty-account
   copy is written deliberately, not left as a generic fallback - see the
   is_brand_new branches below.
+
+  i18n pass 2, 2026-08-28: the hero heading's reason clause is no longer
+  lowercased (dropped the |lower filter) - German capitalizes nouns
+  regardless of sentence position, and several real reason strings
+  ("Vorstellungsgespräch in...", "Bewerbungsfrist in...") start with one;
+  forcing it lowercase would have produced visibly wrong German the
+  moment this rendered in that locale. See DECISIONS.md.
 #}
 <div class="flex items-end justify-between gap-6 flex-wrap border-b border-line pb-6">
   <div class="flex-1 min-w-[280px]">
     <h1 class="font-display font-semibold text-[30px] tracking-tight text-t1">{{ greeting }}{% if profile and profile.first_name %}, {{ profile.first_name }}{% endif %}.</h1>
     <p class="mt-2 text-[15.5px] text-t2">{{ situation_summary }}</p>
   </div>
-  <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 whitespace-nowrap">{{ today_label }}</span>
+  <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 whitespace-nowrap uppercase">{{ today_label }}</span>
 </div>
 
 <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
@@ -26,106 +33,110 @@
     {% if hero_item %}
     <div class="rounded-r-xl border border-line border-l-[3px] border-l-brand bg-card shadow-sm p-6">
       <div class="flex items-center gap-3 flex-wrap">
-        <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">NEXT UP</span>
-        {% if hero_staleness %}<span class="font-mono text-[10.5px] text-t3">{{ hero_staleness|upper }}</span>{% endif %}
+        <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">{{ _("NEXT UP") }}</span>
+        {% if hero_staleness %}<span class="font-mono text-[10.5px] text-t3 uppercase">{{ hero_staleness }}</span>{% endif %}
       </div>
       <h2 class="font-display font-semibold text-xl leading-snug mt-3 max-w-[56ch] text-t1">
         {% if hero_item.kind == "application" %}
-          {{ hero_item.title }} at {{ hero_item.company_name or "this company" }} — {{ hero_item.reasons[0]|lower }}.
+          {{ _("%(title)s at %(company)s — %(reason)s.", title=hero_item.title, company=hero_item.company_name or _("this company"), reason=hero_item.reasons[0]) }}
         {% else %}
-          {{ hero_item.title }} at {{ hero_item.company_name or "this company" }} looks like a strong match — no application started yet.
+          {{ _("%(title)s at %(company)s looks like a strong match — no application started yet.", title=hero_item.title, company=hero_item.company_name or _("this company")) }}
         {% endif %}
       </h2>
       <p class="mt-2 text-[14.5px] text-t2">
         {% if hero_item.reasons|length > 1 %}
           {{ hero_item.reasons[1:]|join(". ") }}.
         {% elif hero_item.kind == "application" %}
-          Nothing else needs attention on this one right now.
+          {{ _("Nothing else needs attention on this one right now.") }}
         {% else %}
-          Saved but not started - your profile lines up well with what this posting is asking for.
+          {{ _("Saved but not started - your profile lines up well with what this posting is asking for.") }}
         {% endif %}
       </p>
       <div class="flex gap-2.5 mt-5 flex-wrap">
         {% if hero_item.kind == "application" %}
           {% if hero_application and hero_application.package_storage_path %}
-            {{ btn("Open package", variant="primary", href=url_for("applications.download_package", application_id=hero_item.url_kwargs.application_id)) }}
+            {{ btn(_("Open package"), variant="primary", href=url_for("applications.download_package", application_id=hero_item.url_kwargs.application_id)) }}
           {% else %}
-            {{ btn("View application", variant="primary", href=url_for("applications.detail", application_id=hero_item.url_kwargs.application_id)) }}
+            {{ btn(_("View application"), variant="primary", href=url_for("applications.detail", application_id=hero_item.url_kwargs.application_id)) }}
           {% endif %}
           {% if hero_application and hero_application.status == "ready" %}
           <form method="post" action="{{ url_for('applications.mark_sent', application_id=hero_item.url_kwargs.application_id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {{ btn("Mark as sent", variant="secondary", type="submit") }}
+            {{ btn(_("Mark as sent"), variant="secondary", type="submit") }}
           </form>
           {% endif %}
         {% else %}
           <form method="post" action="{{ url_for('applications.start', job_id=hero_item.url_kwargs.job_id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            {{ btn("Start application", variant="primary", type="submit") }}
+            {{ btn(_("Start application"), variant="primary", type="submit") }}
           </form>
         {% endif %}
       </div>
     </div>
     {% elif is_brand_new %}
-      {{ empty_state("Nothing to show yet", "Save a posting or start an application and AUSVIA will surface what needs your attention here first.", "Search Ausbildung postings", url_for("jobs.search")) }}
+      {{ empty_state(_("Nothing to show yet"), _("Save a posting or start an application and AUSVIA will surface what needs your attention here first."), _("Search Ausbildung postings"), url_for("jobs.search")) }}
     {% else %}
     <div class="rounded-r-xl border border-line border-l-[3px] border-l-brand bg-card shadow-sm p-6">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">NEXT UP</span>
-      <h2 class="font-display font-semibold text-xl leading-snug mt-3 text-t1">Nothing needs your attention right now.</h2>
-      <p class="mt-2 text-[14.5px] text-t2">No deadlines, interviews, or follow-ups are due, and nothing is stalled - good time to keep applying.</p>
-      <div class="mt-4">{{ arrow_link("Search Ausbildung postings", url_for("jobs.search")) }}</div>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">{{ _("NEXT UP") }}</span>
+      <h2 class="font-display font-semibold text-xl leading-snug mt-3 text-t1">{{ _("Nothing needs your attention right now.") }}</h2>
+      <p class="mt-2 text-[14.5px] text-t2">{{ _("No deadlines, interviews, or follow-ups are due, and nothing is stalled - good time to keep applying.") }}</p>
+      <div class="mt-4">{{ arrow_link(_("Search Ausbildung postings"), url_for("jobs.search")) }}</div>
     </div>
     {% endif %}
 
     {# ---------- Priority digest ---------- #}
     <div class="flex items-baseline gap-3 mt-9 mb-1">
-      <h3 class="font-display font-semibold text-[19px] text-t1">Priority digest</h3>
+      <h3 class="font-display font-semibold text-[19px] text-t1">{{ _("Priority digest") }}</h3>
       {% if digest_items %}
-      <span class="text-[13px] text-t3">{{ digest_items|length }} item{{ "s" if digest_items|length != 1 else "" }} with a real reason</span>
+      <span class="text-[13px] text-t3">{{ ngettext("%(num)s item with a real reason", "%(num)s items with a real reason", digest_items|length) }}</span>
       {% endif %}
     </div>
     {% if digest_items %}
     <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden divide-y divide-line">
       {% for item in digest_items %}
       {% set reason = item.reasons[0] %}
-      {% if "deadline" in reason.lower() or "Interview in" in reason %}
+      {# i18n pass 2: branch on the stable reason_codes[0], never on the
+         translated reasons[0] text - see priority_digest.py's DigestItem
+         docstring for why this changed. #}
+      {% set code = item.reason_codes[0] %}
+      {% if code in ("interview_soon", "deadline_soon") %}
         {% set dot = "bg-warn" %}
-      {% elif "Approved but not yet sent" in reason %}
+      {% elif code == "approved_not_sent" %}
         {% set dot = "bg-brand" %}
       {% else %}
         {% set dot = "bg-t3" %}
       {% endif %}
       {% if item.kind == "application" %}
         {% set item_href = url_for("applications.detail", application_id=item.url_kwargs.application_id) %}
-        {% set action_label = "View application" %}
+        {% set action_label = _("View application") %}
       {% else %}
         {% set item_href = url_for("jobs.detail", job_id=item.url_kwargs.job_id) %}
-        {% set action_label = "View job" %}
+        {% set action_label = _("View job") %}
       {% endif %}
       <div class="flex items-center gap-4 px-5 py-[18px] hover:bg-raised transition-colors">
         <span class="w-2 h-2 rounded-full {{ dot }} shrink-0" aria-hidden="true"></span>
         <div class="flex-1 min-w-0">
           <div class="font-display font-semibold text-[15px] text-t1 truncate">{{ item.title }}</div>
-          <div class="text-[13px] text-t2 mt-0.5 truncate">{{ item.company_name or "Unknown company" }} &middot; {{ reason }}</div>
+          <div class="text-[13px] text-t2 mt-0.5 truncate">{{ item.company_name or _("Unknown company") }} &middot; {{ reason }}</div>
         </div>
         <span class="shrink-0">{{ arrow_link(action_label, item_href, size="text-[13.5px]") }}</span>
       </div>
       {% endfor %}
     </div>
     {% elif is_brand_new %}
-      {{ empty_state("Nothing to prioritize yet", "Once you save a posting or start an application, real deadlines, interviews, and follow-ups will show up here.", "Search Ausbildung postings", url_for("jobs.search")) }}
+      {{ empty_state(_("Nothing to prioritize yet"), _("Once you save a posting or start an application, real deadlines, interviews, and follow-ups will show up here."), _("Search Ausbildung postings"), url_for("jobs.search")) }}
     {% else %}
-      {{ empty_state("All caught up", "Nothing here is overdue, upcoming, or stalled right now. Check back after your next update.") }}
+      {{ empty_state(_("All caught up"), _("Nothing here is overdue, upcoming, or stalled right now. Check back after your next update.")) }}
     {% endif %}
 
     {# ---------- Applications ---------- #}
     <div class="flex items-baseline gap-3 mt-9 mb-1">
-      <h3 class="font-display font-semibold text-[19px] text-t1">Applications</h3>
+      <h3 class="font-display font-semibold text-[19px] text-t1">{{ _("Applications") }}</h3>
       {% if applications_count > 0 %}
-      <span class="text-[13px] text-t3">{{ active_count }} active{% if terminal_count > 0 %} &middot; {{ terminal_count }} closed{% endif %}</span>
+      <span class="text-[13px] text-t3">{{ _("%(num)d active", num=active_count) }}{% if terminal_count > 0 %} &middot; {{ _("%(num)d closed", num=terminal_count) }}{% endif %}</span>
       {% endif %}
       {% if not applications_shown_all %}
-      <span class="ml-auto">{{ arrow_link("View all", url_for("applications.list_applications"), size="text-[13.5px]") }}</span>
+      <span class="ml-auto">{{ arrow_link(_("View all"), url_for("applications.list_applications"), size="text-[13.5px]") }}</span>
       {% endif %}
     </div>
     {% if applications_table %}
@@ -134,7 +145,7 @@
       <a href="{{ url_for('applications.detail', application_id=row.application.id) }}" class="flex items-center gap-4 px-5 py-[15px] hover:bg-raised transition-colors">
         <div class="flex-1 min-w-0">
           <div class="text-[14.5px] font-medium text-t1 truncate">{{ row.application.job.title }}</div>
-          <div class="text-[12.5px] text-t3 truncate">{{ row.application.job.company_name or "Unknown company" }}</div>
+          <div class="text-[12.5px] text-t3 truncate">{{ row.application.job.company_name or _("Unknown company") }}</div>
         </div>
         <span class="font-mono text-[11.5px] text-t2 shrink-0">{{ row.date_label }}</span>
         <span class="shrink-0">{{ status_pill(row.application.status) }}</span>
@@ -142,9 +153,9 @@
       {% endfor %}
     </div>
     {% elif is_brand_new %}
-      {{ empty_state("No applications yet", "Start an application from a job posting and it will show up here with its live status.", "Search Ausbildung postings", url_for("jobs.search")) }}
+      {{ empty_state(_("No applications yet"), _("Start an application from a job posting and it will show up here with its live status."), _("Search Ausbildung postings"), url_for("jobs.search")) }}
     {% else %}
-      {{ empty_state("No applications yet", "You have " ~ saved_job_count ~ " saved job" ~ ("s" if saved_job_count != 1 else "") ~ " - start an application from one to track it here.", "View saved jobs", url_for("jobs.saved")) }}
+      {{ empty_state(_("No applications yet"), ngettext("You have %(num)d saved job - start an application from one to track it here.", "You have %(num)d saved jobs - start an application from one to track it here.", saved_job_count), _("View saved jobs"), url_for("jobs.saved")) }}
     {% endif %}
 
   </div>
@@ -155,29 +166,29 @@
     {# ---------- Profile completeness ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
       <div class="flex items-baseline gap-2.5">
-        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">PROFILE COMPLETENESS</span>
+        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">{{ _("PROFILE COMPLETENESS") }}</span>
         <span class="font-display font-semibold text-[17px] tabular-nums text-t1">{{ completeness }}%</span>
       </div>
       <div class="mt-3">{{ progress_bar(completeness) }}</div>
       {% if completeness_missing %}
-      <p class="mt-3 text-[13.5px] text-t2">Missing: {{ completeness_missing|join(", ") }}.</p>
+      <p class="mt-3 text-[13.5px] text-t2">{{ _("Missing: %(items)s.", items=completeness_missing|join(", ")) }}</p>
       {% else %}
-      <p class="mt-3 text-[13.5px] text-t2">Your profile is complete.</p>
+      <p class="mt-3 text-[13.5px] text-t2">{{ _("Your profile is complete.") }}</p>
       {% endif %}
       {% if completeness < 100 %}
-      <div class="mt-2.5">{{ arrow_link("Complete your profile", url_for("profile.view"), size="text-[13.5px]") }}</div>
+      <div class="mt-2.5">{{ arrow_link(_("Complete your profile"), url_for("profile.view"), size="text-[13.5px]") }}</div>
       {% endif %}
     </div>
 
     {# ---------- Stats ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">SEARCH &amp; APPLICATIONS</span>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("SEARCH & APPLICATIONS") }}</span>
       {% for label, value, warn in [
-        ("In preparation", applications_count - applications_sent, false),
-        ("Sent", applications_sent, false),
-        ("Interviews", interviews, false),
-        ("Follow-ups due", follow_ups_due, follow_ups_due > 0),
-        ("Saved jobs", saved_job_count, false),
+        (_("In preparation"), applications_count - applications_sent, false),
+        (_("Sent"), applications_sent, false),
+        (_("Interviews"), interviews, false),
+        (_("Follow-ups due"), follow_ups_due, follow_ups_due > 0),
+        (_("Saved jobs"), saved_job_count, false),
       ] %}
       <div class="flex items-baseline gap-3 py-[11px] {% if not loop.last %}border-b border-line{% endif %}">
         <span class="text-sm {{ 'text-warn' if warn else 'text-t2' }} flex-1">{{ label }}</span>
@@ -188,22 +199,22 @@
 
     {# ---------- Cross-application insight ---------- #}
     {% if applications_count < min_applications_for_insight %}
-      {{ empty_state("Cross-application insight", "Add a second application and AUSVIA will look for a real pattern across them - a shared gap, a common thread worth knowing about.") }}
+      {{ empty_state(_("Cross-application insight"), _("Add a second application and AUSVIA will look for a real pattern across them - a shared gap, a common thread worth knowing about.")) }}
     {% elif dashboard_insight %}
       {{ intelligence_surface(
         text=dashboard_insight.summary_text,
         provider=dashboard_insight.provider,
         reliability=dashboard_insight.reliability,
-        provenance="Based on your applications and profile.",
+        provenance=_("Based on your applications and profile."),
         regenerate_href=url_for("main.generate_insight"),
       ) }}
     {% else %}
     <div class="text-center rounded-xl border border-dashed border-line2 p-[26px]">
-      <div class="font-display font-semibold text-[15.5px] text-t1">Cross-application insight</div>
-      <p class="text-[13.5px] text-t2 mt-1.5 max-w-[44ch] mx-auto">See whether your applications share a pattern - a common industry, a shared gap, something worth double-checking.</p>
+      <div class="font-display font-semibold text-[15.5px] text-t1">{{ _("Cross-application insight") }}</div>
+      <p class="text-[13.5px] text-t2 mt-1.5 max-w-[44ch] mx-auto">{{ _("See whether your applications share a pattern - a common industry, a shared gap, something worth double-checking.") }}</p>
       <form method="post" action="{{ url_for('main.generate_insight') }}" class="mt-3.5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {{ btn("Generate insight", variant="secondary", compact=true, type="submit") }}
+        {{ btn(_("Generate insight"), variant="secondary", compact=true, type="submit") }}
       </form>
     </div>
     {% endif %}
@@ -211,21 +222,21 @@
     {# ---------- Job radar ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
       <div class="flex items-center gap-2.5">
-        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">JOB RADAR</span>
-        {% if radar_status %}<span class="font-mono text-[10px] text-t3">CHECKED {{ radar_status.checked_at.strftime('%d.%m, %H:%M')|upper }}</span>{% endif %}
+        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">{{ _("JOB RADAR") }}</span>
+        {% if radar_status %}<span class="font-mono text-[10px] text-t3 uppercase">{{ _("Checked %(when)s", when=format_local_datetime(radar_status.checked_at, format="short")) }}</span>{% endif %}
       </div>
       {% if radar_status %}
-      <div class="font-display font-semibold text-[15px] mt-2.5 text-t1">{{ radar_new_count }} new listing{{ "s" if radar_new_count != 1 else "" }} for your profile</div>
-      <p class="mt-1 text-[12.5px] text-t3">Checked on demand, not automatically.</p>
+      <div class="font-display font-semibold text-[15px] mt-2.5 text-t1">{{ ngettext("%(num)s new listing for your profile", "%(num)s new listings for your profile", radar_new_count) }}</div>
+      <p class="mt-1 text-[12.5px] text-t3">{{ _("Checked on demand, not automatically.") }}</p>
       {% else %}
-      <p class="mt-2.5 text-[13.5px] text-t2">Search your enabled job sources right now for new postings matching your Ausbildung preferences - on demand, not automatically. You haven't run a check yet.</p>
+      <p class="mt-2.5 text-[13.5px] text-t2">{{ _("Search your enabled job sources right now for new postings matching your Ausbildung preferences - on demand, not automatically. You haven't run a check yet.") }}</p>
       {% endif %}
       <div class="flex items-center gap-4 mt-3 flex-wrap">
         <form method="post" action="{{ url_for('jobs.check_now') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          {{ btn("Check now", variant="primary", compact=true, type="submit") }}
+          {{ btn(_("Check now"), variant="primary", compact=true, type="submit") }}
         </form>
-        {{ arrow_link("Open Find Ausbildung", url_for("jobs.search"), size="text-[13.5px]") }}
+        {{ arrow_link(_("Open Find Ausbildung"), url_for("jobs.search"), size="text-[13.5px]") }}
       </div>
     </div>
 

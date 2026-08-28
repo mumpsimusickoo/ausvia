@@ -1,3 +1,5 @@
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.models.user import utcnow
 
@@ -13,6 +15,31 @@ APPLICATION_STATUSES = (
     "withdrawn",
     "expired",
 )
+
+# i18n pass 2, 2026-08-28: single source of truth for the translated
+# display label of each status code - status_pill() (_components.html)
+# and StatusForm's dropdown (app/applications/forms.py) both read this
+# instead of each mechanically deriving one from the code
+# (status.replace('_', ' ')|title has no German equivalent - there's no
+# rule that turns "follow_up" into a correct German word that way).
+# lazy_gettext works at both call sites: StatusForm builds its choices at
+# class-body/import time (needs deferred evaluation), status_pill() reads
+# it per-request (a LazyString coerces to the right translated str either
+# way). The status CODE itself is never translated - every status
+# comparison in the app (`application.status == "ready"`, etc.) matches
+# on this raw string, unaffected by locale.
+APPLICATION_STATUS_LABELS = {
+    "preparing": _l("In preparation"),
+    "ready": _l("Ready"),
+    "sent": _l("Sent"),
+    "follow_up": _l("Follow-up"),
+    "interview": _l("Interview"),
+    "offer": _l("Offer"),
+    "accepted": _l("Accepted"),
+    "rejected": _l("Rejected"),
+    "withdrawn": _l("Withdrawn"),
+    "expired": _l("Expired"),
+}
 
 class Application(db.Model):
     __tablename__ = "applications"

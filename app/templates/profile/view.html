@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import render_field, render_checkbox %}
 {% from "_components.html" import btn, chip_attribute, empty_state, intelligence_surface, progress_bar %}
-{% block title %}Candidate Profile — AUSVIA{% endblock %}
+{% block title %}{{ _("Candidate Profile") }} — AUSVIA{% endblock %}
 {% block content %}
 {#
   Screens pass 5, 2026-08-28 - Candidate Profile. Bundle structure, English
@@ -13,10 +13,10 @@
 #}
 <div class="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
   <div class="flex-1 min-w-[300px]">
-    <h1 class="text-2xl font-bold text-t1">Candidate profile</h1>
-    <p class="mt-2 text-[15px] text-t2 max-w-[76ch]">This is the only source AUSVIA generates anything from - match scores, cover letters, emails, every AI feature on this site. If it isn't written here, AUSVIA doesn't know it, and nothing is ever invented to fill the gap.</p>
+    <h1 class="text-2xl font-bold text-t1">{{ _("Candidate profile") }}</h1>
+    <p class="mt-2 text-[15px] text-t2 max-w-[76ch]">{{ _("This is the only source AUSVIA generates anything from - match scores, cover letters, emails, every AI feature on this site. If it isn't written here, AUSVIA doesn't know it, and nothing is ever invented to fill the gap.") }}</p>
   </div>
-  <a href="{{ url_for('profile.download_cv') }}" class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t1 hover:border-t3 whitespace-nowrap">Export as CV</a>
+  <a href="{{ url_for('profile.download_cv') }}" class="rounded-lg border border-line2 bg-card px-4 py-2 text-sm font-semibold text-t1 hover:border-t3 whitespace-nowrap">{{ _("Export as CV") }}</a>
 </div>
 
 <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
@@ -26,12 +26,12 @@
     <div class="rounded-xl border border-line bg-card shadow-sm p-5 flex items-center gap-4">
       <span class="w-14 h-14 rounded-2xl bg-tint text-brand font-display font-semibold text-lg flex items-center justify-center shrink-0">{{ avatar_initials }}</span>
       <div class="flex-1 min-w-0">
-        <div class="font-display font-semibold text-xl text-t1 truncate">{{ profile.full_name or "Name not set" }}</div>
-        <p class="text-sm text-t2 mt-1 truncate">{{ profile_meta_line or "Add your personal details below" }}</p>
+        <div class="font-display font-semibold text-xl text-t1 truncate">{{ profile.full_name or _("Name not set") }}</div>
+        <p class="text-sm text-t2 mt-1 truncate">{{ profile_meta_line or _("Add your personal details below") }}</p>
       </div>
     </div>
     <details class="mt-3">
-      <summary class="cursor-pointer text-sm font-medium text-brand select-none">Edit personal information</summary>
+      <summary class="cursor-pointer text-sm font-medium text-brand select-none">{{ _("Edit personal information") }}</summary>
       <form method="post" action="{{ url_for('profile.update_personal') }}" class="mt-3 rounded-xl border border-line bg-card shadow-sm p-6">
         {{ personal_form.hidden_tag() }}
         <div class="grid gap-4 sm:grid-cols-2">
@@ -46,12 +46,12 @@
           {{ render_field(personal_form.phone) }}
           {{ render_field(personal_form.contact_email) }}
         </div>
-        {{ btn("Save", variant="primary", type="submit") }}
+        {{ btn(_("Save"), variant="primary", type="submit") }}
       </form>
     </details>
 
     {# ---------- Education ---------- #}
-    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">Education</h2>
+    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">{{ _("Education") }}</h2>
     {% if profile.education_entries %}
     <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden divide-y divide-line">
       {% for edu in profile.education_entries %}
@@ -60,19 +60,19 @@
           <div class="font-display font-semibold text-[15px] text-t1">{{ edu.degree or "—" }}{% if edu.field %} &middot; {{ edu.field }}{% endif %}</div>
           <div class="text-[13px] text-t2 mt-0.5">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</div>
         </div>
-        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ edu.start_date.strftime('%Y') if edu.start_date else "?" }}–{{ edu.end_date.strftime('%Y') if edu.end_date else "present" }}</span>
+        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(edu.start_date, format="y") if edu.start_date else "?" }}–{{ format_local_date(edu.end_date, format="y") if edu.end_date else _("present") }}</span>
         <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}" class="shrink-0">
           {{ education_form.csrf_token }}
-          <button type="submit" class="text-xs font-medium text-err hover:underline">Remove</button>
+          <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
         </form>
       </div>
       {% endfor %}
     </div>
     {% else %}
-      {{ empty_state("No education entries yet", "Add your school, vocational training, or language course history - it feeds your match score and cover letters.") }}
+      {{ empty_state(_("No education entries yet"), _("Add your school, vocational training, or language course history - it feeds your match score and cover letters.")) }}
     {% endif %}
     <details class="mt-3">
-      <summary class="cursor-pointer text-sm font-medium text-brand select-none">Add education entry</summary>
+      <summary class="cursor-pointer text-sm font-medium text-brand select-none">{{ _("Add education entry") }}</summary>
       <form method="post" action="{{ url_for('profile.add_education') }}" class="mt-3 rounded-xl border border-line bg-card shadow-sm p-6">
         {{ education_form.hidden_tag() }}
         <div class="grid gap-4 sm:grid-cols-2">
@@ -84,12 +84,12 @@
           {{ render_field(education_form.end_date) }}
         </div>
         {{ render_field(education_form.description) }}
-        {{ btn("Add", variant="primary", type="submit") }}
+        {{ btn(_("Add"), variant="primary", type="submit") }}
       </form>
     </details>
 
     {# ---------- Experience ---------- #}
-    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">Experience</h2>
+    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">{{ _("Experience") }}</h2>
     {% if profile.experience_entries %}
     <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden divide-y divide-line">
       {% for exp in profile.experience_entries %}
@@ -98,19 +98,19 @@
           <div class="font-display font-semibold text-[15px] text-t1">{{ exp.role or "—" }}</div>
           <div class="text-[13px] text-t2 mt-0.5">{{ exp.company }}</div>
         </div>
-        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ exp.start_date.strftime('%m/%Y') if exp.start_date else "?" }}–{{ exp.end_date.strftime('%m/%Y') if exp.end_date else "present" }}</span>
+        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(exp.start_date, format="MM/y") if exp.start_date else "?" }}–{{ format_local_date(exp.end_date, format="MM/y") if exp.end_date else _("present") }}</span>
         <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}" class="shrink-0">
           {{ experience_form.csrf_token }}
-          <button type="submit" class="text-xs font-medium text-err hover:underline">Remove</button>
+          <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
         </form>
       </div>
       {% endfor %}
     </div>
     {% else %}
-      {{ empty_state("No experience entries yet", "Add internships, part-time work, or apprenticeships - concrete tasks and responsibilities strengthen your cover letters far more than a bare job title.") }}
+      {{ empty_state(_("No experience entries yet"), _("Add internships, part-time work, or apprenticeships - concrete tasks and responsibilities strengthen your cover letters far more than a bare job title.")) }}
     {% endif %}
     <details class="mt-3">
-      <summary class="cursor-pointer text-sm font-medium text-brand select-none">Add experience entry</summary>
+      <summary class="cursor-pointer text-sm font-medium text-brand select-none">{{ _("Add experience entry") }}</summary>
       <form method="post" action="{{ url_for('profile.add_experience') }}" class="mt-3 rounded-xl border border-line bg-card shadow-sm p-6">
         {{ experience_form.hidden_tag() }}
         <div class="grid gap-4 sm:grid-cols-2">
@@ -121,25 +121,25 @@
         </div>
         {{ render_field(experience_form.responsibilities) }}
         {{ render_field(experience_form.achievements) }}
-        {{ btn("Add", variant="primary", type="submit") }}
+        {{ btn(_("Add"), variant="primary", type="submit") }}
       </form>
     </details>
 
     {# ---------- Skills & Languages ---------- #}
-    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">Skills &amp; languages</h2>
+    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">{{ _("Skills & languages") }}</h2>
     <div class="rounded-xl border border-line bg-card shadow-sm p-6">
       <div class="flex flex-wrap gap-2">
         {% for skill in profile.skills %}
           {{ chip_attribute(skill.name ~ (" · " ~ skill.proficiency if skill.proficiency else ""), removable=true, remove_action=url_for('profile.delete_skill', entry_id=skill.id)) }}
         {% else %}
-        <p class="text-sm text-t2">No skills added yet.</p>
+        <p class="text-sm text-t2">{{ _("No skills added yet.") }}</p>
         {% endfor %}
       </div>
       <form method="post" action="{{ url_for('profile.add_skill') }}" class="flex flex-wrap items-end gap-3 mt-4 pt-4 border-t border-line">
         {{ skill_form.hidden_tag() }}
         <div>{{ render_field(skill_form.name) }}</div>
         <div>{{ render_field(skill_form.proficiency) }}</div>
-        {{ btn("Add", variant="secondary", compact=true, type="submit") }}
+        {{ btn(_("Add"), variant="secondary", compact=true, type="submit") }}
       </form>
 
       {% if profile.languages %}
@@ -151,28 +151,31 @@
             <span class="font-display font-semibold text-[15px] {{ 'text-brand' if lang.level and lang.level != 'Native' else 'text-t2' }}">{{ lang.level or "—" }}</span>
             <form method="post" action="{{ url_for('profile.delete_language', entry_id=lang.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="text-t2 hover:text-err text-xs" aria-label="Remove language">&times;</button>
+              <button type="submit" class="text-t2 hover:text-err text-xs" aria-label="{{ _('Remove language') }}">&times;</button>
             </form>
           </div>
-          {% set note = language_notes.get(lang.id) %}
-          {% if note %}<div class="text-[12.5px] mt-0.5 {{ 'text-warn' if 'no certificate' in note.lower() else 'text-t3' }}">{{ note }}</div>{% endif %}
+          {# i18n pass 2: is_warning is a stable boolean (app/profile/routes.py's
+             _language_proof_note()), not a substring check against the
+             translated note text - see that function's docstring. #}
+          {% set note_text, note_is_warning = language_notes.get(lang.id, (None, False)) %}
+          {% if note_text %}<div class="text-[12.5px] mt-0.5 {{ 'text-warn' if note_is_warning else 'text-t3' }}">{{ note_text }}</div>{% endif %}
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <p class="text-sm text-t2 mt-5 pt-5 border-t border-line">No languages added yet.</p>
+      <p class="text-sm text-t2 mt-5 pt-5 border-t border-line">{{ _("No languages added yet.") }}</p>
       {% endif %}
       <form method="post" action="{{ url_for('profile.add_language') }}" class="flex flex-wrap items-end gap-3 mt-4">
         {{ language_form.hidden_tag() }}
         <div>{{ render_field(language_form.name) }}</div>
         <div>{{ render_field(language_form.level) }}</div>
-        {{ btn("Add", variant="secondary", compact=true, type="submit") }}
+        {{ btn(_("Add"), variant="secondary", compact=true, type="submit") }}
       </form>
     </div>
 
     {# ---------- Common questions (existing feature, not part of the bundle's Profile screen - kept, minimally touched) ---------- #}
-    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-1">Common questions</h2>
-    <p class="text-[13px] text-t2 mb-3">Grounded answers to common Ausbildung process questions - pick one, no free-text chat.</p>
+    <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-1">{{ _("Common questions") }}</h2>
+    <p class="text-[13px] text-t2 mb-3">{{ _("Grounded answers to common Ausbildung process questions - pick one, no free-text chat.") }}</p>
     <div class="space-y-3">
       {% for key, question in qa_questions.items() %}
       {% set answer = qa_answers.get(key) %}
@@ -180,15 +183,15 @@
         <p class="text-sm font-medium text-t1 mb-1">{{ question }}</p>
         {% if answer and answer.answer_text %}
         <p class="text-sm text-t2 whitespace-pre-line">{{ answer.answer_text }}</p>
-        {% if answer.provider %}<p class="mt-1 text-xs text-t3">Generated by {{ answer.provider }}.</p>{% endif %}
+        {% if answer.provider %}<p class="mt-1 text-xs text-t3">{{ _("Generated by %(provider)s.", provider=answer.provider) }}</p>{% endif %}
         <form method="post" action="{{ url_for('profile.generate_qa_answer', question_key=key) }}" class="mt-2">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-xs font-medium text-brand hover:underline">Regenerate</button>
+          <button class="text-xs font-medium text-brand hover:underline">{{ _("Regenerate") }}</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('profile.generate_qa_answer', question_key=key) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="text-sm font-medium text-brand hover:underline">Show answer</button>
+          <button class="text-sm font-medium text-brand hover:underline">{{ _("Show answer") }}</button>
         </form>
         {% endif %}
       </div>
@@ -203,7 +206,7 @@
     {# ---------- Completeness checklist ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
       <div class="flex items-baseline gap-2.5">
-        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">PROFILE COMPLETENESS</span>
+        <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3 flex-1">{{ _("PROFILE COMPLETENESS") }}</span>
         <span class="font-display font-semibold text-[17px] tabular-nums text-t1">{{ completeness }}%</span>
       </div>
       <div class="mt-3">{{ progress_bar(completeness) }}</div>
@@ -223,23 +226,23 @@
         text=coaching.summary_text,
         provider=coaching.provider,
         reliability=coaching.reliability,
-        provenance="Based only on what's in your profile - never invents achievements.",
+        provenance=_("Based only on what's in your profile - never invents achievements."),
         regenerate_href=url_for("profile.generate_coaching"),
       ) }}
     {% else %}
     <div class="text-center rounded-xl border border-dashed border-line2 p-[26px]">
-      <div class="font-display font-semibold text-[15.5px] text-t1">Profile coaching</div>
-      <p class="text-[13.5px] text-t2 mt-1.5 max-w-[44ch] mx-auto">An AI review of your whole profile - never invents achievements, only suggests presenting what's real more effectively.</p>
+      <div class="font-display font-semibold text-[15.5px] text-t1">{{ _("Profile coaching") }}</div>
+      <p class="text-[13.5px] text-t2 mt-1.5 max-w-[44ch] mx-auto">{{ _("An AI review of your whole profile - never invents achievements, only suggests presenting what's real more effectively.") }}</p>
       <form method="post" action="{{ url_for('profile.generate_coaching') }}" class="mt-3.5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {{ btn("Get AI feedback", variant="secondary", compact=true, type="submit") }}
+        {{ btn(_("Get AI feedback"), variant="secondary", compact=true, type="submit") }}
       </form>
     </div>
     {% endif %}
 
     {# ---------- Ausbildung preferences ---------- #}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">AUSBILDUNG PREFERENCES</span>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("AUSBILDUNG PREFERENCES") }}</span>
       {% for label, value in preference_lines %}
       <div class="flex items-baseline gap-3 py-2 {% if not loop.last %}border-b border-line{% endif %} {% if loop.first %}mt-2{% endif %}">
         <span class="text-[13.5px] text-t2 flex-1">{{ label }}</span>
@@ -247,7 +250,7 @@
       </div>
       {% endfor %}
       <details class="mt-3">
-        <summary class="cursor-pointer text-sm font-medium text-brand select-none">Edit preferences</summary>
+        <summary class="cursor-pointer text-sm font-medium text-brand select-none">{{ _("Edit preferences") }}</summary>
         <form method="post" action="{{ url_for('profile.update_preferences') }}" class="mt-4">
           {{ preference_form.hidden_tag() }}
           {{ render_field(preference_form.fields) }}
@@ -257,7 +260,7 @@
           {{ render_field(preference_form.max_distance_km) }}
           {{ render_checkbox(preference_form.open_to_relocation) }}
           {{ render_field(preference_form.other_notes) }}
-          {{ btn("Save preferences", variant="primary", type="submit") }}
+          {{ btn(_("Save preferences"), variant="primary", type="submit") }}
         </form>
       </details>
     </div>

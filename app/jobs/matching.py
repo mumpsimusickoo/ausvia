@@ -3,6 +3,9 @@ Orchestrates the deterministic matching engine (app/ai/matching.py) with
 caching (spec section 37: don't recompute stable analyses unnecessarily) and
 optional AI narrative generation on top.
 """
+from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.ai.matching import compute_match
 from app.ai.provider_factory import get_provider
@@ -109,21 +112,31 @@ def get_or_compute_matches(user, jobs):
 # from the raw score - the score->recommendation mapping already happened
 # once in compute_match(), this just names it for display.
 MATCH_LABELS = {
-    "strong_candidate": "Strong match",
-    "possible_candidate": "Good match",
-    "significant_gaps": "Some gaps",
-    "weak_match": "Weak match",
-    "insufficient_data": "Not scored",
+    "strong_candidate": _l("Strong match"),
+    "possible_candidate": _l("Good match"),
+    "significant_gaps": _l("Some gaps"),
+    "weak_match": _l("Weak match"),
+    "insufficient_data": _l("Not scored"),
 }
 
 
 def match_label(recommendation):
-    return MATCH_LABELS.get(recommendation, "Not scored")
+    return MATCH_LABELS.get(recommendation, _l("Not scored"))
 
 
+# i18n pass 2: capitalized, not the lowercase "skills"/"language"/...
+# these used to be - summarize_match_line() below used to force sentence
+# case with a blanket .capitalize() call, which only works because English
+# doesn't capitalize nouns mid-sentence. German does, unconditionally
+# ("Fähigkeiten und Sprache erfüllt", not "Fähigkeiten und sprache
+# erfüllt") - capitalizing each name at the source and dropping the
+# .capitalize() call is correct in both languages, not just a German
+# workaround (also now consistent with match_band()'s own weighting
+# disclosure line, which already renders these same five names
+# capitalized - "Skills 30 · Language 25 · ...").
 _CATEGORY_DISPLAY_NAMES = {
-    "skills": "skills", "language": "language", "education": "education",
-    "location": "location", "start_date": "start date",
+    "skills": _l("Skills"), "language": _l("Language"), "education": _l("Education"),
+    "location": _l("Location"), "start_date": _l("Start date"),
 }
 
 
@@ -150,11 +163,26 @@ def summarize_match_line(job_match):
     fully_met = [cat for cat, score in category_scores.items() if score == 100]
     parts = []
     if fully_met and len(fully_met) == len(category_scores):
-        parts.append("All requirements met")
+        parts.append(_("All requirements met"))
     elif fully_met:
-        names = [_CATEGORY_DISPLAY_NAMES.get(c, c) for c in fully_met]
-        parts.append(f"{' and '.join(names).capitalize()} met")
+        names = [str(_CATEGORY_DISPLAY_NAMES.get(c, c)) for c in fully_met]
+        if len(names) == 1:
+            joined = names[0]
+        else:
+            # Both English and German join a name list the same way -
+            # comma-separated, "and"/"und" before the last item - so a
+            # translated joining word is safe here, unlike concatenating
+            # sentence fragments where word order actually differs.
+            joined = _("%(all_but_last)s and %(last)s", all_but_last=", ".join(names[:-1]), last=names[-1])
+        parts.append(_("%(categories)s met", categories=joined))
     if gaps:
+        # Gap notes/labels themselves are now translated at the source
+        # (app/ai/matching.py's _score_skills/_score_language/etc. wrap
+        # their own strings in _()) - this line's own job is just the
+        # "join with a comma" structure, which needs no locale-specific
+        # handling in either language. Raw skill names inside GapItem.label
+        # (from _score_skills) are job-posting data, not app prose, and
+        # stay untranslated same as everywhere else job data is shown.
         gap_notes = [g.get("note") or g.get("label") for g in gaps[:2]]
         parts.append(", ".join(n for n in gap_notes if n))
 

@@ -87,8 +87,15 @@
    Offer/Accepted label color is on-fill, not the bundle's literal
    #FFFFFF, for the same reason as the primary button above.
    ============================================================ #}
+{# i18n pass 2, 2026-08-28: the label is now a real translated lookup
+   (APPLICATION_STATUS_LABELS, app/models/application.py - the single
+   source of truth also used by StatusForm's dropdown), not a mechanical
+   status.replace('_', ' ')|title - that trick has no German equivalent.
+   `status` itself stays the untranslated, matched-everywhere code
+   (`application.status == "ready"` comparisons throughout the app) -
+   only the displayed word changes with locale. #}
 {% macro status_pill(status) %}
-{% set label = status.replace('_', ' ')|title %}
+{% set label = application_status_labels[status] %}
 {% if status == 'preparing' %}
   {% set cls = 'bg-page text-t2 border border-line' %}{% set dot = 'bg-t3' %}{% set dashed = false %}
 {% elif status == 'ready' %}
@@ -158,7 +165,7 @@
   {% set tone_cls = 'text-t2 bg-page border border-line' %}
 {% endif %}
 <span class="inline-flex items-center gap-2 text-[12.5px] {{ tone_cls }} rounded-md px-[9px] py-1">
-  {{ label }}{% if removable %}<form method="post" action="{{ remove_action }}" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="{{ 'text-brand hover:text-brand-hover' if highlight else 'text-t2 hover:text-err' }}" aria-label="Remove">&times;</button></form>{% endif %}
+  {{ label }}{% if removable %}<form method="post" action="{{ remove_action }}" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="{{ 'text-brand hover:text-brand-hover' if highlight else 'text-t2 hover:text-err' }}" aria-label="{{ _('Remove') }}">&times;</button></form>{% endif %}
 </span>
 {% endmacro %}
 
@@ -181,13 +188,13 @@
    unchanged. #}
 {% macro chip_coverage(state, label=None) %}
 {% if state == 'erfuellt' %}
-  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-ok shrink-0" aria-hidden="true"></span>{{ label or "Fulfilled" }}</span>
+  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-ok shrink-0" aria-hidden="true"></span>{{ label or _("Fulfilled") }}</span>
 {% elif state == 'teilweise' %}
-  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-warn shrink-0" aria-hidden="true"></span>{{ label or "Partial" }}</span>
+  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-warn shrink-0" aria-hidden="true"></span>{{ label or _("Partial") }}</span>
 {% elif state == 'fehlt' %}
-  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-err shrink-0" aria-hidden="true"></span>{{ label or "Missing" }}</span>
+  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm bg-err shrink-0" aria-hidden="true"></span>{{ label or _("Missing") }}</span>
 {% elif state == 'nicht_bewertet' %}
-  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm border border-dashed border-line2 shrink-0" aria-hidden="true"></span>{{ label or "Not evaluated" }}</span>
+  <span class="inline-flex items-center gap-[7px] text-[13px] text-t2"><span class="w-[9px] h-[9px] rounded-sm border border-dashed border-line2 shrink-0" aria-hidden="true"></span>{{ label or _("Not evaluated") }}</span>
 {% endif %}
 {% endmacro %}
 
@@ -221,10 +228,10 @@
    caller (breakdown) are ignored in this mode.
 #}
 {% macro match_band(category_scores, score=None, skipped_categories=None, title=None, narrative=None, compact=false) %}
-{% set cats = [('skills', 'SKILLS', 30), ('language', 'LANGUAGE', 25), ('education', 'EDUCATION', 20), ('location', 'LOCATION', 15), ('start_date', 'START', 10)] %}
+{% set cats = [('skills', 30), ('language', 25), ('education', 20), ('location', 15), ('start_date', 10)] %}
 {% if compact %}
 <div class="flex gap-[3px]">
-  {% for key, label, weight in cats %}
+  {% for key, weight in cats %}
   {% set achieved = category_scores.get(key) %}
   <div style="width: {{ weight }}%" class="h-1.5 bg-line rounded-sm overflow-hidden">
     {% if achieved is not none %}
@@ -237,7 +244,7 @@
 <div class="rounded-xl border border-line bg-card shadow-sm p-6">
   <div class="flex items-start justify-between gap-4">
     <div class="flex-1">
-      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">MATCH</span>
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("MATCH") }}</span>
       {% if title %}<div class="font-display font-semibold text-lg mt-2">{{ title }}</div>{% endif %}
       {% if narrative %}<p class="mt-1.5 text-sm text-t2">{{ narrative }}</p>{% endif %}
     </div>
@@ -248,7 +255,7 @@
     {% endif %}
   </div>
   <div class="flex gap-[3px] mt-5">
-    {% for key, label, weight in cats %}
+    {% for key, weight in cats %}
     {% set achieved = category_scores.get(key) %}
     <div style="width: {{ weight }}%">
       <div class="h-2 bg-line rounded-sm overflow-hidden">
@@ -256,17 +263,21 @@
         <div class="h-full bg-brand rounded-sm origin-left {% if achieved > 0 %}ausvia-bar-animated{% endif %}" style="width: {{ achieved }}%"></div>
         {% endif %}
       </div>
-      <div class="font-mono text-[9.5px] tracking-[0.08em] text-t3 mt-[7px] truncate">{{ label }}</div>
+      <div class="font-mono text-[9.5px] tracking-[0.08em] text-t3 mt-[7px] truncate">{{ category_display_names[key]|upper }}</div>
       {% if achieved is not none %}
       <div class="font-mono text-[11px] {% if achieved == 0 %}text-warn{% else %}text-t2{% endif %}">{{ achieved }}%</div>
       {% endif %}
     </div>
     {% endfor %}
   </div>
-  <p class="mt-4 pt-3.5 border-t border-line text-xs text-t3">Segment width = weighting ({% for key, label, weight in cats %}{{ label|capitalize }} {{ weight }}{% if not loop.last %} &middot; {% endif %}{% endfor %}), fill = achieved proportion.{% if skipped_categories %} Not evaluated: {{ skipped_categories|map('replace', '_', ' ')|map('title')|join(', ') }}.{% endif %}</p>
+  {% set breakdown_parts = [] %}
+  {% for key, weight in cats %}{% if breakdown_parts.append(category_display_names[key] ~ ' ' ~ weight) %}{% endif %}{% endfor %}
+  {% set skipped_parts = [] %}
+  {% for key in (skipped_categories or []) %}{% if skipped_parts.append(category_display_names.get(key, key)) %}{% endif %}{% endfor %}
+  <p class="mt-4 pt-3.5 border-t border-line text-xs text-t3">{{ _("Segment width = weighting (%(breakdown)s), fill = achieved proportion.", breakdown=breakdown_parts|join(' · ')) }}{% if skipped_parts %} {{ _("Not evaluated: %(categories)s.", categories=skipped_parts|join(', ')) }}{% endif %}</p>
   {% if caller is defined %}
   <details class="mt-3">
-    <summary class="text-[13.5px] font-medium text-brand cursor-pointer">Show breakdown</summary>
+    <summary class="text-[13.5px] font-medium text-brand cursor-pointer">{{ _("Show breakdown") }}</summary>
     <div class="mt-3">{{ caller() }}</div>
   </details>
   {% endif %}
@@ -308,7 +319,7 @@
   <span class="w-[7px] h-[7px] rounded-full {{ dot }} shrink-0 mt-2" aria-hidden="true"></span>
   <div class="flex-1">
     {% if variant == 'partial_failure' and failures %}
-    <p class="text-sm text-t1">{{ failures|length }} source{{ 's' if failures|length != 1 else '' }} {{ 'were' if failures|length != 1 else 'was' }} unreachable.</p>
+    <p class="text-sm text-t1">{{ ngettext("%(num)d source was unreachable.", "%(num)d sources were unreachable.", failures|length) }}</p>
     <ul class="mt-1 space-y-0.5">
       {% for source, reason in failures %}
       <li class="text-sm text-t1">{{ source }}: {{ reason }}</li>
@@ -360,20 +371,21 @@
    ============================================================ #}
 {% macro intelligence_surface(text=None, provider=None, model=None, reliability=None, generated_at=None, provenance=None, edited_at=None, regenerate_href=None) %}
 {% set edited = edited_at is not none %}
-{% set reliability_label = {'high': 'HIGH', 'medium': 'MEDIUM', 'low': 'LOW'}.get(reliability) %}
+{% set reliability_label = {'high': _("HIGH"), 'medium': _("MEDIUM"), 'low': _("LOW")}.get(reliability) %}
+{% set provider_label = (provider ~ '-' ~ model)|upper if model else (provider|upper if provider else _("NO PROVIDER")) %}
 <div class="rounded-r-xl border border-line {% if edited %}border-l-[3px] border-l-line2 bg-card{% else %}border-l-[3px] border-l-brand bg-tint{% endif %} p-[22px]">
   <div class="flex items-center gap-3 flex-wrap">
     {% if edited %}
-    <span class="font-mono text-[10.5px] tracking-[0.1em] text-t2">EDITED BY YOU</span>
-    <span class="font-mono text-[10.5px] text-t3">LAST EDITED {{ edited_at }}</span>
+    <span class="font-mono text-[10.5px] tracking-[0.1em] text-t2">{{ _("EDITED BY YOU") }}</span>
+    <span class="font-mono text-[10.5px] text-t3">{{ _("LAST EDITED %(when)s", when=edited_at) }}</span>
     {% else %}
-    <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">INTELLIGENCE &middot; {{ (provider ~ '-' ~ model)|upper if model else (provider|upper if provider else 'NO PROVIDER') }}</span>
-    {% if reliability_label %}<span class="font-mono text-[10.5px] text-t3">RELIABILITY {{ reliability_label }}</span>{% endif %}
+    <span class="font-mono text-[10.5px] tracking-[0.1em] text-brand">{{ _("INTELLIGENCE · %(provider)s", provider=provider_label) }}</span>
+    {% if reliability_label %}<span class="font-mono text-[10.5px] text-t3">{{ _("RELIABILITY %(level)s", level=reliability_label) }}</span>{% endif %}
     {% endif %}
     {% if regenerate_href %}
     <form method="post" action="{{ regenerate_href }}" class="ml-auto">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button type="submit" class="font-sans text-[13.5px] font-medium text-brand bg-transparent border-0 cursor-pointer">Regenerate</button>
+      <button type="submit" class="font-sans text-[13.5px] font-medium text-brand bg-transparent border-0 cursor-pointer">{{ _("Regenerate") }}</button>
     </form>
     {% endif %}
   </div>
@@ -442,8 +454,54 @@
 <button type="button" id="{{ id }}" class="theme-toggle-btn rounded-lg p-2 transition-colors duration-150
     {% if fixed_ink %}text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
     {% else %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand{% endif %}"
-    aria-label="Switch to dark theme">
+    aria-label="{{ _('Switch to dark theme') }}">
   <span class="theme-toggle-icon-moon">{{ moon(18) }}</span>
   <span class="theme-toggle-icon-sun" hidden>{{ sun(18) }}</span>
 </button>
+{% endmacro %}
+
+{# ============================================================
+   LANGUAGE SWITCHER - i18n pass 1, 2026-08-28. Placed beside theme_toggle()
+   in all three chrome contexts (desktop top bar, mobile topbar, landing
+   header), in the gap each of those already reserved for exactly this -
+   see base.html and landing.html's own comments predating this pass. Two
+   options only (English is the default, German the second language - this
+   supersedes the bundle's own bilingual rule, see DECISIONS.md), not a
+   dropdown: a `role="group"` pair of submit buttons in one form, matching
+   this app's existing zero-JS server-round-trip pattern for small POST
+   actions (chip_attribute's remove-form, intelligence_surface's
+   regenerate-form above) rather than a client-side toggle - the language
+   actually has to change on the server before the page can render in it,
+   unlike the theme toggle, which is pure CSS/JS with nothing to fetch.
+   `next` carries the current path + query string (Flask injects `request`
+   into every template automatically, same as nav_links() already reads
+   request.endpoint directly in base.html) so switching mid-search
+   preserves the filters - a required verification state, not a nicety.
+   The active language is marked with aria-current, not color alone (same
+   rule status_pill()/chip_coverage() already follow) - both buttons stay
+   real, always-focusable submit buttons, including the active one
+   (clicking it just resubmits the same locale, a harmless no-op), so the
+   switcher's tab-stop count never changes between languages and there's
+   nothing keyboard-reachable-but-inert to trip over.
+   ============================================================ #}
+{% macro language_switcher(fixed_ink=false) %}
+{% set active = get_locale() %}
+<form method="post" action="{{ url_for('main.set_locale') }}" class="flex items-center" role="group" aria-label="Choose language">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+  {% for code, label in [('en', 'EN'), ('de', 'DE')] %}
+  {% set is_active = code == active %}
+  <button type="submit" name="lang" value="{{ code }}" lang="{{ code }}"
+      {% if is_active %}aria-current="true"{% endif %}
+      class="font-mono text-[11px] tracking-[0.08em] rounded-lg px-2 py-2 transition-colors duration-150
+        {% if fixed_ink %}
+          focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+          {% if is_active %}text-white bg-white/10{% else %}text-ink-t2 hover:bg-white/10 hover:text-white{% endif %}
+        {% else %}
+          focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand
+          {% if is_active %}text-brand bg-tint{% else %}text-t2 hover:bg-tint hover:text-t1{% endif %}
+        {% endif %}"
+      aria-label="{% if code == 'en' %}Switch to English{% else %}Switch to Deutsch{% endif %}">{{ label }}</button>
+  {% endfor %}
+</form>
 {% endmacro %}

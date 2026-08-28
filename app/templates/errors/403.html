@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Forbidden{% endblock %}
+{% block title %}{{ _("Forbidden") }}{% endblock %}
 {% block content %}
 <div class="py-20 text-center">
-  <h1 class="text-3xl font-bold text-t1">403 — Forbidden</h1>
-  <p class="mt-2 text-t2">You don't have permission to view this page.</p>
+  <h1 class="text-3xl font-bold text-t1">{{ _("403 — Forbidden") }}</h1>
+  <p class="mt-2 text-t2">{{ _("You don't have permission to view this page.") }}</p>
 </div>
 {% endblock %}
 {% block public_content %}
 <div class="py-20 text-center">
-  <h1 class="text-3xl font-bold text-t1">403 — Forbidden</h1>
-  <p class="mt-2 text-t2">You don't have permission to view this page.</p>
+  <h1 class="text-3xl font-bold text-t1">{{ _("403 — Forbidden") }}</h1>
+  <p class="mt-2 text-t2">{{ _("You don't have permission to view this page.") }}</p>
 </div>
 {% endblock %}

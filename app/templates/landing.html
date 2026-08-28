@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_logo.html" import lockup %}
-{% from "_components.html" import match_band, status_pill, theme_toggle %}
-{% block title %}AUSVIA — Your path to Ausbildung{% endblock %}
+{% from "_components.html" import match_band, status_pill, theme_toggle, language_switcher %}
+{% block title %}{{ _("AUSVIA — Your path to Ausbildung") }}{% endblock %}
 {% block public_content %}
 
 {#
@@ -16,27 +16,37 @@
 
   Toggle-fix pass, 2026-08-28: theme_toggle() (imported from
   _components.html, not a local reimplementation - see base.html and
-  DECISIONS.md) sits between "See how it works" and "Log in", with a
-  reserved gap slot beside it for the language switcher a future pass
-  adds - same reserved-space treatment base.html's own authenticated
-  desktop header already uses. This is the landing page's first-ever
-  toggle, not a restored one - confirmed via git history that the
-  theme-toggle pass never actually reached this header (it was defined
-  only inside base.html's authenticated branch), so there was nothing to
-  drop during the hero rebuild despite how it looked.
+  DECISIONS.md) sits between "See how it works" and "Log in". This is the
+  landing page's first-ever toggle, not a restored one - confirmed via
+  git history that the theme-toggle pass never actually reached this
+  header (it was defined only inside base.html's authenticated branch),
+  so there was nothing to drop during the hero rebuild despite how it
+  looked.
+
+  i18n pass 1, 2026-08-28: language_switcher() now fills the gap the
+  toggle-fix pass reserved beside theme_toggle() - same shared component,
+  same placement convention as base.html's authenticated chrome.
+
+  i18n pass 2, 2026-08-28: every real string on this page is now wrapped -
+  including the hero preview panel's fixture data (three fictional
+  postings, one fictional sent application), which reuses the same
+  _()-wrapped "Strong match"/"Good match"/"Some gaps" labels
+  app/jobs/matching.py's MATCH_LABELS already defines, not a second set
+  of literals.
 #}
 <header class="border-b border-line">
   <div class="px-4 md:px-10 py-5 flex items-center gap-4">
     <a href="{{ url_for('main.landing') }}" class="flex items-center shrink-0">
       {{ lockup(24, symbol_color="var(--brand)", wordmark_color="var(--t1)") }}
     </a>
-    <span class="hidden md:inline-flex font-mono text-[10px] tracking-[0.11em] text-t3 border border-line rounded-full px-2.5 py-1 whitespace-nowrap">Access code only</span>
+    <span class="hidden md:inline-flex font-mono text-[10px] tracking-[0.11em] text-t3 border border-line rounded-full px-2.5 py-1 whitespace-nowrap">{{ _("Access code only") }}</span>
     <div class="ml-auto flex items-center gap-1">
-      <a href="#how-it-works" class="hidden md:inline-block text-sm font-medium text-t2 hover:text-t1 px-3 py-2">See how it works</a>
+      <a href="#how-it-works" class="hidden md:inline-block text-sm font-medium text-t2 hover:text-t1 px-3 py-2">{{ _("See how it works") }}</a>
       <div class="flex items-center gap-1">
+        {{ language_switcher() }}
         {{ theme_toggle('theme-toggle-landing') }}
       </div>
-      <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-t2 hover:text-t1 px-3 py-2">Log in</a>
+      <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-t2 hover:text-t1 px-3 py-2">{{ _("Log in") }}</a>
     </div>
   </div>
 </header>
@@ -65,16 +75,14 @@
 <section class="bg-ink">
   <div class="max-w-content mx-auto px-4 md:px-10 py-16 md:py-24 flex flex-wrap items-start gap-x-14 gap-y-12">
     <div class="flex-1 basis-[420px] min-w-[300px]">
-      <span class="block font-mono text-[11px] tracking-[0.11em] text-bright">AUSBILDUNG · NATIONWIDE</span>
+      <span class="block font-mono text-[11px] tracking-[0.11em] text-bright">{{ _("AUSBILDUNG · NATIONWIDE") }}</span>
       <h1 class="mt-5 font-display font-semibold text-[40px] md:text-[56px] lg:text-[64px] leading-[1.03] tracking-tight text-white text-balance">
-        Your path to Ausbildung.
+        {{ _("Your path to Ausbildung.") }}
       </h1>
       {# ink-t2, not the light-surface t2/t3 scale - see DESIGN_SYSTEM.md
          Accessibility for why ink-t3 specifically is never used for text. #}
       <p class="mt-6 max-w-[52ch] text-lg leading-relaxed text-ink-t2">
-        AUSVIA searches real Ausbildung postings, works out transparently why each one
-        fits you, helps you prepare a complete application, and tracks it through to a
-        reply. Nothing is ever sent without you.
+        {{ _("AUSVIA searches real Ausbildung postings, works out transparently why each one fits you, helps you prepare a complete application, and tracks it through to a reply. Nothing is ever sent without you.") }}
       </p>
       <div class="mt-8 flex flex-wrap gap-3">
         {#
@@ -85,10 +93,10 @@
           numbers computed, not assumed - see DESIGN_SYSTEM.md Accessibility.
         #}
         <a href="{{ url_for('auth.register') }}" class="rounded-lg bg-bright-action px-5 py-3 text-sm font-semibold text-ink hover:bg-bright-action-hover transition-colors duration-150">
-          Enter access code
+          {{ _("Enter access code") }}
         </a>
         <a href="#how-it-works" class="rounded-lg border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors duration-150">
-          See how it works
+          {{ _("See how it works") }}
         </a>
       </div>
     </div>
@@ -96,8 +104,8 @@
     <div class="flex-1 basis-[420px] min-w-[300px] relative">
       <div class="rounded-panel border border-line bg-card shadow-ink-overlay overflow-hidden">
         <div class="flex items-center gap-3 px-5 py-3.5 border-b border-line">
-          <span class="font-mono text-[10px] tracking-[0.11em] text-t3">FIND AUSBILDUNG · LEIPZIG</span>
-          <span class="ml-auto font-mono text-[10px] tracking-[0.09em] text-brand whitespace-nowrap">{{ source_display_names|length }} SOURCE{{ 'S' if source_display_names|length != 1 else '' }}</span>
+          <span class="font-mono text-[10px] tracking-[0.11em] text-t3">{{ _("FIND AUSBILDUNG · LEIPZIG") }}</span>
+          <span class="ml-auto font-mono text-[10px] tracking-[0.09em] text-brand whitespace-nowrap">{{ ngettext("%(num)s SOURCE", "%(num)s SOURCES", source_display_names|length) }}</span>
         </div>
         {# pb-7 reserves exactly the 28px the overlapping application-status
            card below eats into (-mt-7) - without it, that overlap clips
@@ -108,11 +116,11 @@
         <div class="divide-y divide-line pb-7">
           {% for title, company, location, cat_scores, score, label in [
             ("Ausbildung Mechatroniker/in (m/w/d)", "Nordwerk Elektrotechnik GmbH", "Leipzig",
-              {"skills": 90, "language": 85, "education": 80, "location": 70, "start_date": 70}, 82, "Strong match"),
+              {"skills": 90, "language": 85, "education": 80, "location": 70, "start_date": 70}, 82, _("Strong match")),
             ("Ausbildung Elektroniker/in Betriebstechnik", "Möller & Sohn Anlagenbau KG", "Halle",
-              {"skills": 72, "language": 60, "education": 65, "location": 55, "start_date": 60}, 64, "Good match"),
+              {"skills": 72, "language": 60, "education": 65, "location": 55, "start_date": 60}, 64, _("Good match")),
             ("Ausbildung Fachinformatiker/in", "Hanseatik Systeme GmbH", "Leipzig",
-              {"skills": 50, "language": 40, "education": 45, "location": 40, "start_date": 50}, 45, "Some gaps"),
+              {"skills": 50, "language": 40, "education": 45, "location": 40, "start_date": 50}, 45, _("Some gaps")),
           ] %}
           <div class="flex items-center gap-4 px-5 py-4">
             <div class="flex-1 min-w-0">
@@ -131,11 +139,11 @@
 
       <div class="-mt-7 ml-auto w-[82%] rounded-xl border border-line border-l-[3px] border-l-brand bg-card shadow-ink-overlay p-4 relative">
         <div class="flex items-center gap-2.5 flex-wrap">
-          <span class="font-mono text-[10px] tracking-[0.11em] text-brand">APPLICATION · HANSEATIK SYSTEME</span>
+          <span class="font-mono text-[10px] tracking-[0.11em] text-brand">{{ _("APPLICATION · HANSEATIK SYSTEME") }}</span>
           <span class="ml-auto">{{ status_pill('sent') }}</span>
         </div>
         <p class="mt-2.5 text-[13px] leading-snug text-t2">
-          Sent 18 Aug · Reply pending · Cover letter, email, and PDF package included.
+          {{ _("Sent 18 Aug · Reply pending · Cover letter, email, and PDF package included.") }}
         </p>
       </div>
     </div>
@@ -157,7 +165,7 @@
 #}
 <section class="max-w-content mx-auto px-4 md:px-10 pt-16">
   <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-5 md:flex-nowrap">
-    {% for label in ["Discover", "Match", "Prepare", "Apply", "Track", "Reply", "Interview", "Offer"] %}
+    {% for label in [_("Discover"), _("Match"), _("Prepare"), _("Apply"), _("Track"), _("Reply"), _("Interview"), _("Offer")] %}
     <span class="font-mono text-[10px] tracking-[0.1em] uppercase text-t2 whitespace-nowrap">{{ label }}</span>
     {% if not loop.last %}<span class="hidden md:block flex-1 min-w-[8px] h-px bg-line2"></span>{% endif %}
     {% endfor %}
@@ -167,9 +175,9 @@
 <section id="how-it-works" class="max-w-content mx-auto px-4 md:px-10 py-20">
   <div class="grid gap-4 md:grid-cols-3">
     {% for eyebrow, title, body in [
-      ("TRANSPARENT", "Every score you can check yourself", "Five criteria with fixed weights — Skills, Language, Education, Location, Start. You see exactly what's met and what's missing. Never a black box."),
-      ("PREPARED", "Cover letter, email, PDF package", "Generated from your real profile and the real posting — never invented experience, never invented company details."),
-      ("IN YOUR HANDS", "Nothing goes out without your OK", "AUSVIA drafts the cover letter and the email; you review and send them yourself. Replies stay your decision too."),
+      (_("TRANSPARENT"), _("Every score you can check yourself"), _("Five criteria with fixed weights — Skills, Language, Education, Location, Start. You see exactly what's met and what's missing. Never a black box.")),
+      (_("PREPARED"), _("Cover letter, email, PDF package"), _("Generated from your real profile and the real posting — never invented experience, never invented company details.")),
+      (_("IN YOUR HANDS"), _("Nothing goes out without your OK"), _("AUSVIA drafts the cover letter and the email; you review and send them yourself. Replies stay your decision too.")),
     ] %}
     <div class="rounded-xl border border-line bg-card shadow-sm p-6">
       <span class="font-mono text-[10px] tracking-[0.11em] text-brand">{{ eyebrow }}</span>
@@ -194,19 +202,18 @@
 <section id="login" class="max-w-content mx-auto px-4 md:px-10 pb-20">
   <div class="rounded-2xl border border-line bg-raised p-8 md:p-11 flex flex-wrap items-center gap-8">
     <div class="flex-1 min-w-[280px]">
-      <h2 class="font-display font-semibold text-2xl md:text-3xl tracking-tight text-t1">Ready for your first match?</h2>
+      <h2 class="font-display font-semibold text-2xl md:text-3xl tracking-tight text-t1">{{ _("Ready for your first match?") }}</h2>
       <p class="mt-2.5 text-sm text-t2 max-w-md">
-        AUSVIA is currently invite-only. Enter your access code, fill in your profile,
-        and see your first match — in under ten minutes.
+        {{ _("AUSVIA is currently invite-only. Enter your access code, fill in your profile, and see your first match — in under ten minutes.") }}
       </p>
     </div>
     <form method="post" action="{{ url_for('auth.register') }}" class="flex flex-wrap gap-2.5">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="landing-access-code" class="sr-only">Access code</label>
-      <input id="landing-access-code" name="access_code" placeholder="Access code"
+      <label for="landing-access-code" class="sr-only">{{ _("Access code") }}</label>
+      <input id="landing-access-code" name="access_code" placeholder="{{ _('Access code') }}"
              class="h-[46px] w-[190px] rounded-lg border border-line2 bg-card px-3.5 font-mono text-[13px] tracking-[0.08em] text-t1 uppercase placeholder:normal-case focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand">
       <button type="submit" class="h-[46px] rounded-lg bg-brand px-5 text-sm font-semibold text-on-fill hover:bg-brand-hover transition-colors duration-150">
-        Continue
+        {{ _("Continue") }}
       </button>
     </form>
   </div>
@@ -223,9 +230,9 @@
   <div class="max-w-content mx-auto px-4 md:px-10 py-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-t3">
     <span>&copy; {{ 2026 }} AUSVIA</span>
     {% if source_display_names %}
-    <span>{{ 'Source' if source_display_names|length == 1 else 'Sources' }}: {{ source_display_names|join(', ') }}</span>
+    <span>{{ _("Source") if source_display_names|length == 1 else _("Sources") }}: {{ source_display_names|join(', ') }}</span>
     {% endif %}
-    <a href="{{ url_for('auth.register') }}" class="ml-auto font-medium text-brand hover:underline">Enter access code &rarr;</a>
+    <a href="{{ url_for('auth.register') }}" class="ml-auto font-medium text-brand hover:underline">{{ _("Enter access code") }} &rarr;</a>
   </div>
 </footer>
 {% endblock %}

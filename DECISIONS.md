@@ -6,6 +6,316 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — i18n pass 2: mass string extraction, a matching-engine gap fixed beyond its original scope, and a stale-catalog gotcha for every future translation change
+
+**Scope: every in-scope template and Python module now wraps its
+user-facing strings in `_()`/`_l()`/`ngettext()`**, group by group (shared
+components, auth, dashboard/digest, jobs, applications, profile/documents,
+company, landing, errors, integrations, admin), each followed by its own
+`pybabel extract`/`update`/translate/`compile` cycle rather than one
+extraction at the end - see the pass's own report for the per-template
+count. Still out of scope, unchanged from pass 1: `app/ai/prompts/*`
+(prompt builders) and any text an AI provider itself generates (cover
+letter body, application email body, reply suggestions, match narratives,
+company insight, interview prep, CV profile statement) - that's pass 3's
+per-feature language split, not this pass's. Job posting data
+(titles/descriptions/requirements/company names) stays untranslated for
+the same reason as pass 1: translating a posting would misrepresent the
+source. Internal audit content (`log_event()` messages, and raw internal
+codes like `InvitationCode.code_type`, `User.role`/`User.plan`,
+`JobSourceSetting.last_run_message`) is deliberately left untranslated -
+it's operator/log content, not product copy, and translating it would
+make server-side logs harder to grep, not easier to read.
+
+**One deterministic-content case turned out to be in scope after all,
+despite an earlier in-pass note that deferred it:** `app/ai/matching.py`'s
+five scorer functions (`_score_skills`/`_score_language`/`_score_education`/
+`_score_location`/`_score_start_date`) build the strengths/gaps sentences
+behind every match card's summary line and the Job Detail breakdown -
+plain Python string formatting, never an LLM call (the module's own
+header comment: "never guessed by an LLM"). A first pass through this
+file left them alone with a comment promising a "separate follow-up in
+DECISIONS.md," on the theory that anything living under `app/ai/` was
+pass-3 territory. Live verification in German surfaced why that line was
+wrong: every job card on the Find Ausbildung results page rendered a
+sentence like *"Startdatum erfüllt · Neckarsulm is outside stated
+preferences and candidate is not open to relocation."* - German
+category name, English gap sentence, mid-sentence, on the single
+highest-traffic screen in the app. That's not an AI-content-language
+question (pass 3's actual remit); it's the same class of miss as every
+other deterministic-string gap this pass exists to close, just filed
+under the wrong directory. Fixed by wrapping all five scorers' strength/
+gap/label/note strings in `_()` with proper `%(name)s` placeholders (raw
+job-posting substrings inside them - skill names, location names - stay
+untranslated, same rule as everywhere else job data appears). The
+no-longer-accurate "deferred, see DECISIONS.md" comment in
+`app/jobs/matching.py`'s `summarize_match_line()` was corrected in the
+same commit rather than left stale.
+
+**A real, previously-unseen Flask-Babel gotcha: the compiled `.mo`
+catalog loads once per process and never reloads on its own** - distinct
+from pass 1's documented `g`-scoped per-request locale cache
+(`ctx.babel_locale`), which is a different mechanism, already covered
+above, and unaffected by this. Editing `translations/de/LC_MESSAGES/
+messages.po` and re-running `pybabel compile` rewrites the `.mo` file on
+disk, but a Flask process that already parsed a translation into memory
+keeps using that in-memory copy for the rest of its life - confirmed by
+reproducing the exact symptom this pass hit: after several
+extract/translate/compile cycles against a dev server that had been
+running since the session started, some `_()` calls translated correctly
+(whatever was in the catalog the first time that locale's `.mo` got
+loaded) while others - added in later cycles - kept rendering their raw
+English `msgid`, all on the same page, in the same request. Not a `g`
+cache issue (that resets every request); this one only clears on process
+restart. Jinja **templates** don't have this problem (Flask's debug-mode
+autoreloader checks template mtimes per render), which is exactly why
+this went unnoticed through most of the pass - only catalog (`.po`/`.mo`)
+edits are affected. Practical consequence, worth restating in
+`DEPLOYMENT.md`'s existing Translations section: a Railway deploy that
+ships a `.po`/`.mo` change needs an actual process restart to take
+effect, same as the deploy already needs one for compiled CSS - a `git
+push` alone that doesn't restart the running dyno would silently ship
+stale translations, indistinguishable from the extraction/compile step
+having been skipped entirely.
+
+**A real SQLAlchemy/sqlite3 binding bug, not a translation-content bug:**
+`app/ai/reply_ai.py`'s `NOT_CONFIGURED_NOTE` is a module-level
+`lazy_gettext()` constant (correct - it's evaluated once at import time,
+long before any request exists, so it must be lazy, same reasoning as
+`APPLICATION_STATUS_LABELS` and friends). Assigning it directly to
+`GmailMessage.classification_notes` and committing raised `sqlite3.
+ProgrammingError: Error binding parameter 3: type 'LazyString' is not
+supported` - found by the full pytest suite, not by manual verification,
+since it only manifests on an actual DB write, not on template rendering
+(Jinja/`str.format` coerce a `LazyString` to text transparently; the
+sqlite3 DBAPI does not). Every other `_l()`-wrapped module constant in
+this codebase is either rendered directly in a template or used as a
+dict-lookup value for display - this was the only case of one being
+written to a database column, which is why the bug didn't surface until
+this specific call site. Fixed with an explicit `str(NOT_CONFIGURED_NOTE)`
+at the assignment site, still inside the active request (correct locale
+resolved at that point) - not by making the constant eager, which would
+have frozen it to whichever locale happened to be active when the module
+was first imported.
+
+**Admin group: five real operator screens translated
+(`admin/overview.html`, `codes.html`, `users.html`, `job_sources.html`,
+`ai_usage.html`, plus their routes/forms) - `admin/components.html` and
+`diagnostics/arbeitsagentur_cors_test.html` deliberately excluded, not
+silently skipped.** The five are screens an admin actually operates from
+day to day, same standard as every other screen this pass covers.
+`admin/components.html` is the component-layer's own living reference
+page (its own header comment: "Nothing on this page is wired to real
+data or a real route"), deliberately mixing English descriptive
+prose with German fixture strings as demo content - translating the
+English half would not make it more correct, since the page's job is to
+document the component layer for whoever builds the next screen, not to
+be used by an end operator. `diagnostics/arbeitsagentur-cors-test` is an
+unauthenticated, unlinked, explicitly temporary route (its own comment:
+"Remove this route + its template ... once the finding is confirmed
+either way") - not a surface worth translating before it's deleted.
+
+---
+
+## 2026-08-28 — i18n pass 1: English supersedes the bundle's bilingual rule, locale storage architecture, and a real Flask-Babel path bug
+
+**English is the default UI language, with a real switcher for full locale
+switching. This explicitly and deliberately supersedes the AUSVIA 2.0
+bundle's own stated rule** (`AUSVIA_2_0_SCREEN_INVENTORY.md` section 0.1:
+*"Beschriftungen bleiben in der Sprache der Anwendung, Fließtext ist
+deutsch"* - English labels, permanently-German prose, mixed on every
+screen forever). That rule was never implemented and is not the target
+here - recorded explicitly so a future cold session that reads the
+Foundations brief on its own doesn't "correct" the app back toward the
+bundle's mixed-language model, believing this pass's actual output to be
+a regression from the spec. **AI-generated content language is a
+separate, per-feature axis from the UI language toggle, deferred to pass
+3, not decided or built this pass:** cover letter / application email /
+reply suggestions stay German always (they go to real German employers -
+an English Anschreiben fails outright); match explanation / company
+insight / profile coaching / interview prep / CV profile statement follow
+whichever UI language the viewer has chosen (content for the user, not
+for an employer); job posting data (titles/descriptions/requirements)
+is never translated, since translating a posting would misrepresent what
+the source actually said. Nothing in this pass touches an AI prompt.
+
+**Why three passes, not one:** a half-extracted set of templates is
+recoverable (some copy is still English, nothing is broken) - a
+half-configured Babel setup is not (the app either resolves and renders
+translations correctly end-to-end, or it silently doesn't). Pass 1 is
+infrastructure + the switcher, proven end-to-end on a small number of
+strings; pass 2 is mass string extraction across every other template;
+pass 3 is wiring the AI-content language split above into the real prompt
+builders. This entry covers only pass 1.
+
+**Locale storage: `User.locale` for a logged-in visitor, a cookie for a
+logged-out one - not a choice between them, a convergence.** The landing
+page has no user, so a cookie is required regardless; the question worth
+answering was whether the account column earns its keep given that cost.
+It does, cheaply: `User.locale` (`String(5)`, `NOT NULL`, `default="en"`)
+has existed, completely unused, since `c4d57a2bd219` - the very first
+migration - so wiring it up needed no new migration, nothing to flag for
+Railway. Cross-device continuity (a preference set on one browser
+reappearing after logging into the same account on another) is a real,
+free benefit once the column exists; a cookie alone can't do that. The
+two sources converge at the auth boundary
+(`sync_explicit_locale_to_user()`, called from both `login()` and
+`register()`, `app/auth/routes.py`): if the browser carries an explicit
+locale cookie at the moment of login or registration, it's written into
+the account, overriding whatever the account already held (its own prior
+choice, or - for every pre-i18n account - the untouched schema default).
+Without this, "the choice survives login" (a required verification
+state) would fail the instant `current_user.is_authenticated` starts
+outranking the cookie in `get_locale()`'s priority order - an existing
+account's stale "en" default would silently override a real anonymous
+choice the moment a session exists. `get_locale()` itself
+(`app/i18n.py`) therefore trusts `current_user.locale` unconditionally
+once authenticated - not because a fresh login re-derives anything, but
+because sync already ran first, and the column is never in an
+indeterminate state (always a real, valid code) to begin with.
+
+**Accept-Language is consulted only when there's no cookie at all**, not
+recomputed on every anonymous request regardless of a prior explicit
+choice - the tier boundary that matters is "has this visitor ever made an
+explicit choice," not "is a session cookie technically still fresh." A
+visitor who explicitly chose English is never silently flipped back to
+German by their own browser's header on a later visit.
+
+**A real bug found and fixed before anything shipped:**
+`BABEL_TRANSLATION_DIRECTORIES` was first set to the bare string
+`"translations"`. Flask-Babel resolves a relative translation-directory
+path against `app.root_path` - which for this app is `app/` (the package
+`Flask(__name__)` was constructed with, since `create_app()` lives in
+`app/__init__.py`), not the repository root where `translations/` and
+`babel.cfg` actually live alongside `tailwind.config.js`. The bug was
+silent, not a crash: Flask-Babel found no catalog at the resolved (wrong,
+nonexistent) path and fell back to `NullTranslations`, so every `_()`
+call kept returning its English `msgid` verbatim regardless of which
+locale `get_locale()` correctly resolved to - the switcher looked like it
+worked (cookie set, `aria-current` moved, `User.locale` updated) while
+the actual translated text never appeared. Caught by this pass's own
+required Playwright verification (a live en→de switch on the dashboard
+that should have changed the nav text and didn't), not by the unit tests
+alone - the unit tests exercised `get_locale()` directly and it was
+already correct in isolation, which is exactly why this class of bug
+needs a real rendered check, not just function-level coverage. Fixed by
+making the path absolute (`os.path.join(BASE_DIR, "translations")`,
+`config.py`), the same `BASE_DIR`-relative pattern `UPLOAD_DIR`/
+`GENERATED_DIR` already use for exactly this reason.
+
+**A second, subtler issue found while chasing the first one - test-only,
+not a real app bug:** even after the path fix, a `client`-fixture-based
+pytest reproduction of the same switch-then-check flow still failed.
+Cause: `tests/conftest.py`'s `app` fixture wraps the entire test function
+body in one `with application.app_context(): yield application` block -
+correct and necessary for every other extension this suite touches (`db`,
+`current_user`, etc.), but it means every `client.post()`/`client.get()`
+call within one test shares a single Flask `g` object, because Flask
+reuses an already-active app context for a request rather than pushing a
+fresh one when a `RequestContext` is pushed inside an existing
+`AppContext`. Flask-Babel caches the resolved locale on exactly that `g`
+object (`ctx.babel_locale`, `flask_babel/__init__.py`) and never
+re-derives it once cached - correct behavior for one real request in
+production (a fresh WSGI call always gets a fresh context there), wrong
+for several simulated "requests" sharing one test-scoped context. Fixed
+by calling `flask_babel.refresh()` - its own documented mechanism for
+exactly this class of problem (its docstring names the identical
+symptom: "the `flash()` function would probably return English text and
+a now German page" without it) - right after every place this pass
+changes which locale should be active (`main.set_locale`, and both sync
+call sites in `auth/routes.py`). This is not purely a test workaround:
+without it, a locale-dependent flash message or other content rendered
+later in the very same request that performed the switch could still
+show the pre-switch locale, in production too, not just under this
+suite's fixture pattern - `refresh()` closes a real (if currently
+unexercised, since `set_locale()` itself renders nothing) correctness
+gap, not only a testability one.
+
+**Two proof-of-concept surfaces, deliberately small, not the start of
+mass extraction:** the sidebar/drawer nav labels (`base.html`'s
+`nav_items`, 7 strings, visible on every authenticated screen) are the
+only template strings wrapped in `_()` this pass.
+`format_local_date()`/`format_local_currency()` (`app/i18n.py`, thin
+None-safe wrappers around `flask_babel`'s own locale-aware formatters)
+are wired into exactly two real template call sites (Job Detail's
+deadline line, Application Detail's "applied since" line) plus
+`main/routes.py`'s `_relative_date()` absolute-date branch - each was
+previously a hardcoded `%d.%m.%Y`, meaning an English-UI user was
+already seeing German-style dates before this pass; fixed as a side
+effect at these three sites specifically, not chased down at every other
+`strftime` call site in the app (a real, large remaining set - that's
+pass 2's job). `format_local_currency()` has **no live call site at
+all** - deliberately, not an oversight: `Job.salary` is the one
+money-shaped field anywhere in this schema, and it's a pre-formatted
+free-text string from each source adapter (Arbeitsagentur's
+`verguetungsangabe` text, Adzuna's own min-max string), never a numeric
+amount - there is nothing real to format. Demonstrated instead at
+`/admin/components` with a literal example value, the same
+don't-fabricate-a-call-site-a-field-doesn't-back reasoning as Job
+Detail's dropped "duration" tile and Find Ausbildung's dropped filters.
+
+**The switcher's `next` field, not a Referer header or session state, is
+what preserves the current page through a switch** - a hidden input read
+from `request.full_path` (Flask already injects `request` into every
+template; `nav_links()` already reads `request.endpoint` directly the
+same way) at render time, validated server-side by `safe_next_path()`
+(same-origin-relative only, rejects a scheme-relative or absolute
+target) before being used as the redirect location - not trusted
+verbatim the way `auth.login`'s pre-existing `next` param already isn't
+validated, since this route (unlike login) has no `login_required` gate
+narrowing who can submit it.
+
+**Verification:** full pytest suite 583 passed / 3 skipped (555 + 28,
+including a translation-catalog staleness guard - recompiles the
+committed `.po` into a scratch dir and byte-diffs it against the
+committed `.mo`, same class of gap as `check-css-stale.js` - and an
+extraction-completeness guard that fails if a fresh `pybabel extract`
+would produce a `msgid` missing from the committed catalog).
+`npm run build:css` / `check:css` clean (the switcher's new classes are
+compiled in). Playwright, both themes, 1920px and 375px, zero horizontal
+overflow: a fresh browser with a German OS locale correctly defaulted to
+German on the switcher (real Accept-Language detection - this
+environment's Chromium genuinely reports `de-DE`, not staged); en→de→en
+on the dashboard changed the sidebar nav live both directions; the
+choice survived a page reload; the choice survived login for an account
+whose own stored locale was still the untouched "en" default (confirmed
+against the real dev database, not just the test suite); switching while
+on `/jobs/?keywords=Elektroniker&min_score=50` preserved both query
+params exactly; the desktop and mobile switcher instances correctly swap
+visibility at the `md` breakpoint with no third, orphaned copy answering
+a click. One aria-label collision caught by the existing test suite, not
+found by inspection: `role="group" aria-label="Language"` on the
+switcher collided with `test_landing_screen.py`'s own
+`body.index("Language")` position check (part of the value-blocks
+weighting-order regression test, an unrelated pre-existing test) - fixed
+by renaming the group label to `"Choose language"` rather than touching
+the older, correct test.
+
+**Consequences:** `app/i18n.py` (new), `babel.cfg` (new, repo root),
+`translations/de/LC_MESSAGES/{messages.po,messages.mo}` (new),
+`messages.pot` (new, committed as the extraction template `pybabel
+update` needs, not just a build byproduct). `config.py` gained
+`LANGUAGES`/`BABEL_DEFAULT_LOCALE`/`BABEL_TRANSLATION_DIRECTORIES` (fixed
+product decisions, not env-configurable, unlike `AI_PROVIDER`/
+`STORAGE_PROVIDER`). `app/extensions.py` gained the `babel` singleton;
+`app/__init__.py` wires it and two new Jinja globals
+(`format_local_date`/`format_local_currency`, `get_locale`).
+`app/main/routes.py` gained `POST /set-locale`; `app/auth/routes.py`'s
+`login()`/`register()` each gained one sync + one `refresh_locale()`
+call. `_components.html` gained `language_switcher()`; `base.html` and
+`landing.html` each gained two/one call sites respectively in the spaces
+already reserved for it. `requirements.txt` gained `Flask-Babel==4.0.0`
+(pulls in `Babel`/`pytz` as real runtime dependencies, not dev-only - the
+locale selector runs on every request). 28 new tests
+(`tests/test_i18n.py`). `DEPLOYMENT.md` gained a "Translations (i18n)"
+section documenting the three `pybabel` commands and when to run them,
+mirroring the Tailwind CSS pre-deploy discipline. `ROADMAP.md`'s i18n
+entry rewritten to mark pass 1 done and describe passes 2/3, replacing
+wording that still described the bundle's superseded bilingual rule as
+if it were the target.
+
+---
+
 ## 2026-08-28 — Landing toggle-fix pass: the theme toggle was never reachable from landing.html, not a regression
 
 **Checked git history before touching anything, per explicit instruction,

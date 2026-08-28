@@ -1,6 +1,8 @@
 import os
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, send_file, abort
+from flask_babel import gettext as _
+from flask_babel import ngettext
 from flask_login import login_required, current_user
 
 from pypdf.errors import PdfReadError
@@ -202,7 +204,7 @@ def generate_cover_letter_route(application_id):
             db.session.add(letter)
         application.log_event("cover_letter_generated", f"Cover letter generated ({source}).")
         db.session.commit()
-        flash("Cover letter generated.", "success")
+        flash(_("Cover letter generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Cover letter generation failed: {e}", level="warning", user_id=current_user.id)
@@ -225,9 +227,9 @@ def save_cover_letter(application_id):
             letter.edited_at = utcnow()
         application.log_event("cover_letter_edited", "Cover letter edited manually.")
         db.session.commit()
-        flash("Cover letter saved.", "success")
+        flash(_("Cover letter saved."), "success")
     else:
-        flash("Please enter cover letter text.", "error")
+        flash(_("Please enter cover letter text."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -247,7 +249,7 @@ def generate_email_route(application_id):
             db.session.add(email)
         application.log_event("email_generated", f"Application email generated ({source}).")
         db.session.commit()
-        flash("Email generated.", "success")
+        flash(_("Email generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Email generation failed: {e}", level="warning", user_id=current_user.id)
@@ -270,9 +272,9 @@ def save_email(application_id):
             email.edited_at = utcnow()
         application.log_event("email_edited", "Email edited manually.")
         db.session.commit()
-        flash("Email saved.", "success")
+        flash(_("Email saved."), "success")
     else:
-        flash("Please fill in subject and body.", "error")
+        flash(_("Please fill in subject and body."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -282,7 +284,7 @@ def save_email(application_id):
 def generate_followup_email_route(application_id):
     application = _owned_application_or_404(application_id)
     if application.status not in ("sent", "follow_up"):
-        flash("Follow-up emails are only available once an application has been sent.", "error")
+        flash(_("Follow-up emails are only available once an application has been sent."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     try:
@@ -293,7 +295,7 @@ def generate_followup_email_route(application_id):
             db.session.add(followup)
         application.log_event("followup_email_generated", f"Follow-up email generated ({source}).")
         db.session.commit()
-        flash("Follow-up email drafted.", "success")
+        flash(_("Follow-up email drafted."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Follow-up email generation failed: {e}", level="warning", user_id=current_user.id)
@@ -316,9 +318,9 @@ def save_followup_email(application_id):
             followup.edited_at = utcnow()
         application.log_event("followup_email_edited", "Follow-up email edited manually.")
         db.session.commit()
-        flash("Follow-up email saved.", "success")
+        flash(_("Follow-up email saved."), "success")
     else:
-        flash("Please fill in subject and body.", "error")
+        flash(_("Please fill in subject and body."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -329,7 +331,7 @@ def generate_interview_prep_route(application_id):
     application = _owned_application_or_404(application_id)
     try:
         generate_interview_prep(current_user, application)
-        flash("Interview prep generated.", "success")
+        flash(_("Interview prep generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"Interview prep generation failed: {e}", level="warning", user_id=current_user.id)
@@ -356,9 +358,9 @@ def save_interview_prep(application_id):
             prep.edited_at = utcnow()
         application.log_event("interview_prep_edited", "Interview prep edited manually.")
         db.session.commit()
-        flash("Interview prep saved.", "success")
+        flash(_("Interview prep saved."), "success")
     else:
-        flash("Please enter interview prep text.", "error")
+        flash(_("Please enter interview prep text."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -369,7 +371,7 @@ def generate_cv_profile_statement_route(application_id):
     application = _owned_application_or_404(application_id)
     try:
         generate_cv_profile_statement(current_user, application)
-        flash("CV profile statement generated.", "success")
+        flash(_("CV profile statement generated."), "success")
     except AIProviderError as e:
         flash(str(e), "error")
         log_event("ai", f"CV profile statement generation failed: {e}", level="warning", user_id=current_user.id)
@@ -391,9 +393,9 @@ def save_cv_profile_statement(application_id):
             statement.edited_at = utcnow()
         application.log_event("cv_profile_statement_edited", "CV profile statement edited manually.")
         db.session.commit()
-        flash("CV profile statement saved.", "success")
+        flash(_("CV profile statement saved."), "success")
     else:
-        flash("Please enter statement text.", "error")
+        flash(_("Please enter statement text."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -414,7 +416,7 @@ def select_documents(application_id):
 
     application.log_event("documents_selected", f"{len(ordered)} document(s) selected for the package.")
     db.session.commit()
-    flash("Document selection saved.", "success")
+    flash(_("Document selection saved."), "success")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -424,10 +426,10 @@ def approve(application_id):
     application = _owned_application_or_404(application_id)
 
     if not application.cover_letter or not application.cover_letter.content:
-        flash("Generate or write a cover letter before approving.", "error")
+        flash(_("Generate or write a cover letter before approving."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
     if not application.selected_documents:
-        flash("Select at least one document to include before approving.", "error")
+        flash(_("Select at least one document to include before approving."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     storage = get_storage_provider(current_app.config)
@@ -445,8 +447,10 @@ def approve(application_id):
         build_application_pdf(application.cover_letter.content, doc_paths, output_path)
     except (PdfReadError, OSError) as e:  # FileNotFoundError is an OSError subclass
         flash(
-            "Could not build the package - one of the selected documents appears to be "
-            "corrupted or unreadable. Please re-upload it and try again.",
+            _(
+                "Could not build the package - one of the selected documents appears to be "
+                "corrupted or unreadable. Please re-upload it and try again."
+            ),
             "error",
         )
         log_event("application", f"PDF package build failed: {e}", level="error", user_id=current_user.id)
@@ -458,7 +462,7 @@ def approve(application_id):
     application.log_event("approved", "Application approved by user - package generated.")
     db.session.commit()
     log_event("application", "Application approved and package built.", user_id=current_user.id)
-    flash("Application approved. Package ready to download.", "success")
+    flash(_("Application approved. Package ready to download."), "success")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -476,7 +480,7 @@ def download_package(application_id):
 def mark_sent(application_id):
     application = _owned_application_or_404(application_id)
     if application.status != "ready":
-        flash("Approve the application (generate the package) before marking it sent.", "error")
+        flash(_("Approve the application (generate the package) before marking it sent."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     from app.models.user import utcnow
@@ -485,7 +489,7 @@ def mark_sent(application_id):
     application.sent_at = utcnow()
     application.log_event("sent", "Marked as sent by user.")
     db.session.commit()
-    flash("Marked as sent.", "success")
+    flash(_("Marked as sent."), "success")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -497,13 +501,13 @@ def create_gmail_draft(application_id):
     shared credential. Requires the user to have connected Gmail first."""
     application = _owned_application_or_404(application_id)
     if application.status != "ready" or not application.package_storage_path:
-        flash("Approve the application first to build the package.", "error")
+        flash(_("Approve the application first to build the package."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
     if not application.email:
-        flash("Generate or write an application email first.", "error")
+        flash(_("Generate or write an application email first."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
     if not application.contact_email:
-        flash("Add a contact email for this application first.", "error")
+        flash(_("Add a contact email for this application first."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     try:
@@ -517,16 +521,16 @@ def create_gmail_draft(application_id):
         )
         application.log_event("gmail_draft_created", "Gmail draft created (not sent).")
         db.session.commit()
-        flash("Gmail draft created - check your Drafts folder, review, and send it yourself.", "success")
+        flash(_("Gmail draft created - check your Drafts folder, review, and send it yourself."), "success")
     except gmail_oauth.GmailNotConnectedError:
-        flash("Connect your Gmail account first.", "error")
+        flash(_("Connect your Gmail account first."), "error")
     except gmail_oauth.GmailNotConfiguredError as e:
         flash(str(e), "error")
     except Exception as e:
         # Phase 8 security audit (2.6): was flashing str(e) - the same class
         # of bug W3 fixed for background-task errors, in a spot that fix
         # didn't reach. Raw detail stays server-side in the log only.
-        flash("Could not create the Gmail draft. Please try again.", "error")
+        flash(_("Could not create the Gmail draft. Please try again."), "error")
         log_event("email", f"Gmail draft creation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))
 
@@ -543,9 +547,9 @@ def update_status(application_id):
         if old_status != application.status:
             application.log_event("status_changed", f"Status changed: {old_status} -> {application.status}.")
             db.session.commit()
-        flash("Application updated.", "success")
+        flash(_("Application updated."), "success")
     else:
-        flash("Please correct the errors in the form.", "error")
+        flash(_("Please correct the errors in the form."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -561,8 +565,11 @@ def delete(application_id):
         typed = (request.form.get("confirm_text") or "").strip().upper()
         if typed != DELETE_CONFIRMATION_PHRASE:
             flash(
-                f'This application is past "preparing" and represents real history - '
-                f'type {DELETE_CONFIRMATION_PHRASE} to confirm permanent deletion.',
+                _(
+                    'This application is past "preparing" and represents real history - '
+                    'type %(phrase)s to confirm permanent deletion.',
+                    phrase=DELETE_CONFIRMATION_PHRASE,
+                ),
                 "error",
             )
             return redirect(url_for("applications.detail", application_id=application.id))
@@ -591,7 +598,7 @@ def delete(application_id):
     db.session.delete(application)
     db.session.commit()
     log_event("application", f"Application deleted ({job_title}).", user_id=current_user.id)
-    flash("Application deleted.", "info")
+    flash(_("Application deleted."), "info")
     return redirect(url_for("applications.list_applications"))
 
 
@@ -616,10 +623,10 @@ def check_replies(application_id):
     application = _owned_application_or_404(application_id)
 
     if not gmail_oauth.get_connection(current_user):
-        flash("Connect your Gmail account first.", "error")
+        flash(_("Connect your Gmail account first."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
     if not application.contact_email:
-        flash("Add a contact email above to check for replies.", "error")
+        flash(_("Add a contact email above to check for replies."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     submit_task(
@@ -630,7 +637,7 @@ def check_replies(application_id):
         application.id,
         context={"application_id": application.id},
     )
-    flash("Checking for replies in the background - refresh in a few seconds to see results.", "info")
+    flash(_("Checking for replies in the background - refresh in a few seconds to see results."), "info")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -690,9 +697,9 @@ def save_reply_suggestion(application_id, message_id):
             message.reply_suggestion_edited_at = utcnow()
         application.log_event("reply_suggestion_edited", "Reply suggestion edited manually.")
         db.session.commit()
-        flash("Reply saved.", "success")
+        flash(_("Reply saved."), "success")
     else:
-        flash("Please enter reply text.", "error")
+        flash(_("Please enter reply text."), "error")
     return redirect(url_for("applications.detail", application_id=application.id))
 
 
@@ -704,10 +711,10 @@ def create_reply_draft(application_id, message_id):
 
     reply_text = (request.form.get("reply_text") or message.ai_suggested_reply or "").strip()
     if not reply_text:
-        flash("Write or generate a reply first.", "error")
+        flash(_("Write or generate a reply first."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
     if not message.from_address:
-        flash("This message has no sender address on file.", "error")
+        flash(_("This message has no sender address on file."), "error")
         return redirect(url_for("applications.detail", application_id=application.id))
 
     try:
@@ -722,12 +729,12 @@ def create_reply_draft(application_id, message_id):
         )
         application.log_event("reply_draft_created", "Reply draft created (not sent).")
         db.session.commit()
-        flash("Reply draft created in Gmail - review and send it yourself.", "success")
+        flash(_("Reply draft created in Gmail - review and send it yourself."), "success")
     except gmail_oauth.GmailNotConnectedError:
-        flash("Connect your Gmail account first.", "error")
+        flash(_("Connect your Gmail account first."), "error")
     except Exception as e:
         # Phase 8 security audit (2.6): same reasoning as create_gmail_draft
         # above - raw detail stays server-side in the log only.
-        flash("Could not create the reply draft. Please try again.", "error")
+        flash(_("Could not create the reply draft. Please try again."), "error")
         log_event("gmail", f"Reply draft creation failed: {e}", level="warning", user_id=current_user.id)
     return redirect(url_for("applications.detail", application_id=application.id))

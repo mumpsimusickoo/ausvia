@@ -1,6 +1,7 @@
 from datetime import datetime, time
 
 from flask import Blueprint, render_template, redirect, url_for, flash, abort
+from flask_babel import gettext as _
 from flask_login import login_required, current_user
 
 from app.extensions import db
@@ -45,7 +46,7 @@ def users():
 def toggle_user_active(user_id):
     user = db.get_or_404(User, user_id)
     if user.id == current_user.id:
-        flash("You can't deactivate your own account.", "error")
+        flash(_("You can't deactivate your own account."), "error")
         return redirect(url_for("admin.users"))
     user.is_active = not user.is_active
     db.session.commit()
@@ -54,7 +55,7 @@ def toggle_user_active(user_id):
         f"Admin {'activated' if user.is_active else 'deactivated'} a user account.",
         user_id=current_user.id,
     )
-    flash(f"User {'activated' if user.is_active else 'deactivated'}.", "success")
+    flash(_("User activated.") if user.is_active else _("User deactivated."), "success")
     return redirect(url_for("admin.users"))
 
 
@@ -81,7 +82,7 @@ def codes():
         db.session.add(code)
         db.session.commit()
         log_event("admin", f"Invitation code created (type={code.code_type}).", user_id=current_user.id)
-        flash(f"Code created: {code_value}", "success")
+        flash(_("Code created: %(code)s", code=code_value), "success")
         return redirect(url_for("admin.codes"))
 
     all_codes = InvitationCode.query.order_by(InvitationCode.created_at.desc()).all()
@@ -94,7 +95,7 @@ def revoke_code(code_id):
     code.is_active = False
     db.session.commit()
     log_event("admin", "Invitation code revoked.", user_id=current_user.id)
-    flash("Code revoked.", "info")
+    flash(_("Code revoked."), "info")
     return redirect(url_for("admin.codes"))
 
 
@@ -115,7 +116,12 @@ def toggle_job_source(setting_id):
         f"Job source '{setting.source_name}' {'enabled' if setting.is_enabled else 'disabled'}.",
         user_id=current_user.id,
     )
-    flash(f"{setting.display_name} {'enabled' if setting.is_enabled else 'disabled'}.", "success")
+    flash(
+        _("%(source)s enabled.", source=setting.display_name)
+        if setting.is_enabled
+        else _("%(source)s disabled.", source=setting.display_name),
+        "success",
+    )
     return redirect(url_for("admin.job_sources"))
 
 
@@ -138,4 +144,7 @@ def components():
     can't ship to real users by accident, same as every other page here -
     deliberately not a separate DEBUG-only route, since that would exempt
     it from the auth check entirely rather than just from the nav."""
-    return render_template("admin/components.html")
+    # i18n pass 1, 2026-08-28: real render-time value for the
+    # format_local_date() demo - the currency figure has no live data to
+    # draw on (see the template's own note), so it stays a literal.
+    return render_template("admin/components.html", now=datetime.now())

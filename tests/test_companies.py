@@ -157,7 +157,13 @@ def test_first_seen_is_earliest_job_discovered_at(client, db, make_user):
 
     resp = client.get(f"/companies/{company.id}")
     html = resp.get_data(as_text=True)
-    expected = (date.today() - timedelta(days=30)).strftime("%d.%m.%Y")
+    # i18n pass 2: format_local_date() (English default locale in tests),
+    # not a hardcoded %d.%m.%Y - see DECISIONS.md's mass date-formatting
+    # sweep.
+    from app.i18n import format_local_date
+
+    with client.application.test_request_context("/"):
+        expected = format_local_date(date.today() - timedelta(days=30))
     assert expected in html
 
 

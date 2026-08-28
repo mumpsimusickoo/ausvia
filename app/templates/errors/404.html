@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Not found{% endblock %}
+{% block title %}{{ _("Not found") }}{% endblock %}
 {% block content %}
 <div class="py-20 text-center">
-  <h1 class="text-3xl font-bold text-t1">404 — Not found</h1>
-  <p class="mt-2 text-t2">This page doesn't exist.</p>
+  <h1 class="text-3xl font-bold text-t1">{{ _("404 — Not found") }}</h1>
+  <p class="mt-2 text-t2">{{ _("This page doesn't exist.") }}</p>
 </div>
 {% endblock %}
 {% block public_content %}
 <div class="py-20 text-center">
-  <h1 class="text-3xl font-bold text-t1">404 — Not found</h1>
-  <p class="mt-2 text-t2">This page doesn't exist.</p>
+  <h1 class="text-3xl font-bold text-t1">{{ _("404 — Not found") }}</h1>
+  <p class="mt-2 text-t2">{{ _("This page doesn't exist.") }}</p>
 </div>
 {% endblock %}

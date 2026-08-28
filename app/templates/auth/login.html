@@ -1,22 +1,22 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% from "_macros.html" import render_field, render_checkbox %}
-{% block title %}Log in — AUSVIA{% endblock %}
+{% block title %}{{ _("Log in") }} — AUSVIA{% endblock %}
 {% block public_content %}
 <section class="mx-auto max-w-sm px-4 py-16 md:px-0">
-  <h1 class="text-2xl font-bold text-t1 mb-1">Log in</h1>
-  <p class="text-sm text-t2 mb-6">Welcome back.</p>
+  <h1 class="text-2xl font-bold text-t1 mb-1">{{ _("Log in") }}</h1>
+  <p class="text-sm text-t2 mb-6">{{ _("Welcome back.") }}</p>
   <form method="post" class="rounded-xl border border-line bg-card shadow-sm p-6">
     {{ form.hidden_tag() }}
     {{ render_field(form.email) }}
     {{ render_field(form.password) }}
     {{ render_checkbox(form.remember_me) }}
     <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-fill hover:bg-brand-hover">
-      Log in
+      {{ _("Log in") }}
     </button>
   </form>
   <div class="mt-4 flex justify-between text-sm">
-    <a href="{{ url_for('auth.register') }}" class="text-brand hover:underline">Activate access code</a>
-    <a href="{{ url_for('auth.request_reset') }}" class="text-t2 hover:underline">Forgot password?</a>
+    <a href="{{ url_for('auth.register') }}" class="text-brand hover:underline">{{ _("Activate access code") }}</a>
+    <a href="{{ url_for('auth.request_reset') }}" class="text-t2 hover:underline">{{ _("Forgot password?") }}</a>
   </div>
 </section>
 {% endblock %}

@@ -1,9 +1,11 @@
 import sqlalchemy as sa
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask_babel import gettext as _
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from app.extensions import db, limiter
+from app.i18n import refresh_locale, sync_explicit_locale_to_user
 from app.models import User, InvitationCode, CodeRedemption, CandidateProfile
 from app.models.user import utcnow
 from app.utils.logging import log_event
@@ -28,7 +30,7 @@ def register():
     if form.validate_on_submit():
         code = InvitationCode.query.filter_by(code=form.access_code.data).first()
         if not code:
-            flash("Invalid access code.", "error")
+            flash(_("Invalid access code."), "error")
             return render_template("auth/register.html", form=form)
 
         valid, error = code.is_valid()
@@ -37,7 +39,7 @@ def register():
             return render_template("auth/register.html", form=form)
 
         if User.query.filter_by(email=form.email.data.lower()).first():
-            flash("An account with this email already exists.", "error")
+            flash(_("An account with this email already exists."), "error")
             return render_template("auth/register.html", form=form)
 
         role = "admin" if code.code_type == "admin" else "user"
@@ -69,19 +71,27 @@ def register():
         if redeemed.rowcount == 0:
             db.session.rollback()
             flash(
-                "This access code just became invalid (it may have already been used, "
-                "expired, or been deactivated). Please request a new one.",
+                _(
+                    "This access code just became invalid (it may have already been used, "
+                    "expired, or been deactivated). Please request a new one."
+                ),
                 "error",
             )
             return render_template("auth/register.html", form=form)
 
         db.session.add(CodeRedemption(code_id=code.id, user_id=user.id))
         db.session.add(CandidateProfile(user_id=user.id, contact_email=user.email))
+        # i18n pass 1: if this visitor already made an explicit language
+        # choice while anonymous (a real switcher click, cookie-backed -
+        # not Accept-Language guesswork), carry it into the new account
+        # rather than resetting to the schema default. See app/i18n.py.
+        sync_explicit_locale_to_user(user)
         db.session.commit()
+        refresh_locale()
 
         log_event("auth", f"New account registered (plan={plan}).", user_id=user.id)
         login_user(user)
-        flash("Welcome! Let's set up your candidate profile.", "success")
+        flash(_("Welcome! Let's set up your candidate profile."), "success")
         return redirect(url_for("profile.view"))
 
     return render_template("auth/register.html", form=form)
@@ -97,11 +107,20 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
         if user and user.check_password(form.password.data) and user.is_active:
+            # i18n pass 1: a locale cookie set by a real switcher click
+            # while logged out must survive this login - without this,
+            # get_locale() would immediately outrank it with whatever
+            # this account's User.locale already held (its own prior
+            # explicit choice, or just the untouched schema default for
+            # every pre-i18n account). See app/i18n.py.
+            sync_explicit_locale_to_user(user)
+            db.session.commit()
+            refresh_locale()
             login_user(user, remember=form.remember_me.data)
             log_event("auth", "User logged in.", user_id=user.id)
             next_url = request.args.get("next")
             return redirect(next_url or url_for("main.dashboard"))
-        flash("Invalid email or password.", "error")
+        flash(_("Invalid email or password."), "error")
         log_event("auth", "Failed login attempt.", level="warning")
 
     return render_template("auth/login.html", form=form)
@@ -112,7 +131,7 @@ def login():
 def logout():
     log_event("auth", "User logged out.", user_id=current_user.id)
     logout_user()
-    flash("You have been logged out.", "info")
+    flash(_("You have been logged out."), "info")
     return redirect(url_for("main.landing"))
 
 
@@ -130,7 +149,7 @@ def request_reset():
         # Always show the same message whether or not the account exists, so this
         # endpoint can't be used to enumerate registered emails.
         flash(
-            "If an account with that email exists, a reset link has been generated.",
+            _("If an account with that email exists, a reset link has been generated."),
             "info",
         )
         if current_app.config.get("MAIL_PROVIDER_CONFIGURED"):
@@ -143,15 +162,15 @@ def reset_password(token):
     try:
         email = _serializer().loads(token, salt=RESET_SALT, max_age=3600)
     except SignatureExpired:
-        flash("This reset link has expired. Please request a new one.", "error")
+        flash(_("This reset link has expired. Please request a new one."), "error")
         return redirect(url_for("auth.request_reset"))
     except BadSignature:
-        flash("This reset link is invalid.", "error")
+        flash(_("This reset link is invalid."), "error")
         return redirect(url_for("auth.request_reset"))
 
     user = User.query.filter_by(email=email).first()
     if not user:
-        flash("This reset link is invalid.", "error")
+        flash(_("This reset link is invalid."), "error")
         return redirect(url_for("auth.request_reset"))
 
     form = ResetPasswordForm()
@@ -159,7 +178,7 @@ def reset_password(token):
         user.set_password(form.password.data)
         db.session.commit()
         log_event("auth", "Password reset completed.", user_id=user.id)
-        flash("Your password has been reset. Please log in.", "success")
+        flash(_("Your password has been reset. Please log in."), "success")
         return redirect(url_for("auth.login"))
 
     return render_template("auth/reset_password.html", form=form)

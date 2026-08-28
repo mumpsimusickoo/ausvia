@@ -24,16 +24,27 @@ accepted/rejected/withdrawn/expired are terminal exits from the route, not
 stations on it, so they're surfaced as a separate terminal note rather
 than a ninth/tenth station (see build_status_route's docstring).
 """
+from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _l
+from flask_babel import ngettext
+
+from app.i18n import format_local_date, format_local_datetime
+from app.models.application import APPLICATION_STATUS_LABELS
+
 STATION_ORDER = ["discovered", "matched", "prepared", "approved", "sent", "reply", "interview", "offer"]
+# i18n pass 2: "Sent"/"Interview"/"Offer" reuse APPLICATION_STATUS_LABELS'
+# translations (same English word, same catalog entry) rather than
+# re-translating separately - "Discovered"/"Matched"/"Prepared"/"Reply"
+# have no status-code equivalent, so those are new lazy strings here.
 STATION_LABELS = {
-    "discovered": "Discovered",
-    "matched": "Matched",
-    "prepared": "Prepared",
-    "approved": "Approved",
-    "sent": "Sent",
-    "reply": "Reply",
-    "interview": "Interview",
-    "offer": "Offer",
+    "discovered": _l("Discovered"),
+    "matched": _l("Matched"),
+    "prepared": _l("Prepared"),
+    "approved": _l("Approved"),
+    "sent": APPLICATION_STATUS_LABELS["sent"],
+    "reply": _l("Reply"),
+    "interview": APPLICATION_STATUS_LABELS["interview"],
+    "offer": APPLICATION_STATUS_LABELS["offer"],
 }
 # Application.status values that correspond to a station further down the
 # route than "prepared" - not a station name itself (discovered/matched/
@@ -51,7 +62,7 @@ TERMINAL_EXCEPTION_STATUSES = ("rejected", "withdrawn", "expired")
 
 
 def _fmt(dt):
-    return dt.strftime("%d %b") if dt else None
+    return format_local_date(dt, format="d MMM") if dt else None
 
 
 def _latest(events, event_type):
@@ -64,7 +75,11 @@ def _status_changed_to(events, value):
     "Status changed: {old} -> {new}." (see applications/routes.py
     update_status()) - matching the exact "-> {value}." suffix tells us the
     application's status was genuinely set to `value` at some point, as
-    opposed to the route having simply moved past that station's index."""
+    opposed to the route having simply moved past that station's index.
+    `value` is always a raw status code (never translated - see
+    APPLICATION_STATUS_LABELS), and the log line it's matched against is
+    built from that same raw code (application.log_event, never a
+    translated label), so this comparison is unaffected by UI locale."""
     matches = [e for e in events if e.event_type == "status_changed" and e.description.endswith(f"-> {value}.")]
     return matches[-1] if matches else None
 
@@ -106,14 +121,16 @@ def _next_event(application, stations):
     if application.interview_date and application.interview_date > utcnow():
         delta = application.interview_date - utcnow()
         days = delta.days
-        when = application.interview_date.strftime("%d.%m, %H:%M")
+        when = format_local_datetime(application.interview_date, format="short")
         if days <= 0:
-            return f"Interview {when} — today"
-        return f"Interview {when} — in {days} day{'s' if days != 1 else ''}"
+            return _("Interview %(when)s — today", when=when)
+        return ngettext(
+            "Interview %(when)s — in %(num)d day", "Interview %(when)s — in %(num)d days", days, when=when,
+        )
 
     remaining = [s for s in stations if not s["reached"]]
     if remaining:
-        return f"{len(remaining)} station{'s' if len(remaining) != 1 else ''} remaining"
+        return ngettext("%(num)d station remaining", "%(num)d stations remaining", len(remaining))
     return None
 
 
@@ -181,13 +198,13 @@ def build_status_route(application, job_match=None):
             # without its job existing first, and Job.discovered_at is
             # non-nullable with a default - no pending case is honest here.
             reached = True
-            description = "AUSVIA found this posting."
+            description = _("AUSVIA found this posting.")
             date_label = _fmt(application.job.discovered_at)
 
         elif key == "matched":
             if job_match:
                 reached = True
-                description = "Your match score was computed for this posting."
+                description = _("Your match score was computed for this posting.")
                 date_label = _fmt(job_match.computed_at)
             else:
                 # Genuinely reachable in production: an application can be
@@ -197,46 +214,46 @@ def build_status_route(application, job_match=None):
                 # eagerly) but not impossible, so it's handled, not assumed
                 # away.
                 reached = False
-                description = "Not yet computed."
+                description = _("Not yet computed.")
 
         elif key == "prepared":
             cl = _latest(events, "cover_letter_generated")
             em = _latest(events, "email_generated")
             if cl and em:
-                description = "Cover letter and application email generated."
+                description = _("Cover letter and application email generated.")
             elif cl:
-                description = "Cover letter generated."
+                description = _("Cover letter generated.")
             elif em:
-                description = "Application email generated."
+                description = _("Application email generated.")
             else:
-                description = "Application started."
+                description = _("Application started.")
             ev = em or cl or _latest(events, "created")
             date_label = _fmt(ev.created_at) if ev else None
 
         elif key == "approved":
             if reached:
                 ev = _latest(events, "approved")
-                description = "You approved the application. PDF package built."
+                description = _("You approved the application. PDF package built.")
                 date_label = _fmt(ev.created_at) if ev else None
             else:
-                description = "Not reached yet."
+                description = _("Not reached yet.")
 
         elif key == "sent":
             if reached:
                 ev = _latest(events, "sent")
                 description = (
-                    f"Marked as sent to {application.contact_email}."
-                    if application.contact_email else "Marked as sent."
+                    _("Marked as sent to %(contact)s.", contact=application.contact_email)
+                    if application.contact_email else _("Marked as sent.")
                 )
                 date_label = _fmt(ev.created_at) if ev else None
             else:
-                description = "Not reached yet."
+                description = _("Not reached yet.")
 
         elif key == "reply":
             if has_reply:
                 description = (
-                    f"Reply received from {application.contact_email}."
-                    if application.contact_email else "A reply was detected."
+                    _("Reply received from %(contact)s.", contact=application.contact_email)
+                    if application.contact_email else _("A reply was detected.")
                 )
                 date_label = _fmt(first_reply_at) if first_reply_at else _fmt(reply_event.created_at if reply_event else None)
             elif reached:
@@ -244,31 +261,31 @@ def build_status_route(application, job_match=None):
                 # e.g. an interview arranged by phone, or a manual status
                 # correction. Worth naming as a real skip, not silence.
                 is_skipped = True
-                description = "Skipped."
+                description = _("Skipped.")
                 date_label = "—"
             else:
-                description = "Not reached yet."
+                description = _("Not reached yet.")
 
         elif key == "interview":
             if reached:
                 parts = []
                 if application.interview_date:
-                    parts.append(application.interview_date.strftime("%d %B, %H:%M"))
+                    parts.append(format_local_datetime(application.interview_date, format="d MMMM, HH:mm"))
                 if application.notes:
                     parts.append(application.notes.rstrip("."))
-                description = ". ".join(parts) + "." if parts else "Interview stage reached."
+                description = ". ".join(parts) + "." if parts else _("Interview stage reached.")
                 ev = _status_changed_to(events, "interview")
                 date_label = _fmt(ev.created_at) if ev else (_fmt(application.interview_date) if application.interview_date else None)
             else:
-                description = "Not reached yet."
+                description = _("Not reached yet.")
 
         elif key == "offer":
             if reached:
-                description = "Offer received."
+                description = _("Offer received.")
                 ev = _status_changed_to(events, "offer")
                 date_label = _fmt(ev.created_at) if ev else None
             else:
-                description = "Not reached yet."
+                description = _("Not reached yet.")
 
         stations.append({
             "key": key,
@@ -280,11 +297,16 @@ def build_status_route(application, job_match=None):
             "date_label": date_label or "—",
         })
 
+    # i18n pass 2: "Accepted"/rejected/withdrawn/expired all reuse
+    # APPLICATION_STATUS_LABELS - the same lookup status_pill() and
+    # StatusForm use - instead of status.replace("_", " ").title(), which
+    # has no German equivalent (same class of fix as status_pill() itself,
+    # see DECISIONS.md).
     terminal_label = None
     if status == "accepted":
-        terminal_label = "Accepted"
+        terminal_label = APPLICATION_STATUS_LABELS["accepted"]
     elif status in TERMINAL_EXCEPTION_STATUSES:
-        terminal_label = status.replace("_", " ").title()
+        terminal_label = APPLICATION_STATUS_LABELS[status]
 
     return {
         "stations": stations,
