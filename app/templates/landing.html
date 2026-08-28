@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_logo.html" import lockup %}
-{% from "_components.html" import match_band, status_pill %}
+{% from "_components.html" import match_band, status_pill, theme_toggle %}
 {% block title %}AUSVIA — Your path to Ausbildung{% endblock %}
 {% block public_content %}
 
@@ -13,6 +13,17 @@
   guaranteed to fit at 375px without crowding; the badge and secondary
   nav link are conveniences on wider screens, not load-bearing content
   (both are also reachable via the hero itself).
+
+  Toggle-fix pass, 2026-08-28: theme_toggle() (imported from
+  _components.html, not a local reimplementation - see base.html and
+  DECISIONS.md) sits between "See how it works" and "Log in", with a
+  reserved gap slot beside it for the language switcher a future pass
+  adds - same reserved-space treatment base.html's own authenticated
+  desktop header already uses. This is the landing page's first-ever
+  toggle, not a restored one - confirmed via git history that the
+  theme-toggle pass never actually reached this header (it was defined
+  only inside base.html's authenticated branch), so there was nothing to
+  drop during the hero rebuild despite how it looked.
 #}
 <header class="border-b border-line">
   <div class="px-4 md:px-10 py-5 flex items-center gap-4">
@@ -22,6 +33,9 @@
     <span class="hidden md:inline-flex font-mono text-[10px] tracking-[0.11em] text-t3 border border-line rounded-full px-2.5 py-1 whitespace-nowrap">Access code only</span>
     <div class="ml-auto flex items-center gap-1">
       <a href="#how-it-works" class="hidden md:inline-block text-sm font-medium text-t2 hover:text-t1 px-3 py-2">See how it works</a>
+      <div class="flex items-center gap-1">
+        {{ theme_toggle('theme-toggle-landing') }}
+      </div>
       <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-t2 hover:text-t1 px-3 py-2">Log in</a>
     </div>
   </div>

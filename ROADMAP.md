@@ -761,6 +761,20 @@ for a redesign pass, started 2026-08-24.
       score label; fixed with matching `pb-7` clearance). 5 new tests.
       Full detail: `DECISIONS.md`'s "Landing widen pass" entry,
       `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 widen pass".
+- [x] **Landing toggle-fix pass** - 2026-08-28, same day. The theme
+      toggle appeared missing from the rebuilt header; checked git history
+      first per explicit instruction and found it was never actually
+      reachable from `landing.html` - `theme_toggle()` was defined only
+      inside `base.html`'s authenticated branch, not dropped by the
+      rebuild. Moved the macro to `_components.html` as a genuinely shared,
+      importable component (both of `base.html`'s existing call sites
+      unchanged) and added a third call site in the landing header, with
+      room reserved beside it for the language switcher. Verified live via
+      Playwright, not just structurally: clicked the button and read
+      `data-theme`/`localStorage` directly, both directions, at 1920 and
+      375px, plus the persistence-through-login requirement end-to-end. 2
+      new tests. Full detail: `DECISIONS.md`'s "Landing toggle-fix pass"
+      entry, `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 toggle-fix pass".
 - [ ] **Screens pass 8+** - the remaining ~110 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components/

@@ -1472,6 +1472,43 @@ issue, not a breakpoint-specific one - it happened to be caught first at
 1920 simply because that was the first screenshot taken, not because
 narrower widths were somehow exempt from it.
 
+## Landing — 2026-08-28 toggle-fix pass
+
+Third same-day pass. The theme toggle appeared missing from the rebuilt
+header - investigated via `git log -p -- app/templates/landing.html`
+before touching anything (per explicit instruction not to re-add blind)
+and found it was never actually there: `theme_toggle()` was a
+`base.html`-local macro defined only inside
+`{% if current_user.is_authenticated %}`, so it was structurally
+unreachable from `landing.html`'s `public_content` block from the day it
+was built - not a regression from the hero rebuild. Full reasoning:
+`DECISIONS.md`'s "Landing toggle-fix pass" entry.
+
+**`theme_toggle()` moved from `base.html` to `_components.html`** as a
+properly importable macro (alongside `sun`/`moon`, imported there too) -
+the component layer's actual home for reusable presentational macros.
+`base.html` now imports it the same way any other page would; its two
+existing authenticated call sites (`theme-toggle-mobile`,
+`theme-toggle-desktop`) are unchanged. `landing.html` adds a third call
+site in its full-width header, between "See how it works" and "Log in,"
+with a reserved gap slot beside it for the language switcher - matching
+`base.html`'s own authenticated desktop header's reservation pattern.
+
+**No JS changes needed** - the end-of-body sync script already queries
+`.theme-toggle-btn` globally (a deliberate choice from an earlier bug, per
+that script's own comment), so a new instance anywhere in the DOM is
+picked up automatically.
+
+**Verified live, not just structurally** - clicked the landing toggle via
+Playwright and read `data-theme`/`localStorage` directly before and after,
+both directions, at 1920 and 375px, confirming the click handler actually
+fires and the theme actually changes (the desktop toggle went silently
+dead once before for exactly this class of reason - a script-ordering bug
+where the button existed in the DOM but nothing was wired to it). Also
+verified the persistence-through-login requirement end-to-end: set dark
+via the landing toggle, logged into a real account, confirmed
+`data-theme="dark"` on the resulting dashboard render.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the

@@ -205,3 +205,30 @@ def test_content_sections_use_the_single_sourced_wide_max_width(client):
     landing_markup = body[body.index("<header"):]
     assert "max-w-5xl" not in landing_markup  # fully migrated off the old, narrower container
     assert landing_markup.count("max-w-content") >= 5  # hero, journey strip, value blocks, closing CTA, footer
+
+
+def test_theme_toggle_renders_exactly_once_in_the_header(client):
+    # Toggle-fix pass, 2026-08-28: theme_toggle() was defined only inside
+    # base.html's authenticated branch, so it was never actually reachable
+    # from landing.html - confirmed via git history, not assumed. Moved to
+    # _components.html as a real importable macro; this asserts the moved
+    # macro renders on the public page, exactly once (not duplicated with
+    # base.html's own authenticated-branch instances, which never render
+    # for a logged-out visitor in the first place).
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    header_markup = body[body.index("<header"):body.index("</header>")]
+    assert 'id="theme-toggle-landing"' in header_markup
+    assert body.count('id="theme-toggle-') == 1
+
+
+def test_theme_toggle_still_renders_on_authenticated_pages(client, db, make_user):
+    # Regression check: moving theme_toggle() out of base.html's local
+    # scope into an import must not break its two existing authenticated
+    # call sites (mobile topbar, desktop sidebar header).
+    make_user(email="toggle-regress@example.com", password="Password123!")
+    login(client, "toggle-regress@example.com", "Password123!")
+    resp = client.get("/dashboard")
+    body = resp.data.decode("utf-8")
+    assert 'id="theme-toggle-mobile"' in body
+    assert 'id="theme-toggle-desktop"' in body

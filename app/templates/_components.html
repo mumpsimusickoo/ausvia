@@ -19,6 +19,8 @@
   any of them yet - migration is the screens pass's job, not this one.
 #}
 
+{% from "_icons.html" import sun, moon %}
+
 {# ============================================================
    BUTTONS - height 36 (compact 30), radius 8
    Bundle's own canonical swatch (Foundations 05) uses literal white on
@@ -415,4 +417,33 @@
   <div class="h-3.5 rounded-l-full ausvia-bar-fill ausvia-bar-animated bg-brand" style="width: {{ percent }}%"></div>
   {% endif %}
 </div>
+{% endmacro %}
+
+{# ============================================================
+   THEME TOGGLE - moved here from base.html (Landing toggle-fix pass,
+   2026-08-28). It was defined as a base.html-local macro inside
+   {% if current_user.is_authenticated %}, so it was never actually
+   reachable from an unauthenticated page's public_content block - not a
+   regression from any later pass, just structurally unreachable from the
+   day it was built (confirmed via `git log -p -- app/templates/landing.html`:
+   the theme-toggle commit never touched landing.html's header at all).
+   Moved to a properly importable macro so base.html's authenticated
+   chrome and any public page (starting with landing.html) share the
+   exact same component, not a second copy. Icon-only, shared markup for
+   every instance (mobile topbar, desktop sidebar header, now the landing
+   header too) - each needs its own `id` since more than one can render on
+   the same page. moon shows in light mode (click goes dark), sun shows in
+   dark mode (click goes light); base.html's end-of-body script toggles
+   [hidden] on whichever icon doesn't match the current theme, and queries
+   .theme-toggle-btn globally - already page-wide, so no wiring change was
+   needed there for a new instance to start working.
+   ============================================================ #}
+{% macro theme_toggle(id, fixed_ink=false) %}
+<button type="button" id="{{ id }}" class="theme-toggle-btn rounded-lg p-2 transition-colors duration-150
+    {% if fixed_ink %}text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
+    {% else %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand{% endif %}"
+    aria-label="Switch to dark theme">
+  <span class="theme-toggle-icon-moon">{{ moon(18) }}</span>
+  <span class="theme-toggle-icon-sun" hidden>{{ sun(18) }}</span>
+</button>
 {% endmacro %}

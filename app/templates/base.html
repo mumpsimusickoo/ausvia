@@ -132,26 +132,18 @@
   </div>
   {% endmacro %}
   {% from "_logo.html" import lockup %}
-  {% from "_icons.html" import menu, cross, sun, moon %}
-
+  {% from "_icons.html" import menu, cross %}
   {#
-    Theme pass, 2026-08-25: icon-only toggle, shared markup for both the
-    mobile topbar and the new desktop top bar (see below) - each instance
-    gets its own id since a page can render both (desktop bar hidden below
-    md, mobile header hidden at/above md) and ids must be unique. moon
-    shows in light mode (click goes dark), sun shows in dark mode (click
-    goes light); base.html's script toggles [hidden] on whichever icon
-    doesn't match the current theme rather than swapping markup.
+    Landing toggle-fix pass, 2026-08-28: theme_toggle() moved to
+    _components.html so it's a genuinely shared, importable macro - it
+    used to be defined right here, but only inside this
+    {% if current_user.is_authenticated %} branch, which made it
+    structurally unreachable from any public page's public_content block
+    (landing.html included) even though nothing about the branch ever
+    looked landing-specific. See _components.html for the macro itself
+    and DECISIONS.md's 2026-08-28 "Landing toggle-fix pass" entry.
   #}
-  {% macro theme_toggle(id, fixed_ink=false) %}
-  <button type="button" id="{{ id }}" class="theme-toggle-btn rounded-lg p-2 transition-colors duration-150
-      {% if fixed_ink %}text-ink-t2 hover:bg-white/10 hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-bright
-      {% else %}text-t2 hover:bg-tint hover:text-t1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand{% endif %}"
-      aria-label="Switch to dark theme">
-    <span class="theme-toggle-icon-moon">{{ moon(18) }}</span>
-    <span class="theme-toggle-icon-sun" hidden>{{ sun(18) }}</span>
-  </button>
-  {% endmacro %}
+  {% from "_components.html" import theme_toggle %}
 
   {#
     Logo-replacement pass, 2026-08-25: the mobile topbar/drawer lockups

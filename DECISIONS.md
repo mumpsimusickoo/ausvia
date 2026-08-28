@@ -6,6 +6,59 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Landing toggle-fix pass: the theme toggle was never reachable from landing.html, not a regression
+
+**Checked git history before touching anything, per explicit instruction,
+rather than re-adding blind.** `git log -p -- app/templates/landing.html`
+shows the theme-toggle commit (`7e5bff7`, 2026-08-25) touched
+`landing.html` exactly once, for an unrelated `bg-white` → `bg-card`
+swap on the value blocks - it never added a toggle button anywhere in
+that file. The macro itself (`theme_toggle()`) was defined inside
+`base.html`'s `{% if current_user.is_authenticated %}` branch, with its
+two call sites (`theme-toggle-mobile`, `theme-toggle-desktop`) both also
+inside that same branch. `landing.html` extends `base.html` but renders
+entirely inside the `{% else %}` branch (`{% block public_content %}`),
+where that macro was never defined - calling it from there would have
+raised `UndefinedError`, not silently done nothing. **The toggle was
+never on the landing page, at any point in this app's history** - not a
+regression introduced by the hero rebuild, a structurally-unreachable
+component from the day it was built. Worth stating plainly since the
+premise of "it was dropped" was wrong, even though the requested fix
+(get a working toggle onto the landing header) was exactly right.
+
+**Fixed by making it a genuinely shared component, not a duplicate.**
+`theme_toggle()` moved from a `base.html`-local macro to a properly
+importable one in `_components.html` (which already houses every other
+reusable presentational macro - `btn`, `status_pill`, `intelligence_surface`,
+etc. - per that file's own stated purpose). `base.html` now imports it
+the same way `landing.html` does (`{% from "_components.html" import
+theme_toggle %}`); both of `base.html`'s existing authenticated call
+sites are unchanged in behavior. `landing.html` adds a third call site
+(`theme-toggle-landing`) in its full-width header, between "See how it
+works" and "Log in," with a reserved gap slot beside it for the future
+language switcher - same treatment `base.html`'s own authenticated
+desktop header already uses for that reservation.
+
+**No JS wiring change was needed.** The end-of-`<body>` sync script in
+`base.html` already queries `.theme-toggle-btn` globally
+(`document.querySelectorAll`), specifically because an earlier bug
+(documented in that script's own comment) taught not to wire toggle
+instances individually or by position - any element with that class,
+anywhere in the DOM, is picked up automatically. Confirmed this holds for
+the new instance too, not just assumed from reading the script: clicked
+`#theme-toggle-landing` live via Playwright and read
+`document.documentElement.getAttribute('data-theme')` and
+`localStorage.getItem('ausvia-theme')` directly before and after, in both
+directions (light→dark and dark→light), at both 1920 and 375px. Also
+verified the specific persistence-through-login requirement carried over
+from the theme pass: set dark via the landing toggle, logged into a real
+account, and confirmed `data-theme="dark"` on the resulting dashboard
+render, with no separate re-verification needed since the mechanism
+(shared `localStorage` key, read by `base.html`'s pre-paint script on
+every page) was never landing-specific in the first place.
+
+---
+
 ## 2026-08-28 — Landing widen pass: the hero was rebuilt after all, plus a 1600px wide-screen layout
 
 **Correcting the previous pass's scope reading, not re-litigating the

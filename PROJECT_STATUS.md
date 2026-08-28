@@ -639,6 +639,27 @@ for a redesign pass. Status:
   width. 5 new tests. Full detail: `DECISIONS.md`'s "Landing widen pass"
   entry, `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 widen pass". Full
   pytest suite: 553 passed / 3 skipped (548 + 5).
+- **Landing toggle-fix pass done, 2026-08-28 (same day)** - the theme
+  toggle looked missing from the rebuilt header. Checked
+  `git log -p -- app/templates/landing.html` before re-adding anything,
+  per explicit instruction, and found it was never actually reachable
+  from landing.html in the first place: `theme_toggle()` was a
+  `base.html`-local macro defined only inside
+  `{% if current_user.is_authenticated %}`, so calling it from the public
+  page's block would have raised `UndefinedError` - not a regression from
+  the rebuild. Moved the macro to `_components.html` as a properly
+  importable component (both of `base.html`'s existing authenticated call
+  sites unchanged); `landing.html` now imports the same macro for a third
+  call site in its header, between "See how it works" and "Log in," with
+  room reserved beside it for the language switcher. No JS wiring change
+  needed - the sync script already queries `.theme-toggle-btn` globally.
+  Verified live via Playwright (clicked the button, read
+  `data-theme`/`localStorage` directly, not just checked the markup
+  exists) in both directions at 1920 and 375px, plus the
+  persistence-through-login requirement end-to-end with a real account.
+  2 new tests. Full detail: `DECISIONS.md`'s "Landing toggle-fix pass"
+  entry, `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 toggle-fix pass". Full
+  pytest suite: 555 passed / 3 skipped (553 + 2).
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
