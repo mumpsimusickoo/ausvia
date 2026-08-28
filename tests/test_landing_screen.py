@@ -1,0 +1,149 @@
+"""Screens pass 7 (Landing, 2026-08-28) - last screen in the inventory.
+Covers: the dynamically-generated footer source list (enabled adapters
+only, never the bundle's hardcoded three), the absence of privacy/imprint
+links (deliberately omitted, not stubbed - see DECISIONS.md), the honest
+value-block copy (fixed weights, real category order), the 8-station
+decorative journey strip, the preview cards' plausible (not all-high)
+scores, and the closing CTA's real access-code field posting straight to
+the existing auth.register endpoint with no auth logic changed.
+"""
+from tests.conftest import login
+
+
+def test_landing_renders_for_logged_out_visitor(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert b"Your path to Ausbildung." in resp.data
+    assert b"Access code only" in resp.data
+
+
+def test_logged_in_user_redirected_away_from_landing(client, db, make_user):
+    make_user(email="already@example.com", password="Password123!")
+    login(client, "already@example.com", "Password123!")
+    resp = client.get("/", follow_redirects=False)
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/dashboard")
+
+
+def test_footer_lists_only_enabled_configured_sources(client):
+    # TestingConfig forces Adzuna/Jooble credentials to None (see
+    # app/jobs/adapters/manager.py + config.py), so only Arbeitsagentur is
+    # actually enabled AND configured - matching the real dev environment
+    # today (Adzuna's trial never started, Jooble's key returns 403).
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Bundesagentur für Arbeit" in body
+    assert "Adzuna" not in body
+    assert "Jooble" not in body
+    assert "Source:" in body  # singular - exactly one source enabled
+
+
+def test_footer_excludes_manual_import_as_a_source(client):
+    # "manual" always has a JobSourceSetting row (so admins can see/toggle
+    # it), but it's a user-driven one-URL-at-a-time import, not something
+    # AUSVIA searches on a visitor's behalf - it must never appear in a
+    # "we search these sources" claim.
+    resp = client.get("/")
+    assert b"Manual import" not in resp.data
+
+
+def test_footer_source_list_updates_once_adzuna_is_configured(app, db):
+    # Proves the list is genuinely generated from get_enabled_adapter_names(),
+    # not hardcoded - configuring a second adapter changes the rendered
+    # output without touching the template.
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+    client = app.test_client()
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Adzuna" in body
+    assert "Sources:" in body  # plural - two sources now enabled
+
+
+def test_footer_has_no_privacy_or_imprint_links(client):
+    # Deliberate: no privacy policy or Impressum route/page exists in the
+    # app today, and a placeholder or dead link would be worse than the
+    # honest gap - see DECISIONS.md's 2026-08-28 entry.
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Datenschutz" not in body
+    assert "Impressum" not in body
+    assert "privacy" not in body.lower()
+
+
+def test_value_blocks_state_fixed_weights_and_real_category_order(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "fixed weights" in body
+    # Real weighting order from app/jobs/matching.py's match_band (30/25/20/15/10)
+    idx_skills = body.index("Skills")
+    idx_language = body.index("Language")
+    idx_education = body.index("Education")
+    idx_location = body.index("Location")
+    idx_start = body.index("Start")
+    assert idx_skills < idx_language < idx_education < idx_location < idx_start
+
+
+def test_value_blocks_cover_the_three_real_constraints(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "never invented experience" in body
+    assert "never invented company details" in body
+    assert "you review and send them yourself" in body
+
+
+def test_journey_strip_shows_all_eight_stages(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    for stage in ["Discover", "Match", "Prepare", "Apply", "Track", "Reply", "Interview", "Offer"]:
+        assert stage in body
+
+
+def test_preview_card_scores_are_not_all_high(client):
+    # The page's own claim is that scoring is honest, not flattering - a
+    # spread of bands (not three 90+ scores) is the point being verified.
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Strong match" in body
+    assert "Good match" in body
+    assert "Some gaps" in body
+
+
+def test_closing_cta_posts_real_access_code_to_register(client, db):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert 'action="/auth/register"' in body
+    assert 'name="access_code"' in body
+    assert 'name="csrf_token"' in body
+
+
+def test_closing_cta_code_field_carries_through_to_register_page(client, db):
+    # Submitting only the code (as the landing form does) should land on
+    # the real register page with the code retained and the still-missing
+    # fields flagged - not silently discarded. No auth logic is exercised
+    # differently than posting the full form would.
+    resp = client.post(
+        "/auth/register",
+        data={"access_code": "ABCD-1234-EFGH"},
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert b"ABCD-1234-EFGH" in resp.data
+    assert b"This field is required" in resp.data
+
+
+def test_closing_cta_invalid_code_reaches_the_real_gate_once_fields_are_filled(client, db):
+    # Two-step flow: landing hands off a bogus code, the visitor then fills
+    # in the rest on the real register page - same rejection as posting
+    # the whole form directly (tests/test_auth.py's own coverage).
+    resp = client.post(
+        "/auth/register",
+        data={
+            "access_code": "ZZZZ-ZZZZ-ZZZZ",
+            "email": "nobody-landing@example.com",
+            "password": "Password123!",
+            "confirm_password": "Password123!",
+        },
+        follow_redirects=True,
+    )
+    assert b"Invalid access code" in resp.data

@@ -1340,6 +1340,86 @@ company, including one with a merged-duplicate listing; a company where
 an application exists and one where it doesn't) - both themes, 375px
 with the numeric `scrollWidth` check, zero overflow.
 
+## Landing — 2026-08-28 pass
+
+Last screen in the named inventory. Bundle structure, English copy - not
+translations of the German, but every commitment the three value blocks
+make (fixed weights, no invented experience/company data, nothing sent
+without approval) is kept exactly, since these describe real constraints
+the app enforces, not marketing flourish. See `DECISIONS.md` for the full
+reasoning on the deferred legal links, the dynamically-generated source
+list, the real (not decorative) access-code field, and the dark-mode
+wordmark bug found and fixed mid-pass.
+
+**The fixed-ink counterform hero is untouched** - same SVG path data, same
+5-label graphic, same "Five stages. You are on the first." caption. Only
+the prose *inside* existing hero elements changed (badge label: "Access
+code only"; the two paragraphs). No element was added, removed, or
+repositioned within the hero. This is the deliberate deviation from the
+bundle's own landing (which is fully theme-following, with no themed-hero
+reference to build from) that the theme pass already established -
+`hero-backing` exists in `tailwind.config.js` specifically to pin this.
+
+**New below the hero** (confirmed genuinely absent before this pass, per
+the screen inventory's own Part 1 correction - not a restyle of something
+present-but-different): a mini search-result preview and a mini
+application-status preview, using the real `match_band(compact=true)` and
+`status_pill()` components a logged-in user's actual results render, not
+a one-off visual approximation. Scores are deliberately 82/64/45
+(Strong/Good/Some gaps), not three high numbers - the page's own claim is
+that scoring is honest, so the preview needed to demonstrate that, not
+contradict it. An 8-station decorative journey strip (Discover → Match →
+Prepare → Apply → Track → Reply → Interview → Offer) sits below that -
+purely illustrative; the real, functioning 8-station route is Application
+Detail's Wayfinding tracker (`app/applications/status_route.py`),
+unrelated to and unmodified by this pass. The strip's connector lines are
+`hidden md:block` so the 8 labels wrap onto their own lines below 768px
+instead of forcing horizontal scroll - the connected single-row treatment
+only appears once there's room for it.
+
+**The footer's source list is generated, not hardcoded** -
+`get_enabled_adapter_names()` (`app/jobs/adapters/manager.py`), excluding
+"manual". Today that's a single source ("Bundesagentur für Arbeit
+(Jobsuche)"), not the bundle's three, because Adzuna's trial credentials
+were never configured and Jooble's key isn't set in this environment
+either (separately known to return 403 when it is - see the
+`project_jooble_eval_pending` memory). A test configures Adzuna mid-test
+and asserts the rendered footer text actually changes, proving the list
+is genuinely computed per-request rather than a static string that happens
+to look computed.
+
+**Privacy/Impressum links are omitted, not stubbed.** No such route/page
+exists in the app; per explicit instruction this was a stop-and-ask, not
+a guess, and the answer was to leave the honest gap rather than invent a
+placeholder. Logged in `ROADMAP.md` as a pre-launch blocker with the
+specific coverage a real privacy policy here would need (Gmail OAuth,
+document storage, the AI provider, job source APIs) - see `DECISIONS.md`.
+
+**The closing CTA's access-code input is a real, working first step of
+registration, not a decorative mockup of one.** It POSTs directly to the
+existing `auth.register` endpoint (same CSRF-hidden-input pattern
+`chip_attribute`'s remove-form already uses) - zero lines changed in
+`app/auth/routes.py` or `app/auth/forms.py`. Submitting just the code
+lands on the real register page with the code retained and the remaining
+required fields flagged, rather than silently discarding what was typed.
+
+**Dark-mode wordmark bug, found via this pass's own required dark
+screenshot, fixed at the call site:** `landing.html`'s header `lockup()`
+call was the only one anywhere in the app relying on `_logo.html`'s
+unqualified defaults (`wordmark_color="#0C1013"`, correct only on a light
+surface) - once `bg-paper` became theme-aware, the header text became
+invisible against the dark background. Fixed with the same
+`symbol_color="var(--brand)"` / `wordmark_color="var(--t1)"` pair
+`base.html`'s themed sidebar lockup already uses, confirmed by reading the
+rendered SVG's `fill` attributes in both themes, not just a screenshot
+comparison.
+
+**Verified both required states** (logged out - the normal case; an
+invalid access code, driven end-to-end starting from the landing page's
+own closing CTA field through to the real "Invalid access code." flash on
+the register page) - both themes, 375px with the numeric `scrollWidth`
+check, zero overflow in either theme.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the

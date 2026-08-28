@@ -6,6 +6,7 @@ from flask_login import login_required, current_user
 from app.ai.dashboard_insight import MIN_APPLICATIONS_FOR_INSIGHT, generate_dashboard_insight, get_dashboard_insight
 from app.ai.provider import AIProviderError
 from app.applications.status_route import latest_transition_at
+from app.jobs.adapters.manager import get_enabled_adapter_names, KNOWN_SOURCES
 from app.models.job import SavedJob, JobRadarStatus
 from app.models.application import Application
 from app.priority_digest import ACTIVE_STATUSES, TERMINAL_STATUSES, compute_priority_digest
@@ -69,7 +70,16 @@ def _situation_summary(digest_items):
 def landing():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
-    return render_template("landing.html")
+    # Screens pass 7 (Landing, 2026-08-28): the footer's source list is
+    # generated from whichever adapters are actually enabled AND configured
+    # right now (get_enabled_adapter_names() - app/jobs/adapters/manager.py),
+    # never hardcoded to the bundle's three. "manual" is excluded - it's a
+    # user-driven one-URL-at-a-time import, not something AUSVIA searches on
+    # a visitor's behalf, so it doesn't belong in a "we search these
+    # sources" claim.
+    source_names = [name for name in get_enabled_adapter_names() if name != "manual"]
+    source_display_names = [KNOWN_SOURCES[name] for name in source_names]
+    return render_template("landing.html", source_display_names=source_display_names)
 
 
 @bp.route("/health")

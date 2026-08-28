@@ -594,19 +594,47 @@ for a redesign pass. Status:
   thin rather than inventing around it. 9 new tests. Full detail:
   `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Company Detail
   - 2026-08-28 pass". Full pytest suite: 535 passed / 3 skipped (526 + 9).
-- **Next actual step:** screens pass 7+ - migrating the remaining ~110
+- **Screens pass 7 (Landing) done, 2026-08-28** - `landing.html`, the last
+  screen in the named inventory. The fixed-ink counterform hero is
+  untouched (deliberate deviation, established by the theme pass); only
+  its prose changed. New below it: a mini search-result preview and a
+  mini application-status preview (genuinely absent before this pass,
+  real `match_band`/`status_pill` components, deliberately non-flattering
+  scores 82/64/45 - Strong/Good/Some gaps, not three high numbers), an
+  8-station decorative journey strip (the real, functioning one is
+  Application Detail's Wayfinding tracker, unrelated), and a footer whose
+  source list is generated from `get_enabled_adapter_names()` - today
+  just "Bundesagentur für Arbeit (Jobsuche)", not the bundle's hardcoded
+  three, since Adzuna's trial was never started and Jooble's key isn't
+  configured. Privacy/Impressum links are deliberately omitted rather than
+  stubbed - no such route/page exists yet, and this was a stop-and-ask
+  the user resolved by deferring both as a logged pre-launch blocker (see
+  `ROADMAP.md`) rather than inventing placeholders. The closing CTA's
+  access-code field is real - it posts straight to the existing
+  `auth.register` endpoint with zero auth-logic changes, verified
+  end-to-end with an invalid code through to the real rejection flash.
+  Also fixed a pre-existing dark-mode bug found via this pass's own
+  required dark screenshot: the header logo's wordmark was invisible in
+  dark mode (a hardcoded ink hex on a background that became theme-aware
+  in an earlier pass), fixed at the one call site responsible. 13 new
+  tests. Full detail: `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s
+  "Landing - 2026-08-28 pass". Full pytest suite: 548 passed / 3 skipped
+  (535 + 13).
+- **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English
   default, language switcher - reserved space for it already sits beside
   the theme toggle) - **neither yet scoped or started.** Job Detail,
   Application Detail, Dashboard, Find Ausbildung, Candidate Profile /
-  Documents, and Company Detail are the reference call sites now for how
-  a real screen uses `match_band` (full and compact shapes),
+  Documents, Company Detail, and Landing are the reference call sites now
+  for how a real screen uses `match_band` (full and compact shapes),
   `intelligence_surface` (read-only, editable, and cross-application-
   insight shapes), `status_pill`, `empty_state`, `chip_source`,
   `chip_attribute`, and the rest of the component layer; the token
   layer, component layer, and schema pass are all available for the
-  rest of the screens pass to build on.
+  rest of the screens pass to build on. Separately, before any public
+  (non-invite-only) launch: a real Impressum + privacy policy, per
+  `ROADMAP.md`'s "Before any public launch" section.
 
 ## Security posture
 

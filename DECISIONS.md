@@ -6,6 +6,107 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Screens pass 7 (Landing, last screen): legal links deferred as a launch blocker, source list generated, a real access-code field, and a dark-mode wordmark bug
+
+**Privacy policy and Impressum links are omitted from the footer, not
+stubbed.** No privacy or Impressum route/page exists anywhere in the app
+today (grepped `app/` for privacy/imprint/impressum/Datenschutz - nothing).
+The bundle's footer shows "Datenschutz · Impressum" as if both already
+existed; per explicit instruction, this was a stop-and-ask rather than a
+guess, and the user's call was to omit both for now rather than invent
+placeholder pages or dead links - an Impressum needs the user's real legal
+identity (operator name, address, contact), which isn't something to
+improvise mid-pass, and the legal obligation attaches to a public service;
+AUSVIA is invite-only with no public signup today, so there is no live
+gap being papered over. **This is logged here as a genuine pre-launch
+blocker, not just a cosmetic gap** - before AUSVIA opens beyond invite-only,
+it needs:
+- A real Impressum: operator name, address, contact (the user's call, not
+  improvised here).
+- A real privacy policy covering, specifically (not boilerplate): Gmail
+  OAuth (what scopes are requested, what's read, what's stored, how tokens
+  are handled - see `app/integrations/gmail_oauth.py`); uploaded documents
+  (what's stored, where, for how long - `app/documents/`); AI providers
+  (that profile and job data is sent to a third party, currently Gemini,
+  and precisely what is and isn't sent - see `app/ai/facts.py`'s
+  formatters for what's actually included); job source APIs and what's
+  queried (Arbeitsagentur today, potentially Adzuna/Jooble later).
+See `ROADMAP.md`'s "Explicitly not scheduled" / pre-launch section for the
+cross-reference so this surfaces before any public opening, not after.
+
+**The footer's source list is generated from `get_enabled_adapter_names()`
+(`app/jobs/adapters/manager.py`), excluding "manual"** - never the
+bundle's hardcoded "Bundesagentur für Arbeit, Adzuna, Jooble". Checked the
+real dev environment directly rather than assuming: `ADZUNA_APP_ID`,
+`ADZUNA_APP_KEY`, and `JOOBLE_API_KEY` are all unset today (Adzuna's trial
+was never started; Jooble's key - obtained separately, see the
+`project_jooble_eval_pending` note - returns 403 and isn't configured in
+this environment), so `all_adapters()` resolves to exactly
+`{"arbeitsagentur"}` right now. The footer therefore reads "Source:
+Bundesagentur für Arbeit (Jobsuche)" (singular), not three sources - proven
+dynamic, not hardcoded, by a test that configures Adzuna mid-test and
+confirms the footer's own rendered text changes (`Sources:`, plural) with
+no template edit. "manual" is excluded even though it always has a
+`JobSourceSetting` row (so admins can see/toggle it) - it's a user-driven
+one-URL-at-a-time import, not something AUSVIA searches on a visitor's
+behalf, so it doesn't belong in a "we search these sources" claim.
+
+**The closing CTA's access-code field is real, not decorative.** The
+bundle shows an inline code input + "Weiter" button; building a fake
+input that discards what the visitor typed would be dishonest UI, and
+duplicating `RegisterForm`'s validation logic in a second place would be
+new auth logic (out of this pass's scope). Instead the field POSTs
+directly to the existing `auth.register` endpoint (same CSRF pattern
+`_components.html`'s `chip_attribute` remove-form already uses - a hidden
+`csrf_token` input, no `_macros.html` full-form render needed for one
+field). Submitting only the code lands on the real register page with the
+code carried over and the still-missing email/password fields flagged -
+the same outcome as posting the full form with those fields blank. Zero
+lines changed in `app/auth/routes.py` or `forms.py`. Verified live,
+two-step: typed a well-formed-but-fake code on landing, confirmed it
+carried through to the register page with "This field is required" on
+the empty fields, then filled in email/password and confirmed the real
+"Invalid access code." flash appears - exactly the existing, already-tested
+rejection path (`tests/test_auth.py::test_register_rejects_invalid_code`),
+reached through a new entry point rather than a new mechanism.
+
+**Found and fixed a pre-existing dark-mode bug while taking this pass's
+own required dark-mode screenshot**: `landing.html`'s header logo used
+`{{ lockup(24) }}` with no explicit colors, relying on `_logo.html`'s
+defaults (`wordmark_color="#0C1013"`, the literal ink hex - correct only
+on a light surface). Once the theme pass made `bg-paper` theme-aware, the
+header background and the wordmark text became the same near-black in
+dark mode, and the wordmark disappeared entirely (confirmed by reading the
+rendered SVG's `fill` attributes directly, not just eyeballing the
+screenshot - the symbol mark stayed visible, only the text vanished).
+Grepped every `lockup(` call site in the app: this was the *only* one
+anywhere using the unqualified default - every other call site (mobile
+topbar/drawer, the authenticated desktop sidebar) already passes explicit
+colors. Fixed with the exact `symbol_color="var(--brand)"` /
+`wordmark_color="var(--t1)"` pair `base.html`'s own themed sidebar lockup
+already uses successfully - not a new pattern, and confined to this one
+call site rather than changing `_logo.html`'s shared default (smaller
+blast radius; other public pages don't currently render a header logo at
+all, so nothing else was silently depending on the old default). Verified
+by reading the SVG's fill attributes in both themes after the fix, not
+just a visual screenshot comparison.
+
+**Journey strip and preview cards are new UI, not restyled-in-place** -
+confirmed genuinely absent from `landing.html` before this pass (screen
+inventory's own Part 1 correction: "confirmed genuinely absent... not a
+restyle of something present-but-different"). Both get their own section
+below the hero rather than living inside it, since the bundle's own
+two-column hero layout (headline + preview cards side by side) isn't the
+layout this app's fixed-ink counterform hero uses, and that hero is
+explicitly out of scope to restructure this pass. Preview-card scores are
+deliberately 82/64/45 (Strong/Good/Some gaps) rather than three high
+numbers, matching the page's own claim that scoring is honest - and use
+the same `match_band(compact=true)` / `status_pill()` components a
+logged-in user's real results actually render, not a one-off visual
+approximation.
+
+---
+
 ## 2026-08-28 — Screens pass 6 (Company Detail): "listings" vs. "positions", and a second wholly-blank-profile fix
 
 **"Listings on file" is the raw `JobListing` count, not the number of

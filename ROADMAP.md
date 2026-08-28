@@ -726,14 +726,49 @@ for a redesign pass, started 2026-08-24.
       explicitly flagged the company facts as thin rather than inventing
       around it. 9 new tests. Full detail: `DECISIONS.md`'s 2026-08-28
       entry, `DESIGN_SYSTEM.md`'s "Company Detail - 2026-08-28 pass".
-- [ ] **Screens pass 7+** - the remaining ~110 existing card/badge/button/
+- [x] **Screens pass 7: Landing** - 2026-08-28, `landing.html`, last screen
+      in the named inventory (`AUSVIA_2_0_SCREEN_INVENTORY.md`'s ten). The
+      fixed-ink counterform hero is untouched (deliberate deviation, see
+      `DESIGN_SYSTEM.md`) - only its prose (badge label, paragraphs) was
+      reworded. New below it: a mini search-result preview + mini
+      application-status preview (genuinely absent before this pass, real
+      `match_band`/`status_pill` components, deliberately non-flattering
+      scores 82/64/45), an 8-station decorative journey strip (the real,
+      functioning one is Application Detail's Wayfinding route,
+      unrelated), and a footer with a source list generated from
+      `get_enabled_adapter_names()` - today just "Bundesagentur für Arbeit
+      (Jobsuche)", not the bundle's hardcoded three, since Adzuna's trial
+      was never started and Jooble's key returns 403. The closing CTA's
+      access-code field is real (posts straight to the existing
+      `auth.register` endpoint, zero auth-logic changes), not decorative.
+      Privacy/Impressum links are deliberately omitted, not stubbed - see
+      the pre-launch blocker below. Also fixed a pre-existing dark-mode bug
+      found via this pass's own required dark screenshot: the header logo
+      wordmark was invisible in dark mode (hardcoded ink hex on a
+      theme-aware background). 13 new tests. Full detail: `DECISIONS.md`'s
+      2026-08-28 entry.
+- [ ] **Screens pass 8+** - the remaining ~110 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
-      remaining per-screen re-layouts beyond tokens/logo/theme/components.
-      Not yet scoped or started. The named token layer
+      remaining per-screen re-layouts beyond tokens/logo/theme/components/
+      the ten named-inventory screens (all ten now done as of pass 7). Not
+      yet scoped or started. The named token layer
       (`text-display`/`text-title`/`text-section`/etc., `rounded-panel`,
       `shadow-hairline`/`shadow-overlay`) is available for it; adopting
       those tokens on existing headings/cards site-wide is itself part of
       this not-yet-started work.
+
+## Before any public launch (not yet scheduled)
+
+- [ ] **Real Impressum + privacy policy** - no privacy or Impressum
+      route/page exists anywhere in the app today; the Landing pass
+      (2026-08-28) deliberately left the footer's legal links out rather
+      than stub them - see `DECISIONS.md`'s 2026-08-28 entry for exactly
+      what the privacy policy needs to cover (Gmail OAuth scopes/storage,
+      uploaded document retention, what's sent to the AI provider, which
+      job source APIs are queried) and why an Impressum needs the user's
+      real legal identity, not something to improvise mid-pass. Currently
+      low-urgency only because AUSVIA is invite-only with no public
+      signup - this becomes a hard blocker the moment that changes.
 
 ## Explicitly not scheduled
 

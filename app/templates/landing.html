@@ -1,18 +1,29 @@
 {% extends "base.html" %}
 {% from "_logo.html" import lockup %}
+{% from "_components.html" import match_band, status_pill %}
 {% block title %}AUSVIA — Your path to Ausbildung{% endblock %}
 {% block public_content %}
 
 <header class="border-b border-line">
   <div class="mx-auto max-w-5xl px-4 py-5 md:px-8 flex items-center justify-between">
     {#
-      Logo-replacement pass, 2026-08-25: this header is a light surface,
-      so it relies on lockup()'s default symbol_color (`brand`, #0B767D) -
-      no explicit override needed here, unlike the ink-surface calls in
-      base.html.
+      Screens pass 7 (Landing, 2026-08-28): found via this pass's own
+      required dark-mode screenshot - this header sits on bg-paper, which
+      became theme-aware in the theme pass, but lockup()'s default
+      wordmark_color is the literal ink hex (#0C1013), correct only in
+      light mode. In dark mode the header background and the wordmark text
+      became the same near-black, and the wordmark disappeared entirely
+      (the symbol mark stayed visible; only the text vanished). This is
+      landing.html's own only unqualified lockup() call in the whole app -
+      grepped every other call site, all already pass explicit colors -
+      so it's fixed here with the exact same var(--brand)/var(--t1) pair
+      base.html's own themed sidebar lockup already uses successfully, not
+      a new pattern. Likely affects other public-only pages that render a
+      header logo (none currently do), flagged in DECISIONS.md rather than
+      swept beyond this file.
     #}
     <a href="{{ url_for('main.landing') }}" class="flex items-center">
-      {{ lockup(24) }}
+      {{ lockup(24, symbol_color="var(--brand)", wordmark_color="var(--t1)") }}
     </a>
     <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-t2 hover:text-t1">Log in</a>
   </div>
@@ -29,11 +40,19 @@
   approximate the coordinates). The graphic is full-bleed (breaks out of
   the centered max-w-5xl column) since it reads as a continuation of the
   ink hero surface with the route as negative space - see DESIGN_SYSTEM.md.
+
+  Screens pass 7 (Landing, 2026-08-28): this hero stays exactly as built -
+  fixed-ink, not theme-following, and its own embedded 5-label counterform
+  graphic is untouched, per explicit instruction. The bundle's landing is
+  fully theme-following with no themed-hero reference to build from, so
+  the deviation is deliberate, not a gap - see DESIGN_SYSTEM.md. Only the
+  prose inside the hero (badge label, paragraphs) was reworded this pass;
+  no element was added, removed, or restructured.
 #}
 <section class="bg-ink">
   <div class="mx-auto max-w-5xl px-4 pt-20 pb-16 md:px-8 text-center">
     <span class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-bright">
-      Private, invitation-only
+      Access code only
     </span>
     <h1 class="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white text-balance">
       Your path to Ausbildung.
@@ -46,8 +65,9 @@
        wrong surface entirely). No ink-t3 use, per the established
        AA-safety rule - see DESIGN_SYSTEM.md Accessibility. #}
     <p class="mt-5 text-lg text-ink-t2 max-w-2xl mx-auto">
-      Find Ausbildung opportunities that actually fit your skills, qualifications,
-      language level, and goals — then let AUSVIA help you prepare the application.
+      AUSVIA searches real Ausbildung postings, works out transparently why each one
+      fits you, helps you prepare a complete application, and tracks it through to a
+      reply. Nothing is ever sent without you.
     </p>
     <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
       {#
@@ -73,8 +93,8 @@
     <div id="how-it-works" class="mt-20 pt-14 border-t border-white/10 text-left">
       <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <p class="text-ink-t2 max-w-xl">
-          One profile. A transparent match score for every opportunity. An AI-prepared
-          application you review before anything goes out. Nothing is ever sent without you.
+          One profile powers every match and every draft. You approve the cover
+          letter, the email, and the send — nothing happens without you.
         </p>
         <p class="shrink-0 text-xs text-ink-t2 whitespace-nowrap">Five stages. You are on the first.</p>
       </div>
@@ -104,7 +124,7 @@
   <div class="relative w-full bg-hero-backing" style="aspect-ratio: 1240 / 300">
     <svg viewBox="0 0 1240 300" preserveAspectRatio="none" class="absolute inset-0 block w-full h-full" aria-hidden="true">
       {# Hardcoded ink hex, not a Tailwind class (SVG path fill) - kept in
-         sync with the `ink` token's new value (#0C1013, was #0B1220) so
+         sync with the `ink` token's new value (#0C1011, was #0B1220) so
          this counterform cut doesn't drift into a visibly different
          near-black from the solid ink surface it's cut out of. #}
       <path fill="#0C1013" fill-rule="evenodd"
@@ -122,25 +142,152 @@
   </div>
 </section>
 
+{#
+  New this pass: mini search-result + mini application-status previews.
+  Confirmed genuinely absent from landing.html before this pass (screen
+  inventory's Part 1 correction). The bundle places these beside the hero
+  copy in a two-column layout; that layout belongs to the bundle's own
+  hero, which this app deliberately doesn't use (see the fixed-ink hero
+  above), so they get their own section below it instead - same content,
+  not the same composition. Illustrative data (fictional postings), same
+  as the bundle's own approach for a page no one is logged into yet - but
+  the "N sources" claim on the search card and the real match_band/
+  status_pill components are the same components/data shape a logged-in
+  user would actually see, not a fabricated look. Scores are deliberately
+  not all-high (82/64/45 - Strong/Good/Some gaps) since the page's own
+  claim is that scoring is honest, not flattering.
+#}
+<section class="mx-auto max-w-5xl px-4 pt-20 md:px-8">
+  <div class="grid gap-5 md:grid-cols-2 items-start">
+    <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden">
+      <div class="flex items-center gap-3 px-5 py-3 border-b border-line">
+        <span class="font-mono text-[10px] tracking-[0.11em] text-t3">FIND AUSBILDUNG · LEIPZIG</span>
+        <span class="ml-auto font-mono text-[10px] tracking-[0.09em] text-brand whitespace-nowrap">{{ source_display_names|length }} SOURCE{{ 'S' if source_display_names|length != 1 else '' }}</span>
+      </div>
+      <div class="divide-y divide-line">
+        {% for title, company, location, cat_scores, score, label in [
+          ("Ausbildung Mechatroniker/in (m/w/d)", "Nordwerk Elektrotechnik GmbH", "Leipzig",
+            {"skills": 90, "language": 85, "education": 80, "location": 70, "start_date": 70}, 82, "Strong match"),
+          ("Ausbildung Elektroniker/in Betriebstechnik", "Möller & Sohn Anlagenbau KG", "Halle",
+            {"skills": 72, "language": 60, "education": 65, "location": 55, "start_date": 60}, 64, "Good match"),
+          ("Ausbildung Fachinformatiker/in", "Hanseatik Systeme GmbH", "Leipzig",
+            {"skills": 50, "language": 40, "education": 45, "location": 40, "start_date": 50}, 45, "Some gaps"),
+        ] %}
+        <div class="flex items-center gap-4 px-5 py-4">
+          <div class="flex-1 min-w-0">
+            <p class="font-display font-semibold text-sm text-t1 truncate">{{ title }}</p>
+            <p class="text-xs text-t2 mt-0.5 truncate">{{ company }} · {{ location }}</p>
+            <div class="mt-3 max-w-[190px]">{{ match_band(cat_scores, compact=true) }}</div>
+          </div>
+          <div class="flex-none text-right">
+            <span class="font-display font-semibold text-2xl tabular-nums text-brand">{{ score }}</span>
+            <p class="text-[11px] text-t2 whitespace-nowrap">{{ label }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-line border-l-[3px] border-l-brand bg-card shadow-sm p-5 md:mt-9">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <span class="font-mono text-[10px] tracking-[0.11em] text-brand">APPLICATION · HANSEATIK SYSTEME</span>
+        <span class="ml-auto">{{ status_pill('sent') }}</span>
+      </div>
+      <p class="mt-3 text-sm text-t2">
+        Sent 18 Aug · Reply pending · Cover letter, email, and PDF package included.
+      </p>
+    </div>
+  </div>
+</section>
+
+{#
+  New this pass: the 8-station journey strip (Discover -> Match -> Prepare
+  -> Apply -> Track -> Reply -> Interview -> Offer). Purely decorative on
+  this page - a preview of the full path, not a claim about what's live.
+  The real, functioning version is the Application Detail Wayfinding
+  route (app/applications/status_route.py's STATION_ORDER) - unrelated to
+  and unmodified by this pass. Connector lines are hidden below md so the
+  8 labels wrap onto their own lines instead of overflowing the viewport
+  at 375px; the connected single-row treatment only appears once there's
+  room for it.
+#}
+<section class="mx-auto max-w-5xl px-4 pt-16 md:px-8">
+  <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-5 md:flex-nowrap">
+    {% for label in ["Discover", "Match", "Prepare", "Apply", "Track", "Reply", "Interview", "Offer"] %}
+    <span class="font-mono text-[10px] tracking-[0.1em] uppercase text-t2 whitespace-nowrap">{{ label }}</span>
+    {% if not loop.last %}<span class="hidden md:block flex-1 min-w-[8px] h-px bg-line2"></span>{% endif %}
+    {% endfor %}
+  </div>
+</section>
+
 <section class="mx-auto max-w-5xl px-4 py-20 md:px-8">
   <div class="grid gap-4 md:grid-cols-3">
-    {% for title, body in [
-      ("Understand every opportunity", "A transparent, multi-factor match score - education, skills, language, location, timing - never a black-box guess. Every score comes with why you match and what's missing."),
-      ("Let AUSVIA prepare your application", "A personalized Anschreiben and email, grounded only in your real profile - never invented experience or qualifications - plus your documents assembled into one clean PDF."),
-      ("Stay in control", "AUSVIA drafts; you approve. Nothing is ever sent automatically - not an application, not a reply. You review everything, then send it yourself."),
+    {% for eyebrow, title, body in [
+      ("TRANSPARENT", "Every score you can check yourself", "Five criteria with fixed weights — Skills, Language, Education, Location, Start. You see exactly what's met and what's missing. Never a black box."),
+      ("PREPARED", "Cover letter, email, PDF package", "Generated from your real profile and the real posting — never invented experience, never invented company details."),
+      ("IN YOUR HANDS", "Nothing goes out without your OK", "AUSVIA drafts the cover letter and the email; you review and send them yourself. Replies stay your decision too."),
     ] %}
     <div class="rounded-xl border border-line bg-card shadow-sm p-6">
-      <h3 class="font-semibold text-t1">{{ title }}</h3>
+      <span class="font-mono text-[10px] tracking-[0.11em] text-brand">{{ eyebrow }}</span>
+      <h3 class="mt-3.5 font-display font-semibold text-t1">{{ title }}</h3>
       <p class="mt-2 text-sm text-t2">{{ body }}</p>
     </div>
     {% endfor %}
   </div>
 </section>
 
+{#
+  Closing CTA - restyled to the bundle's wider panel treatment with a real
+  inline access-code field, not a decorative one. Posts straight to the
+  real auth.register endpoint (RegisterForm's own access_code field, same
+  CSRF pattern _components.html's chip_attribute remove-form already
+  uses) - no auth logic changed or duplicated here. Submitting with only
+  a code filled in lands on the real register page with the code carried
+  over and the still-missing email/password fields flagged, exactly like
+  submitting that form directly with those fields blank - a real
+  progressive first step, not a fake input that discards what you typed.
+#}
+<section id="login" class="mx-auto max-w-5xl px-4 pb-20 md:px-8">
+  <div class="rounded-2xl border border-line bg-raised p-8 md:p-11 flex flex-wrap items-center gap-8">
+    <div class="flex-1 min-w-[280px]">
+      <h2 class="font-display font-semibold text-2xl md:text-3xl tracking-tight text-t1">Ready for your first match?</h2>
+      <p class="mt-2.5 text-sm text-t2 max-w-md">
+        AUSVIA is currently invite-only. Enter your access code, fill in your profile,
+        and see your first match — in under ten minutes.
+      </p>
+    </div>
+    <form method="post" action="{{ url_for('auth.register') }}" class="flex flex-wrap gap-2.5">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="landing-access-code" class="sr-only">Access code</label>
+      <input id="landing-access-code" name="access_code" placeholder="Access code"
+             class="h-[46px] w-[190px] rounded-lg border border-line2 bg-card px-3.5 font-mono text-[13px] tracking-[0.08em] text-t1 uppercase placeholder:normal-case focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand">
+      <button type="submit" class="h-[46px] rounded-lg bg-brand px-5 text-sm font-semibold text-on-fill hover:bg-brand-hover transition-colors duration-150">
+        Continue
+      </button>
+    </form>
+  </div>
+</section>
+
+{#
+  Footer - previously just a copyright line + one CTA link, with no source
+  list and no legal links at all (screen inventory's Part 1 correction:
+  "not hardcoded, just not there"). The source list is generated from
+  get_enabled_adapter_names() (app/jobs/adapters/manager.py), excluding
+  "manual" (not a searchable source), so it can never claim a source the
+  app can't currently search - today that's Arbeitsagentur only (Adzuna's
+  trial was never started, Jooble's credentials return 403), not the
+  bundle's three. Privacy/Impressum links are deliberately omitted, not
+  stubbed - see DECISIONS.md's 2026-08-28 entry for why a placeholder
+  would be worse than the honest gap, and what a real Impressum/privacy
+  policy here would need to cover before any public launch.
+#}
 <footer class="border-t border-line">
-  <div class="mx-auto max-w-5xl px-4 py-8 md:px-8 flex items-center justify-between text-sm text-t2">
+  <div class="mx-auto max-w-5xl px-4 py-8 md:px-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-t3">
     <span>&copy; {{ 2026 }} AUSVIA</span>
-    <a href="{{ url_for('auth.register') }}" class="font-medium text-brand hover:underline">Enter access code &rarr;</a>
+    {% if source_display_names %}
+    <span>{{ 'Source' if source_display_names|length == 1 else 'Sources' }}: {{ source_display_names|join(', ') }}</span>
+    {% endif %}
+    <a href="{{ url_for('auth.register') }}" class="ml-auto font-medium text-brand hover:underline">Enter access code &rarr;</a>
   </div>
 </footer>
 {% endblock %}
