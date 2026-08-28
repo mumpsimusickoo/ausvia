@@ -6,6 +6,11 @@ value-block copy (fixed weights, real category order), the 8-station
 decorative journey strip, the preview cards' plausible (not all-high)
 scores, and the closing CTA's real access-code field posting straight to
 the existing auth.register endpoint with no auth logic changed.
+
+Widen pass (2026-08-28, same day): the hero rebuild (two-column, bundle
+composition, old counterform staircase graphic removed entirely) and the
+1600px max-w-content wide-screen layout, single-sourced in
+tailwind.config.js.
 """
 from tests.conftest import login
 
@@ -147,3 +152,56 @@ def test_closing_cta_invalid_code_reaches_the_real_gate_once_fields_are_filled(c
         follow_redirects=True,
     )
     assert b"Invalid access code" in resp.data
+
+
+def test_old_counterform_hero_is_gone(client):
+    # The pre-2.0 hero (centered single column, staircase SVG cutout,
+    # "Five stages" caption) had no bundle equivalent and was removed
+    # entirely by the widen pass, not hidden or relocated.
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Five stages" not in body
+    assert "aspect-ratio: 1240 / 300" not in body
+    assert "fill-rule" not in body
+
+
+def test_hero_is_two_column_with_eyebrow_and_preview_panel(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "AUSBILDUNG · NATIONWIDE" in body
+    # The preview panel now lives inside the hero - confirm it renders
+    # exactly once, not once in the hero and once in a leftover standalone
+    # section (the old section this pass folded into the hero).
+    assert body.count("FIND AUSBILDUNG · LEIPZIG") == 1
+    assert body.count("APPLICATION · HANSEATIK SYSTEME") == 1
+    assert body.count("Ausbildung Mechatroniker/in (m/w/d)") == 1
+
+
+def test_access_code_badge_and_how_it_works_link_moved_to_header(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    # Exactly one "Access code only" badge now (header, not the old hero).
+    assert body.count("Access code only") == 1
+    assert "See how it works" in body
+
+
+def test_header_has_no_max_width_wrapper(client):
+    # The header is deliberately full-width/edge-to-edge - every other
+    # section uses max-w-content, but the header must not.
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    header_markup = body[body.index("<header"):body.index("</header>")]
+    assert "max-w-content" not in header_markup
+    assert "max-w-5xl" not in header_markup
+
+
+def test_content_sections_use_the_single_sourced_wide_max_width(client):
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    # Scoped to landing.html's own markup (from <header> on) - base.html's
+    # shared pre-content flash-message wrapper still uses max-w-5xl and is
+    # out of this pass's scope (it's shared chrome for every public page,
+    # not landing-specific content).
+    landing_markup = body[body.index("<header"):]
+    assert "max-w-5xl" not in landing_markup  # fully migrated off the old, narrower container
+    assert landing_markup.count("max-w-content") >= 5  # hero, journey strip, value blocks, closing CTA, footer

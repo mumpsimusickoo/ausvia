@@ -6,6 +6,77 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-28 — Landing widen pass: the hero was rebuilt after all, plus a 1600px wide-screen layout
+
+**Correcting the previous pass's scope reading, not re-litigating the
+theme pass's decision.** The theme pass's "hero stays fixed-ink" was
+about COLOUR - there was no bundle reference for a themed counterform, so
+the ink background was kept. The Landing pass's prompt generalized that
+into "out of scope: the hero's visual design," which was read literally
+and protected the entire pre-2.0 composition (centered single column, the
+counterform staircase SVG, "Five stages. You are on the first."). None of
+that exists in the bundle's own landing at all. The user identified this
+as their own instruction's fault, not a misread, and asked for the actual
+bundle hero this time: a two-column row, eyebrow/headline/promise/buttons
+on the left, a preview panel on the right. The ink background is
+unchanged - that part of the original decision genuinely does stand.
+
+**The counterform staircase graphic, its "Five stages" caption, and the
+old centered-hero composition are removed entirely, not hidden or kept as
+an alternate state.** They have no bundle equivalent and nothing else on
+the page referenced them. `hero-backing` (`tailwind.config.js`) is
+removed too - it existed as a single-consumer pin for that graphic's
+counterform-cutout backing color; with the graphic gone, keeping the
+token would mean documented-but-dead config.
+
+**The preview panel reuses the previous pass's search-result and
+application-status cards rather than building a second set** - same
+`match_band(compact=true)`/`status_pill()` components, same three
+postings and scores (82/64/45), moved from their old standalone section
+(which sat below the hero as a workaround for the hero not having room
+for them) into the hero's right column, which is their actual position in
+the bundle. The old standalone section is deleted, not left in place -
+it would otherwise be a literal duplicate of the same cards now living in
+the hero. Found and fixed one real layout bug surfaced by this pass's own
+1920px screenshot: the overlapping application-status card (`-mt-7`,
+matching the bundle's `-28px`) clipped into the third listing's "Some
+gaps" label, because the reused search card's actual content height
+differs from what the bundle's original spacing assumed. Fixed by adding
+`pb-7` to the listings container - the overlap now eats into reserved
+empty space, not text.
+
+**The access-code badge and "See how it works" move into the header**,
+matching the bundle's actual header composition (`logo + badge` left,
+`"So funktioniert es" + "Log in"` right) - the previous pass kept the
+badge inside the hero out of the same overcautious scope reading. Both
+are hidden below `md` (only logo + Log in guaranteed to fit at 375px
+without crowding) - a visitor can still reach "how it works" and the
+access code via the hero's own buttons on narrow screens, so nothing is
+actually unreachable, just decluttered.
+
+**The 1600px wide-screen width is single-sourced as `max-w-content` in
+`tailwind.config.js`**, not repeated as a literal at each of the five
+section call sites (hero, journey strip, value blocks, closing CTA,
+footer) - a one-line change if the user wants it tuned after seeing it
+live, per their explicit request. The bundle's own 1180px was not reused;
+1600px was the user's specified value for this pass, chosen because a
+1900px+ monitor made 1180px's margins excessive. The **header is
+deliberately the one section with no `max-w-content` wrapper** - it
+reaches both edges of the viewport, per explicit instruction, with the
+same ~40px (`px-10`) padding the content sections use so the logo and nav
+still align visually with the content below despite the different
+container behavior.
+
+**Verified at three widths (1920, 1280, 375), both themes** - the
+900px+ delta between the widen pass's primary case (1920) and the
+previous pass's only-tested desktop width (1280, effectively, since
+nothing wider was checked) is exactly where the empty-margin problem the
+user flagged would have shown up, and exactly where the overlap-clipping
+bug above was actually found. Zero horizontal overflow (`scrollWidth` <=
+`innerWidth`) at all three widths in both themes.
+
+---
+
 ## 2026-08-28 — Screens pass 7 (Landing, last screen): legal links deferred as a launch blocker, source list generated, a real access-code field, and a dark-mode wordmark bug
 
 **Privacy policy and Impressum links are omitted from the footer, not

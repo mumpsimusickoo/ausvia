@@ -1351,31 +1351,31 @@ reasoning on the deferred legal links, the dynamically-generated source
 list, the real (not decorative) access-code field, and the dark-mode
 wordmark bug found and fixed mid-pass.
 
-**The fixed-ink counterform hero is untouched** - same SVG path data, same
-5-label graphic, same "Five stages. You are on the first." caption. Only
-the prose *inside* existing hero elements changed (badge label: "Access
-code only"; the two paragraphs). No element was added, removed, or
-repositioned within the hero. This is the deliberate deviation from the
-bundle's own landing (which is fully theme-following, with no themed-hero
-reference to build from) that the theme pass already established -
-`hero-backing` exists in `tailwind.config.js` specifically to pin this.
+**The hero was rebuilt the same day** (Landing widen pass, immediately
+after this pass shipped) - see "Landing — 2026-08-28 widen pass" below for
+the current hero. The paragraph originally here claimed the counterform
+hero was untouched "per explicit instruction"; that instruction turned out
+to be an overly-literal scope reading the user corrected the same day, not
+a decision that held. Left as struck-through history rather than deleted,
+since the reasoning that led to the wrong call (documented in
+`DECISIONS.md`'s 2026-08-28 widen-pass entry) is itself worth keeping.
 
-**New below the hero** (confirmed genuinely absent before this pass, per
-the screen inventory's own Part 1 correction - not a restyle of something
-present-but-different): a mini search-result preview and a mini
-application-status preview, using the real `match_band(compact=true)` and
-`status_pill()` components a logged-in user's actual results render, not
-a one-off visual approximation. Scores are deliberately 82/64/45
-(Strong/Good/Some gaps), not three high numbers - the page's own claim is
-that scoring is honest, so the preview needed to demonstrate that, not
-contradict it. An 8-station decorative journey strip (Discover → Match →
-Prepare → Apply → Track → Reply → Interview → Offer) sits below that -
-purely illustrative; the real, functioning 8-station route is Application
+**A mini search-result preview and a mini application-status preview were
+added this pass** (confirmed genuinely absent before it, per the screen
+inventory's own Part 1 correction), using the real `match_band(compact=true)`
+and `status_pill()` components a logged-in user's actual results render.
+Scores are deliberately 82/64/45 (Strong/Good/Some gaps), not three high
+numbers - the page's own claim is that scoring is honest. Originally built
+as a standalone section below the hero (the hero had no room for them at
+the time); the same-day widen pass moved them into the hero's right
+column instead and deleted the standalone section - see below. An
+8-station decorative journey strip (Discover → Match → Prepare → Apply →
+Track → Reply → Interview → Offer) sits below the hero - purely
+illustrative; the real, functioning 8-station route is Application
 Detail's Wayfinding tracker (`app/applications/status_route.py`),
-unrelated to and unmodified by this pass. The strip's connector lines are
-`hidden md:block` so the 8 labels wrap onto their own lines below 768px
-instead of forcing horizontal scroll - the connected single-row treatment
-only appears once there's room for it.
+unrelated to and unmodified by either pass. The strip's connector lines
+are `hidden md:block` so the 8 labels wrap onto their own lines below
+768px instead of forcing horizontal scroll.
 
 **The footer's source list is generated, not hardcoded** -
 `get_enabled_adapter_names()` (`app/jobs/adapters/manager.py`), excluding
@@ -1420,6 +1420,58 @@ own closing CTA field through to the real "Invalid access code." flash on
 the register page) - both themes, 375px with the numeric `scrollWidth`
 check, zero overflow in either theme.
 
+## Landing — 2026-08-28 widen pass
+
+Two changes, same day as the pass above: the hero rebuild, and a
+1600px wide-screen content width. Full reasoning in `DECISIONS.md`'s
+"Landing widen pass" entry - summary here.
+
+**Hero is now the bundle's actual two-column composition**, on the same
+`bg-ink` background as before (that part of the original decision holds).
+Left column: mono eyebrow ("AUSBILDUNG · NATIONWIDE"), headline, promise
+paragraph, two buttons - all that survives from the old hero, reworded
+copy only. Right column: the search-result + application-status preview
+panel, moved in from its old standalone section below the hero (that
+section is deleted - keeping it would have meant the same cards rendering
+twice on the page). Cards use `shadow-ink-overlay`
+(`tailwind.config.js` - built for exactly this: a themed `bg-card` panel
+on the fixed-ink surface, where a hairline shadow doesn't read) rather
+than `shadow-sm`, since they're no longer sitting on the ordinary page
+background. The application-status card overlaps the search card's lower
+edge (`-mt-7 ml-auto w-[82%]`, matching the bundle's own `-28px` overlap
+math) - the listings container carries a matching `pb-7` so that overlap
+eats into reserved empty space, not the third listing's own score label
+(a real clipping bug this pass's own 1920px screenshot caught - the
+reused card's actual content height didn't match what the bundle's
+original spacing assumed).
+
+**The access-code badge and "See how it works" moved from the hero into
+the header**, matching the bundle's actual header composition. Both
+`hidden md:inline` - logo + Log in are the only two guaranteed to fit at
+375px without crowding; the hero's own buttons still reach both
+destinations on narrow screens, so nothing becomes unreachable.
+
+**1600px content width, single-sourced.** `tailwind.config.js`'s
+`theme.extend.maxWidth.content` (`max-w-content`), consumed by every
+section except the header, which is the one deliberately full-width,
+edge-to-edge element on the page (no `max-w` wrapper at all, same ~40px
+(`px-10`) padding as the content sections so its logo/nav still line up
+with the content below despite the different container rule). One value,
+one place to tune it.
+
+**The old counterform staircase graphic, its "Five stages" caption, and
+the `hero-backing` token that existed only to support it are gone** - see
+"Visual direction: Counterform (1a)" above, now marked retired.
+
+**Verified at 1920 (primary case - this is what the widen pass is
+actually about), 1280, and 375, both themes** - zero horizontal overflow
+at any width in either theme, confirmed numerically
+(`document.documentElement.scrollWidth <= window.innerWidth`) at each,
+not just visually. The overlap-clipping bug above is a fixed-pixel-offset
+issue, not a breakpoint-specific one - it happened to be caught first at
+1920 simply because that was the first screenshot taken, not because
+narrower widths were somehow exempt from it.
+
 ## Visual direction: Counterform (1a), scoped exception for status (1c)
 
 Three directions were explored (Counterform, Record, Wayfinding — see the
@@ -1435,23 +1487,24 @@ anxiety for someone navigating an unfamiliar process*, which is exactly
 what the application-status view's job is. Two directions, applied to two
 different problems, not two houses styles competing on one page.
 
-### Landing hero + process flow (1a)
+### Landing hero + process flow (1a) — retired 2026-08-28
 
-The five-stage sequence ("Discover → Match → Prepare → Apply → Track") is a
-**filled compound path** (`fill-rule="evenodd"`, `fill="#0B1220"`) — subpath
-1 is a solid ink rectangle spanning the full graphic band, subpath 2 is the
-route, cut out as the hole. The route is never a drawn/stroked line (the
-first version of this pass used a 3px stroke, which read as "a line on a
-dark background," not as an opening cut through solid material — corrected
-2026-08-12). The band is full-bleed (breaks out of the centered content
-column) and sits on the app's `paper` background color, so the counterform
-cut reveals the page surface through it — literally the same construction
-as the logo mark, at hero scale. Path data in
-`app/templates/landing.html` is copied verbatim from the approved
-correction and must not be re-derived or approximated. Labels are
-percentage-positioned over an `aspect-ratio`-locked container (not SVG
-`<text>` this time — see the correction's judgment-call note in
-`DECISIONS.md` for why). No motion on this graphic — only bars animate.
+**This graphic no longer exists in `landing.html`** - retired by the
+Landing widen pass in favor of the bundle's actual two-column hero (see
+"Landing — 2026-08-28 widen pass" below) and the separate 8-station
+decorative journey strip that pass's predecessor already built. Kept here
+as historical record, not current spec - the five-stage counterform
+sequence ("Discover → Match → Prepare → Apply → Track") was a **filled
+compound path** (`fill-rule="evenodd"`), subpath 1 a solid ink rectangle
+spanning the full graphic band, subpath 2 the route cut out as the hole,
+full-bleed, labels percentage-positioned over an `aspect-ratio`-locked
+container. It had no bundle equivalent at all (the bundle's own landing
+never had this graphic - it was this app's own pre-2.0 hero construction,
+carried forward unquestioned into the first Landing pass by an
+overly-literal scope reading, corrected the same day it was found). The
+shear/bar-fill construction technique documented below (fixed 12px
+`clip-path`, `min-width: 28px`) remains current - it's a general
+match-band/bar-fill pattern used well beyond this one retired graphic.
 
 ### Signature construction: the shear is a fixed 12px, not a ratio
 

@@ -595,9 +595,7 @@ for a redesign pass. Status:
   `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s "Company Detail
   - 2026-08-28 pass". Full pytest suite: 535 passed / 3 skipped (526 + 9).
 - **Screens pass 7 (Landing) done, 2026-08-28** - `landing.html`, the last
-  screen in the named inventory. The fixed-ink counterform hero is
-  untouched (deliberate deviation, established by the theme pass); only
-  its prose changed. New below it: a mini search-result preview and a
+  screen in the named inventory. Added a mini search-result preview and a
   mini application-status preview (genuinely absent before this pass,
   real `match_band`/`status_pill` components, deliberately non-flattering
   scores 82/64/45 - Strong/Good/Some gaps, not three high numbers), an
@@ -616,10 +614,31 @@ for a redesign pass. Status:
   Also fixed a pre-existing dark-mode bug found via this pass's own
   required dark screenshot: the header logo's wordmark was invisible in
   dark mode (a hardcoded ink hex on a background that became theme-aware
-  in an earlier pass), fixed at the one call site responsible. 13 new
-  tests. Full detail: `DECISIONS.md`'s 2026-08-28 entry, `DESIGN_SYSTEM.md`'s
-  "Landing - 2026-08-28 pass". Full pytest suite: 548 passed / 3 skipped
-  (535 + 13).
+  in an earlier pass), fixed at the one call site responsible. This pass
+  kept the pre-2.0 counterform hero untouched, believing that was the
+  scope - **corrected the same day, see next entry.** 13 new tests.
+- **Landing widen pass done, 2026-08-28 (same day)** - corrects the
+  previous entry's scope reading: "hero stays fixed-ink" was about
+  colour, not about protecting the entire pre-2.0 hero composition, which
+  has no bundle equivalent at all. Hero rebuilt as the bundle's actual
+  two-column row (eyebrow/headline/promise/buttons left, the preview
+  panel - reused from the pass above, not rebuilt twice - right, on the
+  same unchanged ink background). The counterform staircase graphic and
+  its "Five stages" caption are removed entirely, not hidden. The
+  access-code badge and "See how it works" moved from the hero into the
+  header, matching the bundle. Every content section now uses a
+  single-sourced `max-w-content` (1600px, `tailwind.config.js`) instead
+  of the old `max-w-5xl` (1024px) - the header alone is genuinely
+  full-width/edge-to-edge, per explicit instruction. Found and fixed a
+  real clipping bug via this pass's own required 1920px screenshot: the
+  reused overlap card's fixed `-mt-7` ate into the third listing's own
+  score label (the reused card's real content height didn't match what
+  the bundle's original spacing assumed) - fixed with matching `pb-7`
+  clearance, not a re-tuned overlap number. Verified at 1920 (primary
+  case), 1280, and 375, both themes - zero horizontal overflow at any
+  width. 5 new tests. Full detail: `DECISIONS.md`'s "Landing widen pass"
+  entry, `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 widen pass". Full
+  pytest suite: 553 passed / 3 skipped (548 + 5).
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - and the i18n pass (English

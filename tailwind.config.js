@@ -41,6 +41,15 @@ module.exports = {
         // yet, so nothing consumes this today.
         panel: '20px',
       },
+      maxWidth: {
+        // Landing's wide-screen content column (2026-08-28 widen pass).
+        // The bundle uses 1180px; widened here because on a 1900px+
+        // monitor that leaves large empty margins the user didn't want.
+        // Single-sourced so it's a one-line change if it needs tuning
+        // after review - every landing.html section uses `max-w-content`
+        // instead of repeating a pixel value at each call site.
+        content: '1600px',
+      },
       boxShadow: {
         // Exact bundle values, for when hairline/overlay precision
         // actually matters. The existing `shadow-sm` (used at many call
@@ -114,18 +123,12 @@ module.exports = {
         'ink-err': '#E4665A', 'ink-err-tint': '#251311',
         'ink-info': '#5FA6D6', 'ink-info-tint': '#0E1D26',
         // Accent text/icon on ink (mobile topbar/drawer nav-active,
-        // landing hero badge, logo symbol on the surfaces above).
+        // landing hero eyebrow, logo symbol on the surfaces above).
         bright: '#4FC3C9',
         // Primary action FILL specifically on the fixed-ink landing
         // hero. Distinct from `bright` (a text/icon accent).
         'bright-action': '#12949B',
         'bright-action-hover': '#3FBFC4',
-        // The light backing behind the landing hero's counterform
-        // cutout (see landing.html) - a pinned copy of the exact hex
-        // `paper` held before the theme pass, not a live reference to
-        // it, since `paper` now varies by theme and this must not.
-        // Single consumer today.
-        'hero-backing': '#F2F5F6',
       },
     },
   },

@@ -727,11 +727,8 @@ for a redesign pass, started 2026-08-24.
       around it. 9 new tests. Full detail: `DECISIONS.md`'s 2026-08-28
       entry, `DESIGN_SYSTEM.md`'s "Company Detail - 2026-08-28 pass".
 - [x] **Screens pass 7: Landing** - 2026-08-28, `landing.html`, last screen
-      in the named inventory (`AUSVIA_2_0_SCREEN_INVENTORY.md`'s ten). The
-      fixed-ink counterform hero is untouched (deliberate deviation, see
-      `DESIGN_SYSTEM.md`) - only its prose (badge label, paragraphs) was
-      reworded. New below it: a mini search-result preview + mini
-      application-status preview (genuinely absent before this pass, real
+      in the named inventory (`AUSVIA_2_0_SCREEN_INVENTORY.md`'s ten). A
+      mini search-result preview + mini application-status preview (real
       `match_band`/`status_pill` components, deliberately non-flattering
       scores 82/64/45), an 8-station decorative journey strip (the real,
       functioning one is Application Detail's Wayfinding route,
@@ -746,7 +743,24 @@ for a redesign pass, started 2026-08-24.
       found via this pass's own required dark screenshot: the header logo
       wordmark was invisible in dark mode (hardcoded ink hex on a
       theme-aware background). 13 new tests. Full detail: `DECISIONS.md`'s
-      2026-08-28 entry.
+      2026-08-28 entry. **Superseded same-day by the widen pass directly
+      below** - this pass kept the pre-2.0 counterform hero, which turned
+      out to be an overly-literal scope reading, not a decision that held.
+- [x] **Landing widen pass** - 2026-08-28, same day, corrects the scope
+      reading above. Rebuilds the hero as the bundle's actual two-column
+      composition (eyebrow/headline/promise/buttons left, the preview
+      panel - reused, not rebuilt - right), removes the pre-2.0
+      counterform staircase graphic entirely (no bundle equivalent ever
+      existed), moves the access-code badge and "See how it works" into
+      the header (matching the bundle), and widens every content section
+      to a single-sourced 1600px (`max-w-content`, `tailwind.config.js`)
+      while making the header itself genuinely full-width/edge-to-edge -
+      the bundle's 1180px was judged too narrow on large monitors. Found
+      and fixed a real clipping bug via its own required 1920px screenshot
+      (the reused overlap card's `-mt-7` ate into the third listing's own
+      score label; fixed with matching `pb-7` clearance). 5 new tests.
+      Full detail: `DECISIONS.md`'s "Landing widen pass" entry,
+      `DESIGN_SYSTEM.md`'s "Landing - 2026-08-28 widen pass".
 - [ ] **Screens pass 8+** - the remaining ~110 existing card/badge/button/
       empty-state occurrences across every other screen, plus the
       remaining per-screen re-layouts beyond tokens/logo/theme/components/
