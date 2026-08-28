@@ -46,8 +46,9 @@ def _company_facts(company, jobs):
     return "\n".join(lines)
 
 
-def build_company_fit_prompt(profile, company, jobs, candidate_facts_text):
+def build_company_fit_prompt(profile, company, jobs, candidate_facts_text, locale):
     from app.ai.facts import wrap_untrusted_external_text
+    from app.ai.language import language_instruction
 
     user = (
         f"{wrap_untrusted_external_text(_company_facts(company, jobs))}\n\n"
@@ -57,4 +58,4 @@ def build_company_fit_prompt(profile, company, jobs, candidate_facts_text):
         "above. If the company facts are too thin to say anything specific, "
         "say that plainly instead of guessing."
     )
-    return SYSTEM, user
+    return SYSTEM + language_instruction(locale), user

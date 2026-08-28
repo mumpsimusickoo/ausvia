@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-28 23:48+0100\n"
+"POT-Creation-Date: 2026-08-29 00:18+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -132,6 +132,22 @@ msgstr "Automatische Prüfung: erwartete Erwähnung fehlt: %(missing)s."
 msgid "Automated check: job title, company, and candidate name all present."
 msgstr "Automatische Prüfung: Berufsbezeichnung, Firmenname und Bewerbername sind alle enthalten."
 
+#: app/ai/cv_profile_statement.py:35
+msgid ""
+"AI CV profile statement generation isn't available because no AI provider is configured (AI_PROVIDER=mock). The profile and job details on this page are real; this would only be an AI-generated "
+"summary layered on top."
+msgstr ""
+"Die KI-Erstellung des Kurzprofils ist nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die Profil- und Stellendetails auf dieser Seite sind echt; dies wäre nur eine "
+"zusätzliche KI-generierte Zusammenfassung."
+
+#: app/ai/interview_prep.py:26
+msgid ""
+"AI interview prep isn't available because no AI provider is configured (AI_PROVIDER=mock). The job and company details on this page are real; this would only be an AI-generated study aid layered on"
+" top."
+msgstr ""
+"Die KI-Vorbereitung aufs Vorstellungsgespräch ist nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die Stellen- und Unternehmensdetails auf dieser Seite sind echt; dies "
+"wäre nur eine zusätzliche KI-generierte Lernhilfe."
+
 #: app/ai/matching.py:120
 #, python-format
 msgid "%(language)s %(level)s (required: %(required)s)"
@@ -173,7 +189,7 @@ msgstr "Ort entspricht deiner Präferenz (%(location)s)"
 msgid "This location"
 msgstr "Dieser Ort"
 
-#: app/ai/matching.py:182 app/ai/matching.py:193 app/jobs/forms.py:76 app/jobs/matching.py:139 app/models/profile.py:91 app/templates/companies/detail.html:113
+#: app/ai/matching.py:182 app/ai/matching.py:193 app/jobs/forms.py:76 app/jobs/matching.py:161 app/models/profile.py:91 app/templates/companies/detail.html:113
 msgid "Location"
 msgstr "Ort"
 
@@ -192,7 +208,7 @@ msgstr "%(location)s liegt außerhalb deiner angegebenen Präferenzen, und du bi
 msgid "Start date matches (%(date)s)"
 msgstr "Startdatum passt (%(date)s)"
 
-#: app/ai/matching.py:217 app/jobs/forms.py:77 app/jobs/matching.py:139 app/profile/forms.py:40 app/profile/forms.py:49 app/templates/jobs/detail.html:25
+#: app/ai/matching.py:217 app/jobs/forms.py:77 app/jobs/matching.py:161 app/profile/forms.py:40 app/profile/forms.py:49 app/templates/jobs/detail.html:25
 msgid "Start date"
 msgstr "Startdatum"
 
@@ -201,11 +217,23 @@ msgstr "Startdatum"
 msgid "Job starts %(job_date)s, candidate prefers %(pref_date)s."
 msgstr "Die Stelle beginnt am %(job_date)s, du bevorzugst %(pref_date)s."
 
+#: app/ai/profile_coaching.py:23
+msgid ""
+"AI profile coaching isn't available because no AI provider is configured (AI_PROVIDER=mock). Your profile data itself is real and complete as shown above; this would only be an AI review layered on"
+" top, not new information."
+msgstr ""
+"Das KI-Profil-Coaching ist nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Deine Profildaten selbst sind echt und vollständig, wie oben gezeigt; dies wäre nur eine "
+"zusätzliche KI-Durchsicht, keine neue Information."
+
 #: app/ai/reply_ai.py:17
 msgid "AI classification isn't available (no AI provider is configured)."
 msgstr "KI-Klassifizierung ist nicht verfügbar (kein KI-Anbieter konfiguriert)."
 
-#: app/ai/reply_ai.py:38
+#: app/ai/reply_ai.py:26
+msgid "AI-drafted replies aren't available because no AI provider is configured (AI_PROVIDER=mock). You can still write your own reply directly in Gmail."
+msgstr "KI-Antwortentwürfe sind nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Du kannst deine Antwort weiterhin direkt in Gmail selbst verfassen."
+
+#: app/ai/reply_ai.py:51
 #, python-format
 msgid "Classification failed: %(error)s"
 msgstr "Klassifizierung fehlgeschlagen: %(error)s"
@@ -610,6 +638,14 @@ msgstr "Dieser Link zum Zurücksetzen ist ungültig."
 msgid "Your password has been reset. Please log in."
 msgstr "Dein Passwort wurde zurückgesetzt. Bitte melde dich an."
 
+#: app/companies/insights.py:24
+msgid ""
+"AI company insights aren't available because no AI provider is configured (AI_PROVIDER=mock). The company details above are real; this note would only be an AI interpretation layered on top, not "
+"new information."
+msgstr ""
+"KI-Unternehmenseinschätzungen sind nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die Unternehmensdetails oben sind echt; diese Notiz wäre nur eine zusätzliche KI-"
+"Interpretation, keine neue Information."
+
 #: app/documents/routes.py:48
 msgid "Please choose a file to upload."
 msgstr "Bitte wähle eine Datei zum Hochladen."
@@ -782,48 +818,64 @@ msgstr "Diese URL verweist nicht auf eine lesbare Webseite."
 msgid "Couldn't find readable content on that page."
 msgstr "Auf dieser Seite wurde kein lesbarer Inhalt gefunden."
 
-#: app/jobs/matching.py:115 app/templates/landing.html:119
+#: app/jobs/matching.py:27
+msgid ""
+"AI-written narrative isn't available right now because no AI provider is configured (AI_PROVIDER=mock). The structured analysis above is computed directly from your profile and this posting's data,"
+" not by AI, so it's fully accurate regardless."
+msgstr ""
+"Die KI-geschriebene Erklärung ist gerade nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die strukturierte Analyse oben wird direkt aus deinem Profil und den Daten dieser "
+"Anzeige berechnet, nicht von KI, und ist daher trotzdem vollständig korrekt."
+
+#: app/jobs/matching.py:33
+msgid ""
+"AI-written suggestions aren't available right now because no AI provider is configured (AI_PROVIDER=mock). The gaps listed above are computed directly from your profile and this posting's data, not"
+" by AI, so they're fully accurate regardless."
+msgstr ""
+"Die KI-geschriebenen Vorschläge sind gerade nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die oben aufgeführten Lücken werden direkt aus deinem Profil und den Daten "
+"dieser Anzeige berechnet, nicht von KI, und sind daher trotzdem vollständig korrekt."
+
+#: app/jobs/matching.py:137 app/templates/landing.html:119
 msgid "Strong match"
 msgstr "Starke Übereinstimmung"
 
-#: app/jobs/matching.py:116 app/templates/landing.html:121
+#: app/jobs/matching.py:138 app/templates/landing.html:121
 msgid "Good match"
 msgstr "Gute Übereinstimmung"
 
-#: app/jobs/matching.py:117 app/templates/landing.html:123
+#: app/jobs/matching.py:139 app/templates/landing.html:123
 msgid "Some gaps"
 msgstr "Einige Lücken"
 
-#: app/jobs/matching.py:118 app/templates/jobs/detail.html:20
+#: app/jobs/matching.py:140 app/templates/jobs/detail.html:20
 msgid "Weak match"
 msgstr "Schwache Übereinstimmung"
 
-#: app/jobs/matching.py:119 app/jobs/matching.py:124 app/templates/companies/detail.html:89 app/templates/jobs/_search_result_card.html:54 app/templates/jobs/search.html:107
+#: app/jobs/matching.py:141 app/jobs/matching.py:146 app/templates/companies/detail.html:89 app/templates/jobs/_search_result_card.html:54 app/templates/jobs/search.html:107
 msgid "Not scored"
 msgstr "Nicht bewertet"
 
-#: app/jobs/matching.py:138 app/models/profile.py:95 app/templates/jobs/detail.html:25
+#: app/jobs/matching.py:160 app/models/profile.py:95 app/templates/jobs/detail.html:25
 msgid "Skills"
 msgstr "Fähigkeiten"
 
-#: app/jobs/matching.py:138 app/profile/forms.py:65 app/templates/jobs/detail.html:25
+#: app/jobs/matching.py:160 app/profile/forms.py:65 app/templates/jobs/detail.html:25
 msgid "Language"
 msgstr "Sprache"
 
-#: app/jobs/matching.py:138 app/models/profile.py:94 app/templates/jobs/detail.html:25 app/templates/profile/view.html:54
+#: app/jobs/matching.py:160 app/models/profile.py:94 app/templates/jobs/detail.html:25 app/templates/profile/view.html:54
 msgid "Education"
 msgstr "Ausbildung"
 
-#: app/jobs/matching.py:166
+#: app/jobs/matching.py:188
 msgid "All requirements met"
 msgstr "Alle Anforderungen erfüllt"
 
-#: app/jobs/matching.py:176
+#: app/jobs/matching.py:198
 #, python-format
 msgid "%(all_but_last)s and %(last)s"
 msgstr "%(all_but_last)s und %(last)s"
 
-#: app/jobs/matching.py:177
+#: app/jobs/matching.py:199
 #, python-format
 msgid "%(categories)s met"
 msgstr "%(categories)s erfüllt"
@@ -998,23 +1050,23 @@ msgstr "Dieser Zugangscode ist abgelaufen."
 msgid "This access code has already been used the maximum number of times."
 msgstr "Dieser Zugangscode wurde bereits die maximale Anzahl an Malen verwendet."
 
-#: app/models/ai.py:208
+#: app/models/ai.py:225
 msgid "What does Ausbildungsvergütung mean?"
 msgstr "Was bedeutet Ausbildungsvergütung?"
 
-#: app/models/ai.py:209
+#: app/models/ai.py:226
 msgid "Should I mention unrelated work experience?"
 msgstr "Sollte ich fachfremde Berufserfahrung erwähnen?"
 
-#: app/models/ai.py:210
+#: app/models/ai.py:227
 msgid "What's the normal response time for an application?"
 msgstr "Wie lange dauert es normalerweise, bis man eine Antwort auf eine Bewerbung erhält?"
 
-#: app/models/ai.py:211
+#: app/models/ai.py:228
 msgid "Do I need to translate my documents into German?"
 msgstr "Muss ich meine Unterlagen ins Deutsche übersetzen?"
 
-#: app/models/ai.py:212
+#: app/models/ai.py:229
 msgid "What's the difference between an Ausbildung and a Duales Studium?"
 msgstr "Was ist der Unterschied zwischen einer Ausbildung und einem dualen Studium?"
 

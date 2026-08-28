@@ -15,7 +15,14 @@ from app.extensions import db
 from app.models.integration import REPLY_INTENTS
 
 NOT_CONFIGURED_NOTE = _l("AI classification isn't available (no AI provider is configured).")
-NOT_CONFIGURED_REPLY = (
+# i18n pass 3: a deterministic app status message shown to the candidate,
+# not a real reply draft sent to an employer - follows the UI language,
+# same reasoning as NOT_CONFIGURED_NOTE above (deferred from i18n pass 2,
+# since this field also holds real AI-drafted replies, which stay German
+# unconditionally - see build_reply_prompt() - and the "what language does
+# THIS field follow" question was explicitly pass 3's to resolve, not
+# pass 2's).
+NOT_CONFIGURED_REPLY = _l(
     "AI-drafted replies aren't available because no AI provider is configured "
     "(AI_PROVIDER=mock). You can still write your own reply directly in Gmail."
 )
@@ -74,7 +81,7 @@ def _parse_classification(text):
 def generate_reply_suggestion(user, application, message):
     provider = get_provider()
     if provider.provider_name == "mock":
-        message.ai_suggested_reply = NOT_CONFIGURED_REPLY
+        message.ai_suggested_reply = str(NOT_CONFIGURED_REPLY)
         message.ai_suggested_reply_provider = "mock"
         db.session.commit()
         return message.ai_suggested_reply

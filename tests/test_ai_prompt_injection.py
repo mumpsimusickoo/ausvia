@@ -78,8 +78,11 @@ def test_match_narrative_prompt_fences_adversarial_job_title():
     job = SimpleNamespace(title=ADVERSARIAL, company_name="Normal GmbH", location="Berlin")
     match_result = SimpleNamespace(score=80, recommendation="strong_candidate", strengths=["PLC"], gaps=[])
 
-    system, user = build_match_narrative_prompt(profile=None, job=job, match_result=match_result)
-    assert system == BASE_SYSTEM
+    system, user = build_match_narrative_prompt(profile=None, job=job, match_result=match_result, locale="de")
+    # i18n pass 3: system prompt now carries an appended language
+    # instruction (see app/ai/language.py) - startswith, not ==, since the
+    # base rules text itself must still be unmodified.
+    assert system.startswith(BASE_SYSTEM)
     _assert_strictly_fenced(user)
 
 
@@ -87,8 +90,8 @@ def test_improvement_tips_prompt_fences_adversarial_job_title():
     job = SimpleNamespace(title=ADVERSARIAL, company_name="Normal GmbH", location="Berlin")
     match_result = SimpleNamespace(score=40, recommendation="weak_match", strengths=[], gaps=[])
 
-    system, user = build_improvement_tips_prompt(profile=None, job=job, match_result=match_result)
-    assert system == BASE_SYSTEM
+    system, user = build_improvement_tips_prompt(profile=None, job=job, match_result=match_result, locale="de")
+    assert system.startswith(BASE_SYSTEM)
     _assert_strictly_fenced(user)
 
 
@@ -126,9 +129,9 @@ def test_company_fit_prompt_fences_adversarial_company_description():
         name="Normal GmbH", industry="Manufacturing", location="Koeln", website=None, description=ADVERSARIAL
     )
     system, user = build_company_fit_prompt(
-        profile=None, company=company, jobs=[], candidate_facts_text="Name: Karim Boulaid"
+        profile=None, company=company, jobs=[], candidate_facts_text="Name: Karim Boulaid", locale="de"
     )
-    assert system == COMPANY_SYSTEM
+    assert system.startswith(COMPANY_SYSTEM)
     _assert_strictly_fenced(user)
 
 
@@ -153,9 +156,9 @@ def test_reply_suggestion_prompt_fences_adversarial_company_message():
 
 def test_interview_prep_prompt_fences_adversarial_job_facts():
     system, user = build_interview_prep_prompt(
-        candidate_facts_text="Name: Karim Boulaid", job_facts_text=ADVERSARIAL
+        candidate_facts_text="Name: Karim Boulaid", job_facts_text=ADVERSARIAL, locale="de"
     )
-    assert system == INTERVIEW_PREP_SYSTEM
+    assert system.startswith(INTERVIEW_PREP_SYSTEM)
     _assert_strictly_fenced(user)
     assert user.index("Karim Boulaid") < user.index(OPEN_TAG)
 

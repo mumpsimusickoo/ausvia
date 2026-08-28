@@ -35,12 +35,13 @@ next line.
 """
 
 
-def build_interview_prep_prompt(candidate_facts_text, job_facts_text):
+def build_interview_prep_prompt(candidate_facts_text, job_facts_text, locale):
     from app.ai.facts import wrap_untrusted_external_text
+    from app.ai.language import language_instruction
 
     user = (
         f"CANDIDATE FACTS:\n{candidate_facts_text}\n\n"
         f"JOB/COMPANY FACTS:\n{wrap_untrusted_external_text(job_facts_text)}\n\n"
         "Generate interview preparation now."
     )
-    return SYSTEM, user
+    return SYSTEM + language_instruction(locale), user

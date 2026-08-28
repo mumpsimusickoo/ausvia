@@ -615,11 +615,33 @@ for a redesign pass, started 2026-08-24.
         `DECISIONS.md`'s 2026-08-28 "i18n pass 2" entry, `DEPLOYMENT.md`'s
         Translations section (including a real stale-`.mo`-in-a-running-
         process gotcha found this pass).
-  - [ ] **Pass 3: AI prompt language** - wiring the per-feature language
-        split described above into the actual prompt builders (most
-        already produce German by necessity - cover letter/email/reply -
-        the ones that should start following the UI language don't yet).
-        Not yet started.
+  - [x] **Pass 3: AI prompt language, 2026-08-29** - the per-feature split
+        wired into the real prompt builders. Cover letter/application
+        email/reply suggestions confirmed already unconditionally German
+        (no code change needed, verified live). Match explanation/
+        improvement tips, company insight, profile coaching, interview
+        prep, and CV profile statement now take an explicit `locale`
+        (from `app/i18n.py`'s `get_locale()`, called inside each
+        orchestration function - no route/call-site changes needed) and
+        carry a new `generated_locale`/`narrative_locale`/
+        `improvement_tips_locale` column (migration `d0a13f3299ee`) so a
+        cached response is treated as stale when the session's locale no
+        longer matches it, not just when the profile changes. CV profile
+        statement moved buckets - it used to hardcode German
+        unconditionally, now follows the UI language, since (confirmed in
+        its own docstring) it's never submitted anywhere by AUSVIA, only
+        copied into the candidate's own CV. Two real bugs found by this
+        pass's own required verification/test run, not by inspection: the
+        match-explanation functions were the only AI feature that never
+        special-cased mock mode, silently falling through to a shared,
+        hardcoded-English decline message regardless of locale; and a
+        `lazy_gettext()` value can't bind directly to a SQLite column
+        (the same class of bug pass 2 found once already, recurring in
+        four more sibling "not configured" messages this pass closed).
+        Verified via live generation against the real configured provider
+        (Gemini) in both locales for all eight features, full pytest
+        suite. Full detail: `DECISIONS.md`'s 2026-08-29 "i18n pass 3"
+        entry.
 - [x] **Component layer pass** - 2026-08-26, build-only: 11 macros
       (`btn`, `arrow_link`, `status_pill`, `chip_source`,
       `chip_attribute`, `chip_coverage`, `match_band`, `empty_state`,

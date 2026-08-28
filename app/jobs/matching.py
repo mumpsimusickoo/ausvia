@@ -11,8 +11,30 @@ from app.ai.matching import compute_match
 from app.ai.provider_factory import get_provider
 from app.ai.prompts.narrative import build_match_narrative_prompt, build_improvement_tips_prompt
 from app.ai.usage import record_usage
+from app.i18n import get_locale
 from app.models.ai import JobMatch
 from app.models.user import utcnow
+
+# i18n pass 3: match narrative/improvement tips are a "follows the UI
+# language" feature (see DECISIONS.md) - unlike every sibling AI feature
+# (CompanyInsight/ProfileCoaching/InterviewPrep/CvProfileStatement), this
+# one never special-cased mock mode, so it silently fell through to
+# MockAIProvider's own generic, hardcoded-English NOT_CONFIGURED_MESSAGE
+# regardless of locale - the exact failure pass 3's own verification step
+# is designed to catch. Given its own honest mock-decline text instead,
+# matching every sibling feature's pattern.
+NARRATIVE_NOT_CONFIGURED_TEXT = _l(
+    "AI-written narrative isn't available right now because no AI provider "
+    "is configured (AI_PROVIDER=mock). The structured analysis above is "
+    "computed directly from your profile and this posting's data, not by "
+    "AI, so it's fully accurate regardless."
+)
+TIPS_NOT_CONFIGURED_TEXT = _l(
+    "AI-written suggestions aren't available right now because no AI "
+    "provider is configured (AI_PROVIDER=mock). The gaps listed above are "
+    "computed directly from your profile and this posting's data, not by "
+    "AI, so they're fully accurate regardless."
+)
 
 
 def get_or_compute_match(user, job):
@@ -204,36 +226,50 @@ def _match_result_from_cached(job_match):
 
 
 def generate_narrative(user, job, job_match):
-    if job_match.narrative_text:
+    locale = get_locale()
+    if job_match.narrative_text and job_match.narrative_locale == locale:
         return job_match.narrative_text
 
     provider = get_provider()
-    system, prompt = build_match_narrative_prompt(user.profile, job, _match_result_from_cached(job_match))
-    response = provider.complete(system, prompt, max_tokens=400)
-
-    if provider.provider_name != "mock":
+    if provider.provider_name == "mock":
+        text = str(NARRATIVE_NOT_CONFIGURED_TEXT)
+        provider_name = "mock"
+    else:
+        system, prompt = build_match_narrative_prompt(
+            user.profile, job, _match_result_from_cached(job_match), locale
+        )
+        response = provider.complete(system, prompt, max_tokens=400)
         record_usage(user.id, "match_narrative", response)
+        text, provider_name = response.text, response.provider
 
-    job_match.narrative_text = response.text
-    job_match.narrative_provider = response.provider
+    job_match.narrative_text = text
+    job_match.narrative_provider = provider_name
+    job_match.narrative_locale = locale
     job_match.narrative_generated_at = utcnow()
     db.session.commit()
-    return response.text
+    return text
 
 
 def generate_improvement_tips(user, job, job_match):
-    if job_match.improvement_tips_text:
+    locale = get_locale()
+    if job_match.improvement_tips_text and job_match.improvement_tips_locale == locale:
         return job_match.improvement_tips_text
 
     provider = get_provider()
-    system, prompt = build_improvement_tips_prompt(user.profile, job, _match_result_from_cached(job_match))
-    response = provider.complete(system, prompt, max_tokens=400)
-
-    if provider.provider_name != "mock":
+    if provider.provider_name == "mock":
+        text = str(TIPS_NOT_CONFIGURED_TEXT)
+        provider_name = "mock"
+    else:
+        system, prompt = build_improvement_tips_prompt(
+            user.profile, job, _match_result_from_cached(job_match), locale
+        )
+        response = provider.complete(system, prompt, max_tokens=400)
         record_usage(user.id, "improvement_tips", response)
+        text, provider_name = response.text, response.provider
 
-    job_match.improvement_tips_text = response.text
-    job_match.improvement_tips_provider = response.provider
+    job_match.improvement_tips_text = text
+    job_match.improvement_tips_provider = provider_name
+    job_match.improvement_tips_locale = locale
     job_match.improvement_tips_generated_at = utcnow()
     db.session.commit()
     return response.text

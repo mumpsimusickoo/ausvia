@@ -252,6 +252,24 @@ posting data, and internal audit-log/diagnostic content remain
 deliberately untranslated - see `DECISIONS.md`'s pass 2 entry for the
 full scope list and reasoning.
 
+**i18n pass 3, 2026-08-29: the AI content language split, done** - all
+three i18n passes are now complete, nothing left scoped or pending.
+Cover letter/application email/reply suggestions stay German
+unconditionally (real German-employer-facing text). Match explanation/
+improvement tips, company insight, profile coaching, interview prep, and
+CV profile statement follow the session's UI locale, via `get_locale()`
+called inside each feature's own orchestration function - no new
+parameter threaded through any route. This added a `generated_locale`-
+style column to five models (migration `d0a13f3299ee`) so a locale
+switch invalidates a cached response the same way a profile edit already
+does - **a fresh `flask db upgrade` is required after pulling this
+change**, same as any other schema migration. See `DECISIONS.md`'s
+2026-08-29 "i18n pass 3" entry for the two real bugs this pass found
+(a shared mock-mode fallback that ignored locale; a recurrence of pass
+2's `LazyString`-can't-bind-to-SQLite bug in four more places) and the
+full verification method (live generation against the real configured
+provider, both locales, all eight features).
+
 **A compiled `.mo` catalog only loads once per process - a running
 server must be restarted for a new `pybabel compile` to take effect,**
 the same way it already needs a restart to pick up new Python code (but

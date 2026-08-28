@@ -59,17 +59,21 @@ def _job_context(job, match_result):
     )
 
 
-def build_match_narrative_prompt(profile, job, match_result):
+def build_match_narrative_prompt(profile, job, match_result, locale):
+    from app.ai.language import language_instruction
+
     user = (
         f"{_job_context(job, match_result)}\n\n"
         "Write a 3-5 sentence explanation of this match for the candidate, in "
         "plain encouraging language, referencing only the facts above. Do not "
         "restate the raw score number, the candidate already sees it."
     )
-    return BASE_SYSTEM, user
+    return BASE_SYSTEM + language_instruction(locale), user
 
 
-def build_improvement_tips_prompt(profile, job, match_result):
+def build_improvement_tips_prompt(profile, job, match_result, locale):
+    from app.ai.language import language_instruction
+
     user = (
         f"{_job_context(job, match_result)}\n\n"
         "Based only on the gaps listed above, write a short prioritized list "
@@ -78,4 +82,4 @@ def build_improvement_tips_prompt(profile, job, match_result):
         "anything not implied by the gaps above. If there are no meaningful "
         "gaps, say so briefly instead of inventing suggestions."
     )
-    return BASE_SYSTEM, user
+    return BASE_SYSTEM + language_instruction(locale), user

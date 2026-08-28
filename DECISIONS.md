@@ -6,6 +6,198 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-29 — i18n pass 3: the AI content language split, a CV-statement bucket reassignment, and two real bugs (a shared mock message, a LazyString/SQLite crash)
+
+**The split (restated, not rediscovered - this was the given spec):**
+cover letter, application email, and reply suggestions stay German
+unconditionally - real German-employer-facing text, where an English
+document simply fails, not a translation-quality question. Match
+explanation/improvement tips, company insight, profile coaching,
+interview prep, and CV profile statement follow the session's UI locale -
+content written for the candidate, not an employer. Job posting data, the
+CV PDF export, and `app/ai/matching.py`'s deterministic scoring functions
+are untouched by this pass, confirmed by inspection, not just left alone
+by assumption - the second one specifically because pass 2 already fixed
+a real mixed-language bug there (English gap sentences mid-German
+sentence, from mistaking it for AI-content scope) and touching it again
+here would be exactly the scope confusion that bug came from.
+
+**Locale reaches every prompt builder through `app/i18n.py`'s
+`get_locale()`, called once inside each orchestration function
+(`generate_narrative()`/`generate_company_insight()`/etc.), never as a
+parameter threaded through route handlers.** All five call sites into
+these features (`app/jobs/routes.py`, `app/companies/routes.py`,
+`app/profile/routes.py`, `app/applications/routes.py` x2) needed zero
+changes - the same "session/g state, not an ad-hoc parameter" pattern
+i18n pass 1/2 already established for every other locale-aware helper.
+A shared `app/ai/language.py` helper (`language_instruction(locale)`)
+builds one line appended to each "follows" feature's system prompt,
+naming the target language explicitly rather than leaving the model to
+infer it from a prompt that now mixes hardcoded-English instructions
+with locale-aware (German-or-English, per i18n pass 2) fact strings -
+unreliable inference was the actual mechanism behind the bug pass 2 found
+in the matching engine, and this pass's whole job is to not repeat that
+pattern anywhere else.
+
+**CV profile statement moves buckets: it used to hardcode German
+unconditionally, and now follows the UI language - a real behavior
+change, not just a wrapping exercise.** Given by the spec, and correct on
+inspection: unlike the cover letter/email/reply, this text is never
+submitted anywhere by AUSVIA itself (`app/ai/cv_profile_statement.py`'s
+own docstring: "purely informational... the user copies this text into
+their own separately maintained CV") - it's advisory content shown to the
+candidate, same as profile coaching, not a document going to a German
+employer. Both its generation prompt and its validation prompt
+(`app/ai/prompts/cv_profile_statement.py`) needed the change - the
+validation prompt used to hardcode "check for German grammar/spelling
+errors" unconditionally, which would have silently misfired (checking
+English text against German grammar rules) the instant this stopped
+always producing German. Now takes the target language name as a
+template parameter, generated from the same `locale` passed to
+generation, so the two passes can never disagree about which language the
+text is supposed to be in.
+
+**Cache staleness now has a locale dimension, not just a profile-edit
+dimension - real schema change, six new columns, one new migration
+(`d0a13f3299ee`).** `JobMatch.narrative_locale`/`improvement_tips_locale`
+(tracked separately - they're generated and cached independently) and
+`CompanyInsight`/`ProfileCoaching`/`InterviewPrep`/`CvProfileStatement`'s
+new `generated_locale` column are checked alongside the existing
+`profile_updated_at_snapshot` staleness check in every orchestration
+function: a cached English narrative is not served to a session that has
+since switched to German, and vice versa. This was a genuine design
+decision, not mechanically required by "thread locale into the prompt"
+alone - the alternative (only checking locale at generation time, never
+at cache-read time) would satisfy "the feature is *capable* of producing
+either language" while still silently serving stale-language content on
+every subsequent view after a language switch, which contradicts the
+spec's own framing of "follows the UI language" as a live property of the
+session, not a one-time choice frozen at first generation. The existing,
+already-accepted staleness pattern (a manual "Regenerate" control, no
+automatic re-generation) still governs *content* staleness on unrelated
+changes (a job's own facts changing doesn't auto-invalidate its
+narrative, unchanged from before this pass) - only the locale axis is new
+here, and only affects whether the *cached* text is trusted, not whether
+regeneration happens automatically.
+
+**A real, previously-invisible bug found by this pass's own verification
+step, not by inspection:** `app/jobs/matching.py`'s
+`generate_narrative()`/`generate_improvement_tips()` were the only two AI
+orchestration functions in the whole codebase that never special-cased
+mock mode - every sibling feature (`CompanyInsight`/`ProfileCoaching`/
+`InterviewPrep`/`CvProfileStatement`/`reply_ai.py`) declines honestly with
+its own locale-aware message when no AI provider is configured; these two
+silently fell through to `MockAIProvider`'s own generic, hardcoded-English
+`NOT_CONFIGURED_MESSAGE` regardless of locale. Verifying "generate once in
+English, once in German" for match explanation under mock mode would have
+returned identical English text both times - caught directly by that
+required verification step, not found by reading the code first. Fixed by
+giving both functions their own honest, locale-aware decline text
+(`NARRATIVE_NOT_CONFIGURED_TEXT`/`TIPS_NOT_CONFIGURED_TEXT`), matching
+every sibling feature's pattern - `MockAIProvider.NOT_CONFIGURED_MESSAGE`
+itself is untouched, since (checked directly) these two were its only
+callers; every other feature already intercepts before reaching it.
+
+**A deferred i18n pass 2 gap closed here, not a pass-3 mechanism bug:**
+`app/ai/cv_profile_statement.py`, `interview_prep.py`, `profile_coaching.py`,
+`app/companies/insights.py`, and `app/ai/reply_ai.py`'s `NOT_CONFIGURED_REPLY`
+each had their own hardcoded-English "AI feature isn't available"
+fallback message, none of them wrapped in `_()`/`_l()` during i18n pass 2
+- a real miss, not a deliberate exclusion (nothing in pass 2's report
+flagged these as out of scope). Fixed alongside this pass's own changes
+to the same functions, using the same `_l()` + `str()`-at-assignment
+pattern pass 2 established for `app/ai/reply_ai.py`'s
+`NOT_CONFIGURED_NOTE` (a bare `LazyString` can't bind to a SQLite column -
+see pass 2's entry). `NOT_CONFIGURED_REPLY` specifically was left
+deliberately untranslated in pass 2 - `ai_suggested_reply` also holds
+real AI-drafted replies, which stay German unconditionally, and "what
+language does the *fallback* in this shared field follow" was explicitly
+deferred to this pass rather than guessed at in pass 2. Resolved now:
+follows the UI language, since the fallback is a status message about the
+tool's own capability, shown to the candidate, not text sent to an
+employer - consistent with `NOT_CONFIGURED_NOTE`'s existing treatment of
+the same distinction.
+
+**A second real bug, found by the full pytest suite, not by manual
+testing:** giving `NOT_CONFIGURED_TEXT` (`app/ai/cv_profile_statement.py`)
+the same `_l()` treatment and assigning it directly to a model column
+raised `sqlite3.ProgrammingError: Error binding parameter 3: type
+'LazyString' is not supported` - the identical bug pass 2 found and fixed
+in `app/ai/reply_ai.py`'s `NOT_CONFIGURED_NOTE`, recurring here because
+each of these five sibling constants needed the same fix independently
+applied, not inherited from a shared base. Fixed the same way: an
+explicit `str(...)` at the assignment site, still inside the active
+request (correct locale already resolved at that point).
+
+**Grounding validation: no language-dependent string matching found in
+any of the five "follows" features, and the one place that pattern
+exists elsewhere is unaffected by this pass.** Four of the five
+(narrative/improvement tips, company insight, profile coaching, interview
+prep) have exactly one validation layer - the system prompt's own
+anti-hallucination instructions - not the "two-layer" shape stated in
+this pass's own brief; only CV profile statement (like cover letter) has
+a genuine second, separate AI validation pass, and it's model-based, not
+string-matching against the generated text, so it carries no language-
+dependency risk beyond the "which language's grammar are we checking"
+issue already fixed above. The one real load-bearing *string-matching*
+grounding check in the codebase -
+`app/ai/job_requirements_extraction.py`'s `_validate_and_ground()`, which
+checks extracted skills/languages/contact details are literal substrings
+of the source posting text - belongs to a feature this pass explicitly
+doesn't touch (job posting data, never a language-generation question),
+and both sides of its comparison are always the source posting's own
+German text regardless of UI locale, so it has no exposure to the
+language-dependency risk this pass was asked to watch for.
+
+**Nine features exist in `app/ai/prompts/`, not eight - the extra four
+are deliberately untouched, flagged rather than silently absorbed into
+either bucket:** `followup_email.py` shares cover letter/email's
+unconditional-German shape exactly (a real follow-up email a candidate
+could send) and needed no code change, just confirmation. `dashboard_
+insight.py` (cross-application synthesis) and `process_qa.py` (answers to
+a fixed set of process questions) are structurally the same shape as the
+five "follows" features - written for the candidate, not an employer -
+but weren't named in this pass's brief, so they're left exactly as pass 2
+found them (English-only) rather than assumed into scope. `job_
+explainer.py` calibrates its own output language to the candidate's
+*stated German proficiency level* (A1/A2 candidates get English with
+glossed German terms; B1+ get plain German) - a deliberately different,
+orthogonal signal from the UI locale toggle, already correct on its own
+terms and not something this pass's "follows the UI language" framing
+should be applied to without a separate decision. All four are real,
+working features; none were miscategorized, they simply weren't part of
+what was asked this time.
+
+**Verification: all eight named features confirmed via live generation
+against the real configured provider (Gemini), not mocked** - each of the
+five "follows" features generated once with the session in English, once
+in German, for the same underlying profile/job/company data, with the
+"Regenerate" control forcing a fresh call past the new locale-aware cache
+each time; each of the three "always German" features confirmed via live
+regeneration under an English-locale session (cover letter regenerated
+fresh, English UI, German output, unchanged from before - the two
+locale-following fields on the same page, the cover letter's own
+validation status message and the freshly-generated CV profile statement,
+correctly rendered in English in the same request, proving the two
+mechanisms coexist correctly on one screen). One incidental register
+observation, not a bug: the AI's own formality choice for German output
+varies between the informal "du" the rest of the app's copy uses and the
+formal "Sie" a real cover letter correctly uses - company insight and
+profile coaching both landed on "Sie" in testing, which is grammatically
+correct but inconsistent with the app's own established tone elsewhere.
+Nothing in the prompt currently specifies a register for the "follows"
+features (only the always-German prompts specify "Sie-Form", correctly,
+since those go to an employer) - a real, scoped follow-up (add an
+explicit "du" instruction to the five "follows" system prompts) if it's
+judged worth the model-behavior risk of changing working prompt text for
+a tone preference, not fixed in this pass. Full pytest suite: 586 passed
+/ 3 skipped (583 + 3 - two new tests confirming the locale-cache
+invalidation in `app/jobs/matching.py`'s narrative generation plus its
+own honest mock-decline path, one confirming the same for CV profile
+statement's two-pass generate-then-validate flow).
+
+---
+
 ## 2026-08-28 — i18n pass 2: mass string extraction, a matching-engine gap fixed beyond its original scope, and a stale-catalog gotcha for every future translation change
 
 **Scope: every in-scope template and Python module now wraps its

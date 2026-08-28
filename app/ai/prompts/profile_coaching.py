@@ -30,9 +30,11 @@ flatter.
 """
 
 
-def build_profile_coaching_prompt(candidate_facts_text):
+def build_profile_coaching_prompt(candidate_facts_text, locale):
+    from app.ai.language import language_instruction
+
     user = (
         f"Candidate profile:\n{candidate_facts_text}\n\n"
         "Review this profile now."
     )
-    return SYSTEM, user
+    return SYSTEM + language_instruction(locale), user

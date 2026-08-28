@@ -11,8 +11,10 @@ class FakeProvider(AIProvider):
     def __init__(self, text="A grounded, factual explanation.", raise_error=None):
         self._text = text
         self._raise_error = raise_error
+        self.call_count = 0
 
     def complete(self, system_prompt, user_prompt, max_tokens=1024):
+        self.call_count += 1
         if self._raise_error:
             raise self._raise_error
         return AIResponse(text=self._text, model="fake-model", provider=self.provider_name, input_tokens=10, output_tokens=5)
@@ -72,6 +74,73 @@ def test_narrative_generation_failure_does_not_crash(client, db, make_user, monk
 
     match = JobMatch.query.filter_by(job_id=job.id).first()
     assert match.narrative_text is None
+
+
+def test_narrative_regenerates_when_ui_locale_changes(client, db, make_user, monkeypatch):
+    """i18n pass 3: match explanation follows the UI language, so a
+    narrative cached under one locale must not be served as-is once the
+    session's locale differs - same staleness contract profile_updated_at_
+    snapshot already gives the underlying score, just for the locale
+    dimension instead. Regression test for the real gap this pass fixed:
+    generate_narrative() never special-cased mock mode before, so it
+    silently reused MockAIProvider's own hardcoded-English fallback text
+    regardless of locale (see DECISIONS.md)."""
+    make_user(email="locale-narrative@example.com", password="Password123!")
+    login(client, "locale-narrative@example.com", "Password123!")
+    job = make_job(db, skills=["PLC"])
+
+    provider = FakeProvider("Great fit for your PLC background.")
+    monkeypatch.setattr(matching_module, "get_provider", lambda: provider)
+
+    client.post("/set-locale", data={"lang": "en", "next": f"/jobs/{job.id}"})
+    resp = client.post(f"/jobs/{job.id}/narrative", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    match = JobMatch.query.filter_by(job_id=job.id).first()
+    assert match.narrative_locale == "en"
+
+    # Same locale again: the cached text is reused, no second AI call.
+    resp = client.post(f"/jobs/{job.id}/narrative", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    # Switch locale: the cache must be treated as stale and regenerated,
+    # even though the underlying profile/job facts haven't changed at all.
+    client.post("/set-locale", data={"lang": "de", "next": f"/jobs/{job.id}"})
+    resp = client.post(f"/jobs/{job.id}/narrative", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 2
+
+    db.session.refresh(match)
+    assert match.narrative_locale == "de"
+
+
+def test_narrative_mock_decline_text_follows_ui_locale(client, db, make_user, monkeypatch):
+    """i18n pass 3: generate_narrative()'s own honest mock-decline message
+    (NARRATIVE_NOT_CONFIGURED_TEXT) must render in German for a German-
+    locale session, not silently fall back to MockAIProvider's generic,
+    hardcoded-English text - the exact bug this pass's own verification
+    step found and fixed (see DECISIONS.md's i18n pass 3 entry)."""
+    make_user(email="mock-narrative@example.com", password="Password123!")
+    login(client, "mock-narrative@example.com", "Password123!")
+    job = make_job(db, skills=["PLC"])
+
+    class NamedMockProvider(AIProvider):
+        provider_name = "mock"
+
+        def complete(self, system_prompt, user_prompt, max_tokens=1024):
+            raise AssertionError("mock mode must not call the AI provider at all")
+
+    monkeypatch.setattr(matching_module, "get_provider", lambda: NamedMockProvider())
+
+    client.post("/set-locale", data={"lang": "de", "next": f"/jobs/{job.id}"})
+    resp = client.post(f"/jobs/{job.id}/narrative", follow_redirects=True)
+    assert resp.status_code == 200
+    assert "kein KI-Anbieter konfiguriert".encode() in resp.data
+
+    match = JobMatch.query.filter_by(job_id=job.id).first()
+    assert match.narrative_locale == "de"
 
 
 def test_match_recomputes_when_profile_changes(app, db, make_user):

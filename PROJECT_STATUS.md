@@ -744,10 +744,35 @@ for a redesign pass. Status:
   pass 1 - this pass touched existing template/string content, not test
   count). Full detail: `DECISIONS.md`'s 2026-08-28 "i18n pass 2" entry,
   `DEPLOYMENT.md`'s Translations section.
+- **i18n pass 3 (AI content language split) done, 2026-08-29** - third
+  and last of three i18n passes. The given per-feature split wired into
+  the real prompt builders: cover letter/application email/reply
+  suggestions confirmed already unconditionally German (verified live,
+  no code change needed); match explanation/improvement tips, company
+  insight, profile coaching, interview prep, and CV profile statement now
+  take an explicit `locale` (from `get_locale()`, called inside each
+  orchestration function - zero route-level changes needed) and carry a
+  new locale-tracking column (migration `d0a13f3299ee`) so a cached
+  response goes stale when the session's language changes, not only when
+  the profile does. CV profile statement moved buckets - it used to
+  hardcode German unconditionally; now follows the UI language, since
+  (per its own docstring) it's never submitted anywhere by AUSVIA, only
+  copied into the candidate's own CV, same as profile coaching. Two real
+  bugs found by this pass's own required verification, not by
+  inspection: match explanation/improvement tips were the only AI feature
+  that never special-cased mock mode, silently falling through to a
+  shared, hardcoded-English decline message regardless of locale; and the
+  `LazyString`-can't-bind-to-SQLite bug pass 2 found once recurred in four
+  more sibling "AI not configured" messages this pass closed (all five
+  were deferred, unresolved gaps from pass 2, not new pass-3 mistakes).
+  Verified via live generation against the real configured provider
+  (Gemini) in both locales for all eight features, not mocked. Full
+  pytest suite: 586 passed / 3 skipped (583 + 3). Full detail:
+  `DECISIONS.md`'s 2026-08-29 "i18n pass 3" entry.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
-  screen onto the component-layer macros - and i18n pass 3 (per-feature
-  AI prompt language) - **neither yet scoped or started.** Job Detail,
+  screen onto the component-layer macros - **the only named item left
+  unscoped.** All three i18n passes are now complete. Job Detail,
   Application Detail, Dashboard, Find Ausbildung, Candidate Profile /
   Documents, Company Detail, and Landing are the reference call sites now
   for how a real screen uses `match_band` (full and compact shapes),

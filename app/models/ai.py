@@ -31,6 +31,14 @@ class JobMatch(db.Model):
     narrative_text = db.Column(db.Text, nullable=True)
     narrative_provider = db.Column(db.String(30), nullable=True)
     narrative_generated_at = db.Column(db.DateTime, nullable=True)
+    # i18n pass 3: which locale narrative_text was generated in ("en"/"de")
+    # - match explanation follows the UI language (see DECISIONS.md), so a
+    # cached narrative from before a locale switch must not be served as
+    # if it matched the new one. Checked alongside narrative_text itself in
+    # app/jobs/matching.py's generate_narrative(), same role
+    # profile_updated_at_snapshot already plays for profile changes -
+    # a different staleness dimension, not a replacement for it.
+    narrative_locale = db.Column(db.String(5), nullable=True)
     # "high"|"medium"|"low", same range as GmailMessage.classification_confidence.
     # Null by design, not wired by any generator - see DECISIONS.md's
     # 2026-08-26 "Reliability field" entry for why: this whole response IS
@@ -45,6 +53,7 @@ class JobMatch(db.Model):
     improvement_tips_provider = db.Column(db.String(30), nullable=True)
     improvement_tips_generated_at = db.Column(db.DateTime, nullable=True)
     improvement_tips_reliability = db.Column(db.String(20), nullable=True)  # see narrative_reliability above
+    improvement_tips_locale = db.Column(db.String(5), nullable=True)  # see narrative_locale above
 
     user = db.relationship("User")
     job = db.relationship("Job")
@@ -88,6 +97,7 @@ class CompanyInsight(db.Model):
     provider = db.Column(db.String(30), nullable=True)
     reliability = db.Column(db.String(20), nullable=True)  # see JobMatch.narrative_reliability
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User")
@@ -114,6 +124,7 @@ class ProfileCoaching(db.Model):
     provider = db.Column(db.String(30), nullable=True)
     reliability = db.Column(db.String(20), nullable=True)  # see JobMatch.narrative_reliability
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User")
@@ -136,6 +147,7 @@ class InterviewPrep(db.Model):
     prep_text = db.Column(db.Text, nullable=True)
     provider = db.Column(db.String(30), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
     # Same mechanism as GeneratedDocument/GeneratedEmail.edited_at - a plain
     # timestamp set only by a manual-save action, never derived from a text
@@ -151,13 +163,17 @@ class InterviewPrep(db.Model):
 class CvProfileStatement(db.Model):
     """Cached AI-generated short CV profile statement ("Kurzprofil") for one
     application - a job-specific summary paragraph in the spirit of a
-    standard German CV summary blurb, grounded in the candidate's real
-    profile and the job's real stored facts. Same staleness/caching pattern
-    as InterviewPrep (see app/ai/cv_profile_statement.py). Purely
+    standard CV summary blurb, grounded in the candidate's real profile and
+    the job's real stored facts. Follows the UI language (i18n pass 3, see
+    DECISIONS.md) rather than always German - the user copies this text
+    into their own separately maintained CV, it's never submitted to an
+    employer by AUSVIA itself, so it's written for the candidate like
+    profile coaching/interview prep, not for a German employer like the
+    cover letter/application email. Same staleness/caching pattern as
+    InterviewPrep (see app/ai/cv_profile_statement.py). Purely
     informational: never inserted into app/applications/pdf_package.py or
     the submitted package, and never modifies the user's uploaded CV
-    document - the user copies this text into their own separately
-    maintained CV, same as interview prep and the follow-up email."""
+    document."""
 
     __tablename__ = "cv_profile_statements"
 
@@ -167,6 +183,7 @@ class CvProfileStatement(db.Model):
     statement_text = db.Column(db.Text, nullable=True)
     provider = db.Column(db.String(30), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
     edited_at = db.Column(db.DateTime, nullable=True)  # see InterviewPrep.edited_at
 

@@ -79,7 +79,7 @@ def test_generation_prompt_includes_real_candidate_and_job_facts(app, db, make_u
     db.session.commit()
     job = make_job(db, title="Elektroniker für Automatisierungstechnik")
 
-    _, prompt = build_generation_prompt(format_candidate_facts(user.profile), format_job_facts(job))
+    _, prompt = build_generation_prompt(format_candidate_facts(user.profile), format_job_facts(job), "de")
 
     assert "Ilias Jabbour" in prompt
     assert "PLC-Programmierung" in prompt
@@ -102,6 +102,45 @@ def test_generate_cv_profile_statement_mock_mode_is_honest(client, db, make_user
     statement = CvProfileStatement.query.filter_by(application_id=application.id).first()
     assert statement is not None
     assert statement.provider == "mock"
+
+
+def test_regenerates_when_ui_locale_changes(client, db, make_user, monkeypatch):
+    """i18n pass 3: the CV profile statement now follows the UI language
+    (it used to hardcode German unconditionally - see DECISIONS.md), so a
+    statement cached under one locale must not be served as-is once the
+    session's locale differs, same as match narrative's own locale-cache
+    test in test_match_routes.py."""
+    make_user(email="cvps-locale@example.com", password="Password123!")
+    login(client, "cvps-locale@example.com", "Password123!")
+    job = make_job(db)
+    _, application = start_application(client, db, job)
+
+    fake = FakeProvider("A grounded, honest CV summary.")
+    monkeypatch.setattr(cv_profile_statement_module, "get_provider", lambda: fake)
+
+    client.post("/set-locale", data={"lang": "en", "next": f"/applications/{application.id}"})
+    resp = client.post(f"/applications/{application.id}/cv-profile-statement", follow_redirects=True)
+    assert resp.status_code == 200
+    # generate + validate = 2 calls for the first generation
+    assert fake.calls == 2
+
+    statement = CvProfileStatement.query.filter_by(application_id=application.id).first()
+    assert statement.generated_locale == "en"
+
+    # Same locale again: cached, no new AI calls at all.
+    resp = client.post(f"/applications/{application.id}/cv-profile-statement", follow_redirects=True)
+    assert resp.status_code == 200
+    assert fake.calls == 2
+
+    # Switch locale: must regenerate (another generate+validate pair),
+    # even though nothing about the profile or job changed.
+    client.post("/set-locale", data={"lang": "de", "next": f"/applications/{application.id}"})
+    resp = client.post(f"/applications/{application.id}/cv-profile-statement", follow_redirects=True)
+    assert resp.status_code == 200
+    assert fake.calls == 4
+
+    db.session.refresh(statement)
+    assert statement.generated_locale == "de"
 
 
 def test_generate_button_visible_before_any_statement_exists(client, db, make_user):
