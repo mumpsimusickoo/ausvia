@@ -12,8 +12,10 @@ class FakeProvider(AIProvider):
 
     def __init__(self, text):
         self._text = text
+        self.call_count = 0
 
     def complete(self, system_prompt, user_prompt, max_tokens=1024):
+        self.call_count += 1
         return AIResponse(text=self._text, model="fake-model", provider=self.provider_name, input_tokens=8, output_tokens=8)
 
 
@@ -78,6 +80,44 @@ def test_generate_process_qa_answer_rejects_unknown_key(app, db, make_user):
     user = make_user(email="qa6@example.com")
     with pytest.raises(ValueError):
         process_qa.generate_process_qa_answer(user, "not-a-real-question")
+
+
+def test_regenerates_when_ui_locale_changes(client, db, make_user, monkeypatch):
+    """i18n pass 3 follow-up (2026-08-29): process Q&A was resolved into
+    the "follows the UI language" bucket - genuinely candidate-facing
+    content, rendered on the Candidate Profile screen's "Common
+    questions" section. Before this fix, the question text was already
+    locale-aware (PROCESS_QA_QUESTIONS, i18n pass 2) but the answer's
+    language was left to the model's own inference - confirmed live to
+    actually break: a cached English answer stayed cached, unswapped,
+    after switching the session to German (see DECISIONS.md)."""
+    make_user(email="qa-locale@example.com", password="Password123!")
+    login(client, "qa-locale@example.com", "Password123!")
+
+    provider = FakeProvider("Training pay explained.")
+    monkeypatch.setattr(process_qa, "get_provider", lambda: provider)
+
+    client.post("/set-locale", data={"lang": "en", "next": "/profile/"})
+    resp = client.post("/profile/qa/ausbildungsverguetung", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    answer = ProcessQAAnswer.query.filter_by(question_key="ausbildungsverguetung").first()
+    assert answer.generated_locale == "en"
+
+    # Same locale again: cached, no new AI call.
+    resp = client.post("/profile/qa/ausbildungsverguetung", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    # Locale switch: must regenerate, even though the profile is unchanged.
+    client.post("/set-locale", data={"lang": "de", "next": "/profile/"})
+    resp = client.post("/profile/qa/ausbildungsverguetung", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 2
+
+    db.session.refresh(answer)
+    assert answer.generated_locale == "de"
 
 
 def test_qa_answers_are_per_user_not_shared(app, db, make_user, monkeypatch):

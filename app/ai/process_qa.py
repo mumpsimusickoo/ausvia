@@ -17,15 +17,21 @@ even the general-knowledge questions benefit from natural phrasing a
 template can't easily provide - so mock mode declines honestly, same
 pattern as app/companies/insights.py.
 """
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.ai.facts import format_candidate_facts
 from app.ai.prompts.process_qa import build_process_qa_prompt
 from app.ai.provider_factory import get_provider
 from app.ai.usage import record_usage
+from app.i18n import get_locale
 from app.models.ai import ProcessQAAnswer, PROCESS_QA_QUESTIONS
 from app.models.user import utcnow
 
-NOT_CONFIGURED_TEXT = (
+# i18n pass 3 follow-up: deterministic app status message, follows the UI
+# language - see the identical NOT_CONFIGURED_TEXT note in
+# app/ai/cv_profile_statement.py.
+NOT_CONFIGURED_TEXT = _l(
     "AI answers aren't available because no AI provider is configured "
     "(AI_PROVIDER=mock)."
 )
@@ -41,27 +47,33 @@ def generate_process_qa_answer(user, question_key):
 
     profile = user.profile
     profile_updated_at = profile.updated_at if profile else None
+    locale = get_locale()
 
     existing = get_process_qa_answer(user, question_key)
-    if existing and existing.answer_text and existing.profile_updated_at_snapshot == profile_updated_at:
+    if (
+        existing and existing.answer_text
+        and existing.profile_updated_at_snapshot == profile_updated_at
+        and existing.generated_locale == locale
+    ):
         return existing
 
     answer = existing or ProcessQAAnswer(user_id=user.id, question_key=question_key)
 
     provider = get_provider()
     if provider.provider_name == "mock":
-        answer.answer_text = NOT_CONFIGURED_TEXT
+        answer.answer_text = str(NOT_CONFIGURED_TEXT)
         answer.provider = "mock"
     else:
         question_text = PROCESS_QA_QUESTIONS[question_key]
         candidate_facts_text = format_candidate_facts(profile)
-        system, prompt = build_process_qa_prompt(question_text, candidate_facts_text)
+        system, prompt = build_process_qa_prompt(question_text, candidate_facts_text, locale)
         response = provider.complete(system, prompt, max_tokens=300)
         record_usage(user.id, "process_qa", response)
         answer.answer_text = response.text
         answer.provider = response.provider
 
     answer.profile_updated_at_snapshot = profile_updated_at
+    answer.generated_locale = locale
     answer.generated_at = utcnow()
     if not existing:
         db.session.add(answer)

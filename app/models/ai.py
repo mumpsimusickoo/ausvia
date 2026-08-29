@@ -218,9 +218,10 @@ class JobExplainer(db.Model):
 
 # i18n pass 2, 2026-08-28: these are the real question text the user reads
 # and picks from - in scope for translation, unlike the AI-generated
-# answer text those questions produce (ProcessQAAnswer.answer_text, out of
-# scope this pass - see DECISIONS.md's i18n pass 3 notes). The dict keys
-# stay plain, untranslated identifiers (matched by url_for/routes).
+# answer text those questions produce (ProcessQAAnswer.answer_text - that
+# was pass 3's job, resolved in the i18n pass 3 follow-up: it now follows
+# the UI language too, see generated_locale below and DECISIONS.md). The
+# dict keys stay plain, untranslated identifiers (matched by url_for/routes).
 PROCESS_QA_QUESTIONS = {
     "ausbildungsverguetung": _l("What does Ausbildungsvergütung mean?"),
     "unrelated_experience": _l("Should I mention unrelated work experience?"),
@@ -249,6 +250,7 @@ class ProcessQAAnswer(db.Model):
     answer_text = db.Column(db.Text, nullable=True)
     provider = db.Column(db.String(30), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User")
@@ -268,7 +270,10 @@ class DashboardInsight(db.Model):
     an application changing status can too. Count, not a hash of every
     application's full state, is a deliberately cheap approximation - see
     app/ai/dashboard_insight.py for why that's an honest tradeoff, not a
-    shortcut hiding a bug."""
+    shortcut hiding a bug. Follows the UI language like every other
+    candidate-facing Intelligence surface (i18n pass 3 follow-up,
+    2026-08-29 - see DECISIONS.md); generated_locale is checked alongside
+    the other two staleness signals."""
 
     __tablename__ = "dashboard_insights"
 
@@ -284,6 +289,7 @@ class DashboardInsight(db.Model):
     reliability = db.Column(db.String(20), nullable=True)
     profile_updated_at_snapshot = db.Column(db.DateTime, nullable=True)
     application_count_snapshot = db.Column(db.Integer, nullable=True)
+    generated_locale = db.Column(db.String(5), nullable=True)  # see JobMatch.narrative_locale
     generated_at = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User")

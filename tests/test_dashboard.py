@@ -28,8 +28,10 @@ class FakeProvider(AIProvider):
 
     def __init__(self, text):
         self._text = text
+        self.call_count = 0
 
     def complete(self, system_prompt, user_prompt, max_tokens=1024):
+        self.call_count += 1
         return AIResponse(text=self._text, model="fake-model", provider=self.provider_name, input_tokens=8, output_tokens=8)
 
 
@@ -204,3 +206,47 @@ def test_generate_insight_route_uses_real_provider_and_regenerate_href(client, d
     html = resp.get_data(as_text=True)
     assert "Both applications sit in electrical trades." in html
     assert "Regenerate" in html
+
+
+def test_dashboard_insight_regenerates_when_ui_locale_changes(client, db, make_user, monkeypatch):
+    """i18n pass 3 follow-up (2026-08-29): the cross-application insight
+    was resolved into the "follows the UI language" bucket - genuinely
+    candidate-facing content, rendered on the Dashboard via the same
+    intelligence_surface() component company insight/profile coaching use
+    (see DECISIONS.md). Same locale-cache-invalidation contract as
+    test_match_routes.py's narrative test."""
+    user = make_user(email="dash-locale@example.com", password="Password123!")
+    login(client, "dash-locale@example.com", "Password123!")
+    job1 = make_job(db, dedup_key="dash-insight-locale-a")
+    job2 = make_job(db, dedup_key="dash-insight-locale-b")
+    db.session.add_all([
+        Application(user_id=user.id, job_id=job1.id, status="sent"),
+        Application(user_id=user.id, job_id=job2.id, status="sent"),
+    ])
+    db.session.commit()
+
+    provider = FakeProvider("Both applications sit in electrical trades.")
+    monkeypatch.setattr(dashboard_insight, "get_provider", lambda: provider)
+
+    client.post("/set-locale", data={"lang": "en", "next": "/dashboard"})
+    resp = client.post("/dashboard/insight", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    insight = DashboardInsight.query.filter_by(user_id=user.id).first()
+    assert insight.generated_locale == "en"
+
+    # Same locale again: cached, no new AI call.
+    resp = client.post("/dashboard/insight", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 1
+
+    # Locale switch: must regenerate, even though nothing about the
+    # applications or profile changed.
+    client.post("/set-locale", data={"lang": "de", "next": "/dashboard"})
+    resp = client.post("/dashboard/insight", follow_redirects=True)
+    assert resp.status_code == 200
+    assert provider.call_count == 2
+
+    db.session.refresh(insight)
+    assert insight.generated_locale == "de"

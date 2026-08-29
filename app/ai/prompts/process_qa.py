@@ -6,6 +6,20 @@ docstring for the reasoning). Candidate facts here are the user's own
 account data, not a third-party attack surface (see DECISIONS.md) - no
 untrusted-external-text fencing needed for those; the question text itself
 is one of a small fixed, trusted, developer-authored set, never user input.
+
+i18n pass 3 follow-up (2026-08-29): genuinely candidate-facing content -
+rendered on the Candidate Profile screen's "Common questions" section - so
+it follows the UI language via the `locale` argument here, same as the
+other five "follows" features. Before this fix, `question_text` itself was
+already locale-aware (PROCESS_QA_QUESTIONS is an `_l()`-wrapped dict, per
+i18n pass 2) but the answer's language was never explicitly instructed -
+left to the model's own inference from the question's language, which is
+exactly the unreliable-inference pattern the rest of this pass exists to
+eliminate. Confirmed live before this fix: an answer generated under
+English UI stayed cached and un-invalidated after switching to German UI
+(same missing locale-cache-key bug already found and fixed in the other
+five features), so the question rendered in German while its own answer
+stayed in English on the same screen - see DECISIONS.md.
 """
 
 SYSTEM = """You answer a common process or terminology question from an \
@@ -31,10 +45,12 @@ application.
 """
 
 
-def build_process_qa_prompt(question_text, candidate_facts_text):
+def build_process_qa_prompt(question_text, candidate_facts_text, locale):
+    from app.ai.language import language_instruction
+
     user = (
         f"Question: {question_text}\n\n"
         f"Candidate profile (for context, only relevant to some questions):\n{candidate_facts_text}\n\n"
         "Answer the question now."
     )
-    return SYSTEM, user
+    return SYSTEM + language_instruction(locale), user

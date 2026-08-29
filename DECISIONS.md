@@ -6,6 +6,134 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-29 — i18n pass 3 resolve: dashboard_insight and process_qa join the "follows UI language" bucket, plus a LazyString sweep and a quota-blocked reply-suggestion verification
+
+**Resolved, not left open: `dashboard_insight.py` and `process_qa.py`
+both belong in the "follows UI language" bucket**, same as match
+explanation/company insight/profile coaching/interview prep/CV profile
+statement. Confirmed by tracing the actual call chain, not assumption:
+`generate_dashboard_insight()` is called from `app/main/routes.py` and
+its `summary_text` is rendered directly on the Dashboard via
+`intelligence_surface()` - the identical component company insight and
+profile coaching already use, in the identical "Erkenntnis erzeugen /
+Regenerate" pattern. `generate_process_qa_answer()` is called from
+`app/profile/routes.py` and its `answer_text` is rendered in the
+Candidate Profile screen's "Common questions" section, next to a
+"Show answer" button. Both are unambiguously candidate-facing, on two of
+the highest-traffic screens in the app - there was never a real "maybe
+internal-only" case to make for either.
+
+**Current (pre-fix) output language checked by inspection and live
+testing, not assumed:** neither prompt (`app/ai/prompts/dashboard_insight.py`/
+`process_qa.py`) had any language instruction at all - the same missing-
+instruction pattern found and fixed in company insight/profile coaching/
+interview prep during the original pass 3 sweep. For process_qa
+specifically, `question_text` was already locale-aware (`PROCESS_QA_
+QUESTIONS`, an `_l()`-wrapped dict from i18n pass 2) - a German UI
+already showed a German question, but the answer's language was left to
+the model's own inference from that question, not explicitly instructed.
+Live-tested before this fix: generating an answer under English UI, then
+switching to German UI and reopening the same question, showed the
+question text in German with its own cached answer still in English -
+the same missing-locale-in-cache-key bug already found and fixed in the
+other five features, now confirmed here too rather than assumed to be
+absent. (The rate-limited free-tier Gemini quota that later blocked
+further live testing this session - see below - prevented capturing a
+second, from-scratch generation under German UI as additional evidence,
+but the cache-staleness bug alone is conclusive: the pre-fix code had no
+mechanism to notice a locale change at all.)
+
+**Wired the same way as the original five:** both prompt builders now
+take an explicit `locale` argument and append `app/ai/language.py`'s
+`language_instruction()`; both orchestration functions call `get_locale()`
+internally (no route changes); both models gained a `generated_locale`
+column (migration `b00ad196d445`) checked alongside their existing
+staleness signals (`profile_updated_at_snapshot` for both,
+`application_count_snapshot` additionally for `DashboardInsight`).
+
+**Grounding-validator check, per the same standard applied to CV profile
+statement: neither has a hardcoded-language validation assumption,
+because neither has a second validation pass at all.** Both are single-
+pass generation (`provider.complete()` called once, response stored
+directly) - the same shape as match explanation, company insight, and
+profile coaching, not the two-pass generate-then-validate shape unique to
+cover letter and CV profile statement. Nothing to fix here beyond the
+language instruction itself.
+
+**A closed pass-2 gap, not a new pass-3 mistake, found while in these two
+files:** both `NOT_CONFIGURED_TEXT` mock-decline messages were still
+plain hardcoded English strings, never wrapped in `_l()` at all - the
+same gap already found and closed in four sibling features during the
+original pass 3 pass. Fixed the same way: `_l()` at definition, `str()`
+at the assignment site (the `LazyString`-can't-bind-to-SQLite bug from
+i18n pass 2, recurring in the exact same shape).
+
+**Full `LazyString`→non-string-sink sweep, as requested - result: no
+further instances found.** Every `_l(` call site in the codebase was
+enumerated and traced to its destination. The dangerous pattern (a
+module-level `_l()` constant or dict value assigned *directly*, with no
+intervening `str()`/`%`-formatting, to a SQLAlchemy column) existed in
+exactly eight places total: the original `NOT_CONFIGURED_NOTE` (i18n pass
+2), the four `NOT_CONFIGURED_TEXT`/`NOT_CONFIGURED_REPLY` constants closed
+in the original pass 3 sweep, `NARRATIVE_NOT_CONFIGURED_TEXT`/`TIPS_
+NOT_CONFIGURED_TEXT` (added and already `str()`-wrapped correctly in that
+same pass), and the two closed in this entry - all eight now fixed.
+Every other `_l(` call site in the codebase is one of two safe shapes,
+confirmed by tracing each to where its value is actually consumed: (1) a
+WTForms field label or `SelectField` choice label (`app/*/forms.py`) -
+rendered via `field.label`/the `<option>` text in a template, never
+itself the value that gets validated and stored (the submitted form
+*value* is always the plain code string); or (2) a display-label dict
+(`APPLICATION_STATUS_LABELS`, `DOCUMENT_TYPE_LABELS`, `REPLY_INTENT_
+LABELS`, `CHECKLIST_LABEL_TRANSLATIONS`, `_COMPLETENESS_PHRASING`,
+`STATION_LABELS`, `PROCESS_QA_QUESTIONS`) whose values only ever flow
+into a Jinja template (`{{ label_dict[key] }}`, safely stringified by
+Jinja's own rendering) or into an *immediate* `gettext()`/`_()` call's
+`%`-placeholder substitution (which resolves the `LazyString` to a plain
+`str` via Python's own `%`-formatting before the result - already a
+plain string - reaches `flash()`) - never a bare assignment to a model
+attribute. No sweep finding required a code change beyond the two already
+fixed above.
+
+**Reply suggestion: attempted live re-verification, blocked by a real,
+external constraint, not skipped.** Built a synthetic-but-realistic
+Gmail reply (a real `GmailMessage` row on a real `Application`, exactly
+the shape `app/ai/reply_ai.classify_reply()`/`generate_reply_suggestion()`
+expect - no code changes needed to exercise it, confirming a mocked
+reply genuinely can stand in for a real Gmail-sourced one for this
+purpose) and called `generate_reply_suggestion()` against it with the
+*real* configured provider (not `FakeProvider`). It failed with
+`google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED` -
+`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, the same daily quota
+this session's UI testing had already hit earlier (visible in the browser
+as "AI provider is rate-limited right now."), not something introduced
+by this pass. Test data cleaned up; no orphaned rows left behind. Given
+the quota is account-wide and daily (not a short burst), no further real-
+provider verification was possible in this session. What stands instead,
+already true before this entry: `tests/test_ai_prompt_injection.py::
+test_reply_suggestion_prompt_fences_adversarial_company_message` asserts
+the exact fixed `REPLY_SYSTEM` German-mandating constant is what's sent,
+byte-for-byte, with no locale branching anywhere in `build_reply_prompt()`
+- verified by the type system and a direct equality assertion, not
+inferred from the file's shape - and `tests/test_reply_ai.py`'s existing
+mock/fake-provider tests confirm the orchestration path stores whatever
+the provider returns without alteration. Reply suggestions remain
+unconditionally German by construction; a real-model confirmation that
+the *model itself* honors that system prompt is the one piece of
+evidence this session could not obtain, the same open item every other
+already-live-verified feature in this app implicitly carries (a prompt
+can only be proven "sent correctly"; whether the model complies is never
+fully provable without spending a real call, and this session's quota
+ran out before reply suggestion got one).
+
+**Full pytest suite: 588 passed / 3 skipped (586 + 2).** Two new tests
+added (`test_dashboard_insight_regenerates_when_ui_locale_changes`,
+`test_process_qa.py::test_regenerates_when_ui_locale_changes`), same
+locale-cache-invalidation shape as the original pass 3's narrative/
+CV-profile-statement tests, using `FakeProvider` (no quota spent).
+
+---
+
 ## 2026-08-29 — i18n pass 3: the AI content language split, a CV-statement bucket reassignment, and two real bugs (a shared mock message, a LazyString/SQLite crash)
 
 **The split (restated, not rediscovered - this was the given spec):**

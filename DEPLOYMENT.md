@@ -270,6 +270,16 @@ change**, same as any other schema migration. See `DECISIONS.md`'s
 full verification method (live generation against the real configured
 provider, both locales, all eight features).
 
+**i18n pass 3 resolve, 2026-08-29:** `dashboard_insight.py`/`process_qa.py`
+also confirmed candidate-facing and wired into the "follows UI language"
+bucket - a second migration, `b00ad196d445`, adds `generated_locale` to
+two more models. **Both migrations (`d0a13f3299ee` and `b00ad196d445`)
+must be applied** (`flask db upgrade` picks up both in one run if neither
+has been applied yet). See `DECISIONS.md`'s 2026-08-29 "i18n pass 3
+resolve" entry for the full `LazyString` sweep result and why reply
+suggestion's live re-verification was blocked (a real, account-wide daily
+Gemini quota, not a code issue).
+
 **A compiled `.mo` catalog only loads once per process - a running
 server must be restarted for a new `pybabel compile` to take effect,**
 the same way it already needs a restart to pick up new Python code (but

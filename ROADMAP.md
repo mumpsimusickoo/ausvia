@@ -642,6 +642,21 @@ for a redesign pass, started 2026-08-24.
         (Gemini) in both locales for all eight features, full pytest
         suite. Full detail: `DECISIONS.md`'s 2026-08-29 "i18n pass 3"
         entry.
+  - [x] **Pass 3 resolve, 2026-08-29** - closed the one item pass 3's own
+        report left open: `dashboard_insight.py`/`process_qa.py`, flagged
+        as "structurally follows-UI-language but not named," confirmed
+        genuinely candidate-facing by tracing their actual call chains
+        (rendered on the Dashboard and Candidate Profile screens via the
+        same `intelligence_surface()` component as their siblings) and
+        wired the same way as the original five (migration `b00ad196d445`).
+        A full sweep for the `LazyString`-can't-bind-to-SQLite pattern
+        found zero further instances beyond the two closed here. Reply
+        suggestion's live re-verification was attempted with a synthetic
+        Gmail reply against the real provider and blocked by a real,
+        account-wide daily quota exhaustion (not a code issue) - the
+        fixed-system-prompt equality test and existing orchestration
+        tests are what stand in its place. Full detail: `DECISIONS.md`'s
+        2026-08-29 "i18n pass 3 resolve" entry.
 - [x] **Component layer pass** - 2026-08-26, build-only: 11 macros
       (`btn`, `arrow_link`, `status_pill`, `chip_source`,
       `chip_attribute`, `chip_coverage`, `match_band`, `empty_state`,

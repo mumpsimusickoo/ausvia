@@ -769,6 +769,25 @@ for a redesign pass. Status:
   (Gemini) in both locales for all eight features, not mocked. Full
   pytest suite: 586 passed / 3 skipped (583 + 3). Full detail:
   `DECISIONS.md`'s 2026-08-29 "i18n pass 3" entry.
+- **i18n pass 3 resolve done, 2026-08-29** - closed the one item pass 3's
+  own report left open. `dashboard_insight.py`/`process_qa.py` confirmed
+  genuinely candidate-facing by tracing their actual call chains (both
+  render via the same `intelligence_surface()` component their siblings
+  use, on the Dashboard and Candidate Profile screens respectively) and
+  wired into the "follows UI language" bucket the same way as the
+  original five (migration `b00ad196d445`). Live-tested the pre-fix bug
+  directly rather than assuming it: a cached English answer stayed cached
+  and un-invalidated after switching the session to German. A full sweep
+  for the `LazyString`-can't-bind-to-SQLite pattern (recurred five times
+  across pass 2 and the original pass 3) found zero further instances -
+  every remaining `_l()` call site traces to a WTForms label or a
+  display-only dict, never a bare column assignment. Reply suggestion's
+  live re-verification was attempted with a synthetic Gmail reply against
+  the real provider and blocked by the same account-wide daily Gemini
+  quota this session's UI testing had already exhausted - not a code
+  issue; the existing fixed-system-prompt equality test stands in its
+  place. Full pytest suite: 588 passed / 3 skipped (586 + 2). Full
+  detail: `DECISIONS.md`'s 2026-08-29 "i18n pass 3 resolve" entry.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - **the only named item left

@@ -4,6 +4,14 @@ whole application set at once, not one job/application. Candidate and
 application facts here are the user's own account data, not a third-party
 attack surface (same reasoning as app/ai/prompts/profile_coaching.py) - no
 untrusted-external-text fencing needed.
+
+i18n pass 3 follow-up (2026-08-29): genuinely candidate-facing content -
+rendered directly on the Dashboard via intelligence_surface(), the same
+component company insight/profile coaching use - so it follows the UI
+language the same way, via the `locale` argument here. Was left unwired
+in the original pass-3 sweep because it wasn't named in that pass's
+brief, not because it was judged out of scope; see DECISIONS.md's
+i18n pass 3 resolution entry.
 """
 
 SYSTEM = """You are reviewing a candidate's full set of Ausbildung \
@@ -27,10 +35,12 @@ profile) - not generic job-search advice.
 """
 
 
-def build_dashboard_insight_prompt(candidate_facts_text, applications_summary_text):
+def build_dashboard_insight_prompt(candidate_facts_text, applications_summary_text, locale):
+    from app.ai.language import language_instruction
+
     user = (
         f"Candidate profile:\n{candidate_facts_text}\n\n"
         f"Applications:\n{applications_summary_text}\n\n"
         "What's the one most useful pattern across these applications, if any?"
     )
-    return SYSTEM, user
+    return SYSTEM + language_instruction(locale), user

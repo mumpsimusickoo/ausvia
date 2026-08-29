@@ -16,15 +16,21 @@ Intelligence surface handles no-auto-invalidation drift.
 No deterministic core, same reasoning as app/ai/profile_coaching.py -
 mock mode declines honestly rather than faking a synthesis.
 """
+from flask_babel import lazy_gettext as _l
+
 from app.extensions import db
 from app.ai.facts import format_candidate_facts, format_applications_summary
 from app.ai.prompts.dashboard_insight import build_dashboard_insight_prompt
 from app.ai.provider_factory import get_provider
 from app.ai.usage import record_usage
+from app.i18n import get_locale
 from app.models.ai import DashboardInsight
 from app.models.user import utcnow
 
-NOT_CONFIGURED_TEXT = (
+# i18n pass 3 follow-up: deterministic app status message, follows the UI
+# language - see the identical NOT_CONFIGURED_TEXT note in
+# app/ai/cv_profile_statement.py.
+NOT_CONFIGURED_TEXT = _l(
     "AI cross-application insights aren't available because no AI provider is "
     "configured (AI_PROVIDER=mock). Your applications and profile above are "
     "real; this would only be an AI-spotted pattern layered on top."
@@ -46,6 +52,7 @@ def generate_dashboard_insight(user, applications, match_by_job_id=None):
     profile = user.profile
     profile_updated_at = profile.updated_at if profile else None
     application_count = len(applications)
+    locale = get_locale()
 
     existing = get_dashboard_insight(user)
     if (
@@ -53,6 +60,7 @@ def generate_dashboard_insight(user, applications, match_by_job_id=None):
         and existing.summary_text
         and existing.profile_updated_at_snapshot == profile_updated_at
         and existing.application_count_snapshot == application_count
+        and existing.generated_locale == locale
     ):
         return existing
 
@@ -60,12 +68,12 @@ def generate_dashboard_insight(user, applications, match_by_job_id=None):
 
     provider = get_provider()
     if provider.provider_name == "mock":
-        insight.summary_text = NOT_CONFIGURED_TEXT
+        insight.summary_text = str(NOT_CONFIGURED_TEXT)
         insight.provider = "mock"
     else:
         candidate_facts_text = format_candidate_facts(profile)
         applications_summary_text = format_applications_summary(applications, match_by_job_id)
-        system, prompt = build_dashboard_insight_prompt(candidate_facts_text, applications_summary_text)
+        system, prompt = build_dashboard_insight_prompt(candidate_facts_text, applications_summary_text, locale)
         response = provider.complete(system, prompt, max_tokens=250)
         record_usage(user.id, "dashboard_insight", response)
         insight.summary_text = response.text
@@ -73,6 +81,7 @@ def generate_dashboard_insight(user, applications, match_by_job_id=None):
 
     insight.profile_updated_at_snapshot = profile_updated_at
     insight.application_count_snapshot = application_count
+    insight.generated_locale = locale
     insight.generated_at = utcnow()
     if not existing:
         db.session.add(insight)

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-29 00:18+0100\n"
+"POT-Creation-Date: 2026-08-29 01:01+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -140,6 +140,14 @@ msgstr ""
 "Die KI-Erstellung des Kurzprofils ist nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Die Profil- und Stellendetails auf dieser Seite sind echt; dies wäre nur eine "
 "zusätzliche KI-generierte Zusammenfassung."
 
+#: app/ai/dashboard_insight.py:34
+msgid ""
+"AI cross-application insights aren't available because no AI provider is configured (AI_PROVIDER=mock). Your applications and profile above are real; this would only be an AI-spotted pattern "
+"layered on top."
+msgstr ""
+"Übergreifende KI-Erkenntnisse sind nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock). Deine Bewerbungen und dein Profil oben sind echt; dies wäre nur ein zusätzliches, von "
+"der KI erkanntes Muster."
+
 #: app/ai/interview_prep.py:26
 msgid ""
 "AI interview prep isn't available because no AI provider is configured (AI_PROVIDER=mock). The job and company details on this page are real; this would only be an AI-generated study aid layered on"
@@ -216,6 +224,10 @@ msgstr "Startdatum"
 #, python-format
 msgid "Job starts %(job_date)s, candidate prefers %(pref_date)s."
 msgstr "Die Stelle beginnt am %(job_date)s, du bevorzugst %(pref_date)s."
+
+#: app/ai/process_qa.py:35
+msgid "AI answers aren't available because no AI provider is configured (AI_PROVIDER=mock)."
+msgstr "KI-Antworten sind nicht verfügbar, da kein KI-Anbieter konfiguriert ist (AI_PROVIDER=mock)."
 
 #: app/ai/profile_coaching.py:23
 msgid ""
@@ -1050,23 +1062,23 @@ msgstr "Dieser Zugangscode ist abgelaufen."
 msgid "This access code has already been used the maximum number of times."
 msgstr "Dieser Zugangscode wurde bereits die maximale Anzahl an Malen verwendet."
 
-#: app/models/ai.py:225
+#: app/models/ai.py:226
 msgid "What does Ausbildungsvergütung mean?"
 msgstr "Was bedeutet Ausbildungsvergütung?"
 
-#: app/models/ai.py:226
+#: app/models/ai.py:227
 msgid "Should I mention unrelated work experience?"
 msgstr "Sollte ich fachfremde Berufserfahrung erwähnen?"
 
-#: app/models/ai.py:227
+#: app/models/ai.py:228
 msgid "What's the normal response time for an application?"
 msgstr "Wie lange dauert es normalerweise, bis man eine Antwort auf eine Bewerbung erhält?"
 
-#: app/models/ai.py:228
+#: app/models/ai.py:229
 msgid "Do I need to translate my documents into German?"
 msgstr "Muss ich meine Unterlagen ins Deutsche übersetzen?"
 
-#: app/models/ai.py:229
+#: app/models/ai.py:230
 msgid "What's the difference between an Ausbildung and a Duales Studium?"
 msgstr "Was ist der Unterschied zwischen einer Ausbildung und einem dualen Studium?"
 
