@@ -23,7 +23,7 @@ can't (see `AI.md`'s deterministic-first principle).
 Since the last full sync of this file (2026-08-13), the following shipped
 and is real and working (see `ROADMAP.md` for the full detail on each):
 
-- **A real, working third job source, plus two more built.** The
+- **A real, working third job source, plus a fourth now live too.** The
   Arbeitsagentur endpoint was bumped v4→v6 and, contrary to the prior
   "confirmed blocked" diagnosis in this file, v6 returns real 200 responses
   with real data - live-verified from two independent networks, still
@@ -31,12 +31,16 @@ and is real and working (see `ROADMAP.md` for the full detail on each):
   unit-tested against the same normalized pipeline every source uses.
   Adzuna is not yet live: its 14-day free trial has deliberately not been
   started (starting it is a real, consequential clock, not something to
-  trigger silently). Jooble is not yet live either: a real API key was
-  obtained, but Jooble's API is currently rejecting it with a 403 - this is
-  actively being troubleshot, not resolved. See `JOB_SOURCES.md` (note:
-  its Adzuna/Jooble subsections still describe the pre-key state and are
-  due for a refresh - not done as part of this sync, which was scoped to
-  this file and `ROADMAP.md` only).
+  trigger silently). **Jooble is live (2026-08-29)**: the earlier 403s were
+  a wrong-domain key, not an account block - Jooble issues keys per
+  regional domain, and a `de.jooble.org` key fixed it, live-verified with
+  real German Ausbildung listings returned. Because Jooble's free tier is a
+  500-request *lifetime* cap with no reset, it's deliberately **admin-only**
+  (not general search traffic), with a persistent request counter and a
+  hard stop that actually refuses further calls once the budget nears
+  exhaustion - see `DECISIONS.md`'s two 2026-08-29 Jooble entries and
+  `JOB_SOURCES.md` (now current, not the pre-key state this note used to
+  flag).
 - **A hybrid, grounded AI extraction pipeline** now populates `Job.skills`
   and `Job.contact_person`/`contact_email` from real posting text -
   deterministic section-isolation first (so the AI never even sees
@@ -108,8 +112,9 @@ and the Arbeitsagentur endpoint. That's now outdated in two of three ways:
   Anthropic remains unverified live (no key in this environment) - this is
   now a per-provider distinction, not a blanket "unverified."
 - **Adzuna / Jooble** (new since the last sync, not part of the original
-  three): built and unit-tested, neither is live yet - see above for why
-  (trial not started / key rejected with 403).
+  three): built and unit-tested. Adzuna is not live yet (trial
+  deliberately not started). **Jooble is live (2026-08-29, admin-only)** -
+  see above.
 - **Gmail**: still not confirmed end-to-end against real Google
   infrastructure from within this dev environment. A real production
   `redirect_uri` bug was found and fixed on the deployed host (see above),
@@ -122,8 +127,8 @@ and the Arbeitsagentur endpoint. That's now outdated in two of three ways:
 
 All are real, tested against faked services where live access isn't
 available, and honest about which parts remain unverified - not broken,
-not stubbed. See `JOB_SOURCES.md` for the Arbeitsagentur diagnosis in
-full (Adzuna/Jooble subsections there are due a refresh, noted above).
+not stubbed. See `JOB_SOURCES.md` for the Arbeitsagentur diagnosis and the
+current (2026-08-29) Adzuna/Jooble status in full.
 
 ## Architecture summary
 
@@ -137,14 +142,16 @@ full (Adzuna/Jooble subsections there are due a refresh, noted above).
   (Phase 7 Remediation).
 - **Job sources:** three real adapters behind one `JobSourceAdapter`
   abstraction (`app/jobs/adapters/`) - Arbeitsagentur (v6, working, no
-  credentials needed), Adzuna (built, trial not started), Jooble (built,
-  key obtained, 403 being troubleshot) - plus manual import (bulk paste +
-  browser bookmarklet) for sources that can't be reached programmatically
-  at all. All three adapters share one normalized `Job` model, one
-  ingestion/dedup pipeline, and a 15-minute per-(source, query) cache so
-  repeated searches don't burn metered-API quota. An on-demand "Job radar"
-  (`app/jobs/radar.py`) runs this same pipeline against a user's saved
-  preferences on request - see the AUSVIA 2.0 section below.
+  credentials needed), Adzuna (built, trial not started), Jooble (live,
+  admin-only, 500-request lifetime budget with a persistent counter and a
+  hard stop - see `DECISIONS.md`'s 2026-08-29 entries) - plus manual
+  import (bulk paste + browser bookmarklet) for sources that can't be
+  reached programmatically at all. All three adapters share one
+  normalized `Job` model, one ingestion/dedup pipeline, and a 15-minute
+  per-(source, query) cache so repeated searches don't burn metered-API
+  quota. An on-demand "Job radar" (`app/jobs/radar.py`) runs this same
+  pipeline against a user's saved preferences on request - see the
+  AUSVIA 2.0 section below.
 - **AI:** provider-agnostic abstraction, two real provider options
   (`AnthropicProvider`, `GeminiProvider`) plus `MockAIProvider` as the
   default/fallback - every AI feature computes its core output
@@ -603,8 +610,12 @@ for a redesign pass. Status:
   Application Detail's Wayfinding tracker, unrelated), and a footer whose
   source list is generated from `get_enabled_adapter_names()` - today
   just "Bundesagentur für Arbeit (Jobsuche)", not the bundle's hardcoded
-  three, since Adzuna's trial was never started and Jooble's key isn't
-  configured. Privacy/Impressum links are deliberately omitted rather than
+  three, since Adzuna's trial was never started (as of this pass, 2026-08-28
+  - Jooble's key wasn't configured either at the time, though as of
+  2026-08-29 it's admin-only and excluded from this public page
+  regardless, so the footer's shown text hasn't changed even though the
+  underlying reason for Jooble's absence has - see `DECISIONS.md`).
+  Privacy/Impressum links are deliberately omitted rather than
   stubbed - no such route/page exists yet, and this was a stop-and-ask
   the user resolved by deferring both as a logged pre-launch blocker (see
   `ROADMAP.md`) rather than inventing placeholders. The closing CTA's

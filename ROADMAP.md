@@ -277,9 +277,21 @@ correctable, not permanent.
       trial is a real, consequential clock).
 - [x] **Jooble adapter** (`JoobleAdapter`) - official API, same
       error-handling/normalization discipline, manually-issued key (no
-      self-serve signup). Built and unit-tested. A real API key was
-      obtained since, but Jooble's API is currently rejecting it with a
-      403 - actively being troubleshot, not resolved.
+      self-serve signup). **Live and working (2026-08-29)**: the earlier
+      403s were a domain-key mismatch (a key issued for `jooble.org`
+      doesn't work on that domain either - Jooble issues keys per
+      regional domain; a `de.jooble.org` key fixed it), not an
+      account-side block. Because Jooble's free tier turned out to be a
+      500-request *lifetime* cap (no reset, only a new key), it's
+      deliberately **admin-only** rather than opened to general search
+      traffic - `ADMIN_ONLY_SOURCES` in `app/jobs/adapters/manager.py`,
+      enforced at both real call sites plus the public landing footer.
+      A persistent per-source request counter tracks cumulative spend
+      and a hard stop (5 requests short of the true cap, to absorb a
+      non-atomic check-then-increment) refuses further calls outright
+      once reached - a counter that only warns doesn't protect a
+      non-renewing budget, so this isn't optional polish. See
+      `DECISIONS.md`'s two 2026-08-29 Jooble entries and `JOB_SOURCES.md`.
 - [x] **Shared pipeline improvements** (not per-source special-casing):
       `dedupe.py` now checks a canonical/original-URL match before the
       existing company+title+location heuristic; `ingest.py` adds a

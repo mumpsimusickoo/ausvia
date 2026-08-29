@@ -12,7 +12,13 @@ but ADAPTERS["arbeitsagentur"] is unconditionally present and would
 otherwise be queried on every /jobs/ search alongside Jooble.
 """
 from app.jobs.adapters import manager as adapter_manager
-from app.jobs.adapters.jooble import JOOBLE_LIFETIME_BUDGET, JOOBLE_WARNING_THRESHOLD, JoobleAdapter, record_jooble_request
+from app.jobs.adapters.jooble import (
+    JOOBLE_HARD_STOP_AT,
+    JOOBLE_LIFETIME_BUDGET,
+    JOOBLE_WARNING_THRESHOLD,
+    JoobleAdapter,
+    record_jooble_request,
+)
 from app.models.job import JobSourceSetting
 from app.models.profile import Preference
 from app.models.system_log import SystemLog
@@ -146,8 +152,8 @@ def test_admin_radar_check_invokes_jooble(client, db, app, make_user, monkeypatc
 def test_record_jooble_request_creates_row_and_increments(app, db):
     assert JobSourceSetting.query.filter_by(source_name="jooble").first() is None
 
-    count = record_jooble_request()
-    assert count == 1
+    proceed = record_jooble_request()
+    assert proceed is True
     setting = JobSourceSetting.query.filter_by(source_name="jooble").first()
     assert setting is not None
     assert setting.request_count == 1
@@ -179,3 +185,104 @@ def test_record_jooble_request_no_warning_well_above_threshold(app, db):
 
     warning = SystemLog.query.filter_by(category="job_source", level="warning").first()
     assert warning is None
+
+
+# --- Hard stop (2026-08-29 follow-up): the counter/warning alone never
+# refused a call - request_count could climb straight past the true
+# lifetime cap while only ever logging about it. record_jooble_request()
+# now refuses the call outright once JOOBLE_HARD_STOP_AT is reached. ---
+
+def test_record_jooble_request_refuses_at_hard_stop_ceiling(app, db):
+    setting = JobSourceSetting(source_name="jooble", display_name="Jooble", request_count=JOOBLE_HARD_STOP_AT)
+    db.session.add(setting)
+    db.session.commit()
+
+    proceed = record_jooble_request()
+
+    assert proceed is False
+    db.session.refresh(setting)
+    assert setting.request_count == JOOBLE_HARD_STOP_AT  # unchanged - no call means nothing to count
+
+    error_log = SystemLog.query.filter_by(category="job_source", level="error").order_by(
+        SystemLog.created_at.desc()
+    ).first()
+    assert error_log is not None
+    assert "hard stop" in error_log.message.lower()
+    # Distinct from the "getting close" warning - this call produced the
+    # error, not another warning.
+    assert SystemLog.query.filter_by(category="job_source", level="warning").first() is None
+
+
+def test_record_jooble_request_refuses_past_hard_stop_ceiling(app, db):
+    # Not just exactly-at-ceiling - anything at or above must refuse too.
+    setting = JobSourceSetting(source_name="jooble", display_name="Jooble", request_count=JOOBLE_LIFETIME_BUDGET)
+    db.session.add(setting)
+    db.session.commit()
+
+    assert record_jooble_request() is False
+    db.session.refresh(setting)
+    assert setting.request_count == JOOBLE_LIFETIME_BUDGET
+
+
+def test_record_jooble_request_still_proceeds_just_below_hard_stop(app, db):
+    setting = JobSourceSetting(source_name="jooble", display_name="Jooble", request_count=JOOBLE_HARD_STOP_AT - 1)
+    db.session.add(setting)
+    db.session.commit()
+
+    assert record_jooble_request() is True
+    db.session.refresh(setting)
+    assert setting.request_count == JOOBLE_HARD_STOP_AT
+
+
+def test_admin_search_gets_no_jooble_results_once_hard_stopped(client, db, app, make_user, monkeypatch):
+    # The whole point: refuse the call, not just log about it - and the
+    # request itself must still succeed gracefully (no Jooble results,
+    # not an error page), same as if the source were simply disabled.
+    _configure_jooble(app)
+    _mock_arbeitsagentur_empty(monkeypatch)
+    make_user(email="theadmin4@example.com", password="Password123!", role="admin")
+    login(client, "theadmin4@example.com", "Password123!")
+
+    setting = JobSourceSetting(source_name="jooble", display_name="Jooble", request_count=JOOBLE_HARD_STOP_AT)
+    db.session.add(setting)
+    db.session.commit()
+
+    calls = []
+    monkeypatch.setattr(JoobleAdapter, "search", lambda self, *a, **kw: calls.append(1) or [JOOBLE_RAW_JOB])
+
+    resp = client.get("/jobs/?keywords=Elektroniker")
+
+    assert resp.status_code == 200
+    assert calls == []  # the call was refused, not attempted
+    assert b"Jooble Test GmbH" not in resp.data
+    db.session.refresh(setting)
+    assert setting.request_count == JOOBLE_HARD_STOP_AT  # unchanged
+
+    error_log = SystemLog.query.filter_by(category="job_source", level="error").first()
+    assert error_log is not None
+    assert "hard stop" in error_log.message.lower()
+
+
+def test_radar_check_with_three_fields_increments_counter_by_three(client, db, app, make_user, monkeypatch):
+    # Each of MAX_FIELDS_PER_CHECK preferred fields is a distinct keyword,
+    # so none of the three ingest_search() calls collide in
+    # ProviderQueryCache - each is a real, separately-counted call.
+    _configure_jooble(app)
+    _mock_arbeitsagentur_empty(monkeypatch)
+    user = make_user(email="theadmin5@example.com", password="Password123!", role="admin")
+    pref = Preference(
+        profile_id=user.profile.id,
+        fields=["Elektroniker", "Mechatroniker", "Fachinformatiker"],
+        locations=["Berlin"],
+    )
+    db.session.add(pref)
+    db.session.commit()
+    login(client, "theadmin5@example.com", "Password123!")
+
+    monkeypatch.setattr(JoobleAdapter, "search", lambda self, *a, **kw: [JOOBLE_RAW_JOB])
+
+    resp = client.post("/jobs/check-now", follow_redirects=True)
+    assert resp.status_code == 200
+
+    setting = JobSourceSetting.query.filter_by(source_name="jooble").first()
+    assert setting.request_count == 3

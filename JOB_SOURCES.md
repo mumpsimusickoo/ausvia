@@ -213,7 +213,8 @@ existing 15-minute `ProviderQueryCache` cooldown (see "Query-quota
 caching" below) still applies on top of the admin gate, further reducing
 burn for repeat identical searches within a session.
 
-**A persistent cumulative request counter tracks the lifetime spend.**
+**A persistent cumulative request counter tracks the lifetime spend - and
+actually enforces a hard stop, not just a warning.**
 `JobSourceSetting.request_count` (source_name="jooble") increments once
 per real outbound call - success or failure, since a request that reached
 Jooble's servers already cost its lifetime price regardless of what it
@@ -225,6 +226,19 @@ stat, "N / 500"), and a `SystemLog` warning is logged once remaining
 budget drops to 50 or below (~10% of the total - enough runway that an
 admin logging in every few days, the expected usage pattern now that this
 is admin-only, sees it more than once before actual exhaustion).
+
+**Hard stop, added same day after review caught that the counter alone
+never refused a call:** once `request_count` reaches `JOOBLE_HARD_STOP_AT`
+(495 - a 5-request margin below the true 500 cap, absorbing the fact that
+the check-then-increment isn't atomic against a concurrent request, e.g.
+a single job-radar click already firing up to 3 real calls in a row),
+`record_jooble_request()` returns `False` and `ingest_search()` skips
+Jooble for that search entirely - no call attempted, nothing further
+incremented, no error surfaced to the user (graceful, same as a disabled
+source) - and logs a distinct `SystemLog` at `level="error"` containing
+"hard stop", separate from the earlier `level="warning"` notice so the
+two are never confused in the admin feed. See `DECISIONS.md`'s
+"Jooble hard stop" entry.
 
 Same reasoning as Adzuna on `employment_type`: not defaulted to
 "Ausbildung" (Jooble's `type` field is generic, and keyword search doesn't

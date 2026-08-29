@@ -73,7 +73,16 @@ def ingest_search(keywords, location=None, admin=False):
             # before the call (not after) so a failure still counts, since
             # a request that reached Jooble's servers already cost its
             # lifetime price regardless of what it returned.
-            record_jooble_request()
+            # record_jooble_request() returns False once the hard-stop
+            # ceiling is reached (app/jobs/adapters/jooble.py) - the call
+            # must be refused entirely at that point, not attempted and
+            # merely warned about. Deliberately not added to
+            # result.errors: this is an intentional budget decision, not
+            # a provider failure, so it shouldn't surface to the user as
+            # one - it just means no Jooble results for this search,
+            # exactly as if the source were disabled.
+            if not record_jooble_request():
+                continue
 
         try:
             raw_results = adapter.search(keywords, location=location)

@@ -117,8 +117,74 @@ not move on an immediate repeat search (a `ProviderQueryCache` hit).
 that happened to use "jooble" as an arbitrary third source name were
 renamed to "otherboard" - they were never testing anything Jooble-
 specific, and leaving the name as-is would have silently coupled them to
-`ADMIN_ONLY_SOURCES` membership. Full pytest suite: 609 passed, 3
-skipped, 0 failed (up from 600 after the previous pass).
+`ADMIN_ONLY_SOURCES` membership. Full pytest suite: 613 passed, 3
+skipped, 0 failed (up from 600 after the previous pass) - includes a
+real gap the suite's own i18n consistency check caught: a new admin
+string (`_("Jooble requests used")`) was wrapped for translation but
+missing from the German catalog, fixed and recompiled before the count
+above.
+
+---
+
+## 2026-08-29 — Jooble hard stop: a counter that only warns doesn't protect a non-renewing budget
+
+**The gap:** `record_jooble_request()` (the counter added in the pass
+above) unconditionally incremented and logged a warning near the
+threshold, but nothing actually refused a call once the budget was
+exhausted - the adapter would keep calling through, keep spending real
+lifetime requests, right past 500, with only a log entry narrating the
+loss on the way. A warning that doesn't also prevent the overage doesn't
+protect the budget, it just documents its disappearance - caught by the
+user reviewing the previous pass's report, not found independently in
+this session.
+
+**Fix: `record_jooble_request()` now checks before it counts.** It
+returns `True` (proceed with the real call) or `False` (refuse it
+entirely - no increment, no network call) depending on whether
+`JobSourceSetting.request_count` has already reached
+`JOOBLE_HARD_STOP_AT`. `app/jobs/ingest.py`'s `ingest_search()` respects
+that return value: `if not record_jooble_request(): continue` - skips
+Jooble for that search exactly as if the source were disabled, not
+surfaced to `result.errors` (this is an intentional budget decision, not
+a provider failure, so it shouldn't read as one to the end user). A
+distinct `SystemLog` (`level="error"`, message containing "hard stop") is
+logged the moment a call is actually refused - separate from the
+existing `level="warning"` "getting close" notice, so the two are never
+confused in the admin activity feed.
+
+**Hard-stop ceiling: `JOOBLE_HARD_STOP_AT = 495`, a 5-request margin
+below the true 500 cap, not 500 itself.** `record_jooble_request()`'s
+check-then-increment isn't atomic against a concurrent request - there's
+no row-level lock or compare-and-swap on `request_count` - and a single
+job-radar click alone already fires up to `MAX_FIELDS_PER_CHECK=3` real
+calls in a row (see "confirmed by testing" below), with two admin browser
+tabs acting close together a real possibility too. A 5-request margin
+absorbs that race window without meaningfully shortening the usable
+budget for what's now a low-frequency, single-admin usage pattern - the
+whole point of the margin is to guarantee the true, non-renewing 500
+ceiling is never actually crossed, even under an unlucky interleaving,
+not to shave the budget for its own sake.
+
+**Confirmed by testing, not assumed: a single job-radar click with 3
+distinct preferred fields increments the counter by exactly 3, not 1.**
+Traced the actual call pattern: `run_job_radar()` calls `ingest_search()`
+once per field in its `fields[:MAX_FIELDS_PER_CHECK]` loop, and since each
+field is a different keyword, none of the three collide in
+`ProviderQueryCache` - each independently passes the cache check and
+reaches `record_jooble_request()` as a real, separately-counted call.
+`test_radar_check_with_three_fields_increments_counter_by_three` proves
+this directly rather than trusting the design intent alone.
+
+**Verification:** unit tests confirm `record_jooble_request()` refuses
+and leaves `request_count` unchanged at and above `JOOBLE_HARD_STOP_AT`,
+still proceeds one request below it, and that the hard-stop path logs
+only the distinct error (never also the separate warning) for that call.
+A route-level test forces `request_count` to the ceiling, performs a real
+admin search, and confirms: `JoobleAdapter.search` is never called, the
+response is a normal 200 with no Jooble results (graceful, not an error
+page), the counter stays unchanged, and the distinct error log is
+present. Full pytest suite: 618 passed, 3 skipped, 0 failed (up from
+613).
 
 ---
 

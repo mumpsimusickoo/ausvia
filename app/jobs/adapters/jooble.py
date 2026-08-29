@@ -66,27 +66,48 @@ REQUEST_USER_AGENT = (
 JOOBLE_LIFETIME_BUDGET = 500
 JOOBLE_WARNING_THRESHOLD = 50
 
+# Hard stop: a small margin short of the true 500-request cap, not 500
+# itself. record_jooble_request()'s own check-then-increment isn't
+# atomic against a concurrent request (no row-level lock/compare-and-swap
+# on JobSourceSetting.request_count) - a job-radar click alone fires up to
+# MAX_FIELDS_PER_CHECK real calls in a row, and two admin browser tabs
+# acting close together is a real possibility too. A 5-request margin
+# absorbs that race window without meaningfully shortening the usable
+# budget for a low-frequency, single-admin usage pattern - the whole
+# point of the margin is to guarantee the true, non-renewing 500 ceiling
+# is never actually crossed, even under an unlucky interleaving.
+JOOBLE_HARD_STOP_MARGIN = 5
+JOOBLE_HARD_STOP_AT = JOOBLE_LIFETIME_BUDGET - JOOBLE_HARD_STOP_MARGIN
+
 
 def record_jooble_request():
-    """Increments the persistent cumulative Jooble request counter
-    (JobSourceSetting.request_count for source_name="jooble") - called by
-    app/jobs/ingest.py's ingest_search() exactly once per REAL outbound
-    call that reaches Jooble, i.e. after ProviderQueryCache's 15-minute
-    cache-hit check has already passed (a cache hit never reaches this;
-    it never touches the network at all). Counts every real attempt
-    regardless of outcome - success, a 403, a timeout - not just
-    successes: a request that actually reached Jooble's servers has
-    already spent its lifetime cost whether or not it returned anything
-    usable, and there's no documented way to distinguish "didn't count
-    against the cap" failures from ones that did, so this counts
-    conservatively rather than risk under-counting against a budget that
-    can't be topped up.
+    """Gate-and-record for every real outbound call to Jooble - called by
+    app/jobs/ingest.py's ingest_search() exactly once per call that would
+    reach Jooble, i.e. after ProviderQueryCache's 15-minute cache-hit
+    check has already passed (a cache hit never reaches this, never
+    touches the network at all). Returns True if the caller should
+    proceed with the real adapter.search() call, False if the hard-stop
+    ceiling (JOOBLE_HARD_STOP_AT) has already been reached - in which
+    case NOTHING is incremented and NO call is made at all. A counter and
+    a warning alone don't protect a non-renewing budget, only a hard stop
+    that actually refuses the call does - see DECISIONS.md.
 
-    Logs a warning (SystemLog, category "job_source") once remaining
-    budget drops to JOOBLE_WARNING_THRESHOLD or below, so it's visible on
-    /admin's recent-activity feed - and the raw count/remaining is also
-    shown directly as its own stat on that page (see app/admin/routes.py),
-    not left for an admin to notice only via the log feed scrolling by.
+    When returning True, counts the attempt regardless of what happens to
+    it next - success, a 403, a timeout - not just successes: a request
+    that actually reached Jooble's servers has already spent its lifetime
+    cost whether or not it returned anything usable, and there's no
+    documented way to distinguish "didn't count against the cap" failures
+    from ones that did, so this counts conservatively rather than risk
+    under-counting against a budget that can't be topped up.
+
+    Logs a SystemLog warning (category "job_source", level "warning")
+    once remaining budget drops to JOOBLE_WARNING_THRESHOLD or below -
+    visible on /admin's recent-activity feed, alongside the raw
+    count/remaining shown as its own stat on that page (see
+    app/admin/routes.py). Logs a separate, more severe SystemLog
+    (level "error") the moment the hard stop actually engages - distinct
+    from the warning, since by then this is no longer "getting close",
+    it's "a call was just refused."
     """
     from app.extensions import db
     from app.models.job import JobSourceSetting
@@ -96,7 +117,19 @@ def record_jooble_request():
     if setting is None:
         setting = JobSourceSetting(source_name="jooble", display_name="Jooble")
         db.session.add(setting)
-    setting.request_count = (setting.request_count or 0) + 1
+
+    used = setting.request_count or 0
+    if used >= JOOBLE_HARD_STOP_AT:
+        log_event(
+            "job_source",
+            f"Jooble request budget hard stop engaged: {used} of {JOOBLE_LIFETIME_BUDGET} "
+            f"lifetime requests already used (stop threshold {JOOBLE_HARD_STOP_AT}) - this "
+            f"call was refused, not attempted. A new key is needed to use Jooble again.",
+            level="error",
+        )
+        return False
+
+    setting.request_count = used + 1
     db.session.commit()
 
     remaining = JOOBLE_LIFETIME_BUDGET - setting.request_count
@@ -108,7 +141,7 @@ def record_jooble_request():
             f"reset - a new key will be needed once it's exhausted.",
             level="warning",
         )
-    return setting.request_count
+    return True
 
 
 class JoobleAdapterError(Exception):
