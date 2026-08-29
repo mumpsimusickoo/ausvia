@@ -31,16 +31,30 @@ def test_logged_in_user_redirected_away_from_landing(client, db, make_user):
 
 
 def test_footer_lists_only_enabled_configured_sources(client):
-    # TestingConfig forces Adzuna/Jooble credentials to None (see
-    # app/jobs/adapters/manager.py + config.py), so only Arbeitsagentur is
-    # actually enabled AND configured - matching the real dev environment
-    # today (Adzuna's trial never started, Jooble's key returns 403).
+    # TestingConfig forces Adzuna's credentials to None (see
+    # app/jobs/adapters/manager.py + config.py) - its trial never started
+    # in the real dev environment either, so it's genuinely unconfigured,
+    # not just admin-scoped like Jooble (see the dedicated test below for
+    # why Jooble is absent even once configured).
     resp = client.get("/")
     body = resp.data.decode("utf-8")
     assert "Bundesagentur für Arbeit" in body
     assert "Adzuna" not in body
     assert "Jooble" not in body
     assert "Source:" in body  # singular - exactly one source enabled
+
+
+def test_footer_excludes_jooble_even_when_configured(client, app):
+    # Jooble's lifetime request budget is reserved for the admin's own
+    # account (ADMIN_ONLY_SOURCES, admin-only scoping pass, 2026-08-29) -
+    # a logged-out visitor must never see it claimed as a searched source,
+    # regardless of whether a real key is configured or the source is
+    # enabled in JobSourceSetting.
+    app.config["JOOBLE_API_KEY"] = "test-jooble-key"
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Bundesagentur für Arbeit" in body
+    assert "Jooble" not in body
 
 
 def test_footer_excludes_manual_import_as_a_source(client):

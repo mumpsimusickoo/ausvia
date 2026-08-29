@@ -6,6 +6,122 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-29 — Jooble fixed and re-enabled: admin-only, with a lifetime-budget counter
+
+**Root cause of the earlier 403s (diagnosed outside this session): a
+Jooble API key is issued per regional domain, not global.** The original
+key was issued from `jooble.org` (the US/global domain); every request
+against that same domain still returned 403 regardless of headers or IP -
+not a rate-limit or bot-detection issue, just the wrong key for that
+endpoint. A new key issued from `de.jooble.org` was confirmed live (200,
+real German Ausbildung listings) against `https://de.jooble.org/api/{key}`.
+Fix: `app/jobs/adapters/jooble.py`'s `BASE_URL` now points at
+`de.jooble.org` - the correct endpoint for a German-region key, not a
+workaround. An explicit browser-like `User-Agent` is also set on the
+request now (kept even though the domain fix alone may have been
+sufficient - `requests`' own default is a common, independent trigger for
+edge/WAF blocks).
+
+**New information changed the shape of "re-enable" itself: Jooble's free
+tier is a 500-request LIFETIME cap, not monthly - no reset, only a new
+key - and the budget is reserved for the maintainer's own account, not
+general invited-user traffic.** This is a materially different
+constraint than Adzuna's self-healing 25/min + 250/day limits (which
+already survive being spent freely, and always have). Before this pass,
+there was no request-count tracking anywhere for job-source adapter calls
+at all (`record_run()` only overwrites `last_run_at/status/message`, not
+a cumulative counter) - tolerable for a self-healing limit, not for one
+that doesn't reset.
+
+**Admin-only scoping, not a global toggle.** Jooble is only ever queried
+when the requesting user is an admin. Traced both real call sites before
+touching anything: `app/jobs/routes.py`'s `search()` (the typed search
+box, `ingest_search()` called once per submission) and
+`app/jobs/radar.py`'s `run_job_radar()` (the "Jetzt prüfen" on-demand
+check, up to `MAX_FIELDS_PER_CHECK=3` calls per click - each still
+independently gated). Both now pass `admin=current_user.is_admin` /
+`admin=user.is_admin` into `ingest_search(keywords, location=None,
+admin=False)`, which filters `get_enabled_adapters()`'s result against
+`app/jobs/adapters/manager.py`'s new `ADMIN_ONLY_SOURCES = {"jooble"}`
+set when `admin` is falsy. Deliberately NOT built by changing
+`get_enabled_adapter_names()`/`get_enabled_adapters()`'s own signatures
+or filtering inside them - that would've meant threading `admin` through
+every existing caller and test monkeypatch of those two functions
+app-wide for a rule that only actually applies to one source; instead the
+filter is applied locally at the three places that need it
+(`ingest_search()`, `app/jobs/routes.py`'s `search()` for the source
+checkbox choices, `app/main/routes.py`'s `landing()` for the public
+footer), all reading the same `ADMIN_ONLY_SOURCES` constant. A side
+benefit found while implementing: since `SearchForm.sources` is a
+WTForms `SelectMultipleField` and its `.choices` are set from the
+already-filtered list before `form.validate()` runs, a non-admin
+hand-crafting `?sources=jooble` in the URL gets rejected by WTForms
+itself, not just hidden from the UI - not new code, just a consequence of
+where the filter sits.
+
+The existing 15-minute `ProviderQueryCache` cooldown (job-source
+integration pass) needed no change - it already reduces repeat-query burn
+for identical searches within a session, independent of who's allowed to
+reach the adapter at all.
+
+**A persistent cumulative counter tracks lifetime spend - this is
+load-bearing, not polish, given the admin-only scoping still leaves a
+real non-renewing budget in play.** Added `JobSourceSetting.request_count`
+(migration `7b444a7a9b89`, needs `flask db upgrade` on Railway) - one
+column on the table that already has a per-source row, not a new table or
+a system generalized to every adapter (Adzuna's own limits self-heal and
+don't need this). `app/jobs/adapters/jooble.py`'s
+`record_jooble_request()` increments it, called from `ingest_search()`
+right before the real `adapter.search()` call - after the
+`ProviderQueryCache` check has already passed (a cache hit never reaches
+this, never touches the network), and regardless of whether the call
+that follows succeeds or fails: a request that actually reached Jooble's
+servers already spent its lifetime cost either way, and there's no
+documented way to tell "didn't count against the cap" failures apart from
+ones that did, so this counts conservatively rather than risk
+under-counting against a budget that can't be topped up.
+
+**Warning threshold: 50 requests remaining (~10% of the 500 total).**
+Chosen because the expected usage pattern is now admin-only and
+low-frequency (not constant general traffic), so a wider margin gives an
+admin logging in every few days multiple chances to see the warning
+before actual exhaustion, rather than one warning right before it
+happens. Logged as a `SystemLog` (`category="job_source"`,
+`level="warning"`) each time a real call lands at or under that
+threshold - visible on `/admin`'s recent-activity feed - and the raw
+running total is also shown as its own stat directly on that page
+("Jooble requests used: N / 500"), not left for an admin to notice only
+via the log feed scrolling by.
+
+**Honest UI, not just an honest backend.** The landing page footer (shown
+to logged-out visitors, who are never admins) never lists Jooble as a
+searched source, regardless of whether a real key is configured or the
+source is enabled in `JobSourceSetting` - same `ADMIN_ONLY_SOURCES`
+filter applied there. For an admin's own search results, Jooble results
+show with the existing per-job source badge (`chip_source()` in
+`_components.html`) exactly like any other source - that macro just
+uppercases whatever raw source string it's given, so no template change
+was needed for this half; it already worked correctly once a Job actually
+had a `jooble` listing.
+
+**Verification:** a live search from an admin-role account against the
+real de.jooble.org key returned real results with the correct `JOOBLE`
+badge (see report). Route-level test proves the non-admin gate by
+actually patching `JoobleAdapter.search` and asserting it is never
+invoked for a non-admin user's search or radar check - not just that
+Jooble results are absent from the response, which alone wouldn't
+distinguish "call happened but got filtered" from "call never happened."
+A separate test confirms the counter increments on a real call and does
+not move on an immediate repeat search (a `ProviderQueryCache` hit).
+`tests/test_ingest.py`'s three pre-existing generic multi-provider tests
+that happened to use "jooble" as an arbitrary third source name were
+renamed to "otherboard" - they were never testing anything Jooble-
+specific, and leaving the name as-is would have silently coupled them to
+`ADMIN_ONLY_SOURCES` membership. Full pytest suite: 609 passed, 3
+skipped, 0 failed (up from 600 after the previous pass).
+
+---
+
 ## 2026-08-29 — job requirements extraction: a transient failure no longer strands a job forever
 
 **The gap:** `extract_job_requirements()` (skills/contact_person/contact_email

@@ -35,11 +35,15 @@ def make_job(source, external_id, title="Elektroniker", company="Firma X"):
 
 
 def test_one_provider_failing_does_not_block_others(app, db, monkeypatch):
+    # A third generic source, not the real Jooble adapter - named
+    # "otherboard" specifically so this test stays decoupled from
+    # ADMIN_ONLY_SOURCES (Jooble's admin-only scoping pass, 2026-08-29;
+    # see test_jooble_admin_scoping.py for that behavior specifically).
     ba = FakeAdapter("arbeitsagentur", error=ConnectionError("blocked"))
     adzuna = FakeAdapter("adzuna", jobs=[make_job("adzuna", "AZ-1", title="Elektroniker", company="Firma X")])
-    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1", title="Mechatroniker", company="Firma Y")])
+    otherboard = FakeAdapter("otherboard", jobs=[make_job("otherboard", "OB-1", title="Mechatroniker", company="Firma Y")])
 
-    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [ba, adzuna, jooble])
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [ba, adzuna, otherboard])
 
     result = ingest_search("Elektroniker")
 
@@ -51,9 +55,9 @@ def test_one_provider_failing_does_not_block_others(app, db, monkeypatch):
 
 def test_all_providers_succeeding_ingests_from_all(app, db, monkeypatch):
     adzuna = FakeAdapter("adzuna", jobs=[make_job("adzuna", "AZ-1")])
-    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1", title="Mechatroniker", company="Firma Y")])
+    otherboard = FakeAdapter("otherboard", jobs=[make_job("otherboard", "OB-1", title="Mechatroniker", company="Firma Y")])
 
-    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [adzuna, jooble])
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [adzuna, otherboard])
 
     result = ingest_search("Elektroniker")
     assert result.errors == []
@@ -134,13 +138,56 @@ def test_failed_search_is_also_cached_to_avoid_retry_storms(app, db, monkeypatch
 
 def test_cache_is_independent_per_source(app, db, monkeypatch):
     adzuna = FakeAdapter("adzuna", jobs=[make_job("adzuna", "AZ-1")])
-    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1")])
+    otherboard = FakeAdapter("otherboard", jobs=[make_job("otherboard", "OB-1")])
     monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [adzuna])
 
     ingest_search("Elektroniker", location="Berlin")
 
-    # jooble wasn't queried at all yet - its own cache entry for this exact
-    # query must not exist, so it should still be queried on its own first hit.
-    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [jooble])
+    # otherboard wasn't queried at all yet - its own cache entry for this
+    # exact query must not exist, so it should still be queried on its own
+    # first hit.
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [otherboard])
     ingest_search("Elektroniker", location="Berlin")
+    assert otherboard.call_count == 1
+
+
+# --- Jooble admin-only scoping pass (2026-08-29) ---
+# These test ingest_search()'s own admin=... filter directly, against a
+# fake adapter literally named "jooble" (ADMIN_ONLY_SOURCES matches by
+# source_name, so the fake must use the real name here, unlike the
+# decoupled "otherboard" fakes above). Route-level proof that the real
+# JoobleAdapter is never invoked for a non-admin user lives in
+# tests/test_jooble_admin_scoping.py.
+
+def test_admin_only_source_skipped_by_default(app, db, monkeypatch):
+    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1")])
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [jooble])
+
+    result = ingest_search("Elektroniker")
+
+    assert jooble.call_count == 0
+    assert result.jobs_new == 0
+
+
+def test_admin_only_source_queried_when_admin_true(app, db, monkeypatch):
+    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1")])
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [jooble])
+
+    result = ingest_search("Elektroniker", admin=True)
+
     assert jooble.call_count == 1
+    assert result.jobs_new == 1
+
+
+def test_admin_only_source_does_not_block_other_sources_for_non_admin(app, db, monkeypatch):
+    # A non-admin's search must still reach every other enabled source -
+    # the admin-only filter drops just the one adapter, not the request.
+    adzuna = FakeAdapter("adzuna", jobs=[make_job("adzuna", "AZ-1")])
+    jooble = FakeAdapter("jooble", jobs=[make_job("jooble", "JB-1")])
+    monkeypatch.setattr(ingest_module, "get_enabled_adapters", lambda: [adzuna, jooble])
+
+    result = ingest_search("Elektroniker")
+
+    assert adzuna.call_count == 1
+    assert jooble.call_count == 0
+    assert result.jobs_new == 1

@@ -5,6 +5,7 @@ from flask_babel import gettext as _
 from flask_login import login_required, current_user
 
 from app.extensions import db
+from app.jobs.adapters.jooble import JOOBLE_LIFETIME_BUDGET
 from app.models import User, InvitationCode, SystemLog, Document, Job, JobSourceSetting, AIUsage
 from app.models.access_code import generate_code
 from app.utils.logging import log_event
@@ -32,6 +33,14 @@ def overview():
         "documents_stored": Document.query.count(),
         "jobs_indexed": Job.query.count(),
     }
+    # Jooble admin-only scoping pass (2026-08-29): its request budget is a
+    # 500-request LIFETIME cap with no reset, so the running total needs
+    # to be visible somewhere an admin will actually see it before it
+    # runs out blind - see app/jobs/adapters/jooble.py's
+    # record_jooble_request() for where this count is incremented.
+    jooble_setting = JobSourceSetting.query.filter_by(source_name="jooble").first()
+    jooble_used = jooble_setting.request_count if jooble_setting else 0
+    stats["jooble_requests_used"] = f"{jooble_used} / {JOOBLE_LIFETIME_BUDGET}"
     recent_logs = SystemLog.query.order_by(SystemLog.created_at.desc()).limit(20).all()
     return render_template("admin/overview.html", stats=stats, recent_logs=recent_logs)
 

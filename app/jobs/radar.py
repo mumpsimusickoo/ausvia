@@ -8,11 +8,14 @@ architecture this stays inside of.
 
 Reuses ingest_search() exactly as app/jobs/routes.py's search() view does -
 same adapters, same enable/disable settings, same ProviderQueryCache
-cooldown protecting metered APIs from repeat "Check now" clicks. The only
-difference is the query terms come from Preference.fields instead of a
-typed search box, and this captures which Job rows were newly created
-(ingest_search's own IngestResult only carries counts, not identities) so
-they can be listed back to the user on the dashboard.
+cooldown protecting metered APIs from repeat "Check now" clicks, same
+admin=user.is_admin gate on Jooble specifically (its lifetime request
+budget is reserved for the maintainer's own account - see
+app/jobs/adapters/manager.py's ADMIN_ONLY_SOURCES). The only difference is
+the query terms come from Preference.fields instead of a typed search box,
+and this captures which Job rows were newly created (ingest_search's own
+IngestResult only carries counts, not identities) so they can be listed
+back to the user on the dashboard.
 """
 from flask_babel import gettext as _
 
@@ -51,7 +54,7 @@ def run_job_radar(user):
     start = utcnow()
     errors = []
     for field in fields[:MAX_FIELDS_PER_CHECK]:
-        outcome = ingest_search(field, location=location)
+        outcome = ingest_search(field, location=location, admin=user.is_admin)
         errors.extend(outcome.errors)
 
     new_jobs = Job.query.filter(Job.discovered_at >= start).order_by(Job.discovered_at.desc()).all()

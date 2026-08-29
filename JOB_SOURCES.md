@@ -173,29 +173,74 @@ Official API (`jooble.org/api/about`). Implemented against the documented
 
 **Key is manually issued, not instant self-serve** - obtained by
 submitting a form (name, role, email, website, phone) at
-`jooble.org/api/about`; the page doesn't state an approval timeline, so
-budget real lead time before this adapter can be enabled. No key was
-requested as part of this pass (would need a real named human contact -
-not something to submit on your behalf; see "What wasn't done" below).
+`jooble.org/api/about`. A key was requested and issued; see the two
+findings below from actually turning it on.
 
-**Terms-of-service ambiguity worth flagging.** `jooble.org/info/terms` (the
-public site ToS, read directly) prohibits bots/crawlers/automated access
-against the *website* and restricts republishing site content - it does
-not separately publish API-specific usage terms (attribution, retention,
-rate limits). The terms actually governing API use are most likely
-presented during the manual key-request process, which this pass couldn't
-complete. **Read whatever agreement is presented when the key is issued
-before relying on this in production** - don't assume the general
-site-scraping prohibitions are the whole story, but don't assume silence
-means unrestricted use either.
+**Domain-key root cause (found and fixed, 2026-08-29): a Jooble key is
+issued per regional domain, not global.** The first key, issued against
+`jooble.org` (the US/global domain), returned a consistent 403 against
+that same domain's own endpoint - not a headers/IP/rate-limit issue, the
+key simply wasn't valid there. A second key issued from `de.jooble.org`
+confirmed live (200, real German Ausbildung listings) against
+`https://de.jooble.org/api/{key}` - the correct endpoint for a
+German-region key, not a workaround. `BASE_URL` now points at
+`de.jooble.org`. An explicit browser-like `User-Agent` is also set on the
+request now (`requests`' own default is a common, independent trigger for
+edge/WAF blocks) - kept even though the domain fix alone may have been
+sufficient.
+
+**Free tier is a 500-request LIFETIME cap, not monthly - no reset, only a
+new key.** This is a materially different constraint than Adzuna's
+self-healing 25/min + 250/day limits, and changes how this source can
+responsibly be used at all: burning through it on general search traffic
+would mean going through the domain-key discovery and a new key request
+again, for no lasting benefit once it's gone again.
+
+**Admin-only scoping (2026-08-29): the budget is reserved for the
+maintainer's own account, not spent on general invited-user traffic.**
+Jooble is only ever queried when the requesting user is an admin
+(`current_user.is_admin` / `user.is_admin`) - enforced at both real call
+sites (`app/jobs/routes.py`'s `search()`, `app/jobs/radar.py`'s
+`run_job_radar()`) via `app/jobs/adapters/manager.py`'s
+`ADMIN_ONLY_SOURCES` set, and in `app/jobs/ingest.py`'s
+`ingest_search(admin=...)` filter itself. A regular invited user's search
+never reaches the Jooble adapter, sees it neither as a selectable source
+checkbox nor in the landing page's public "we search these sources"
+footer, and never sees a Jooble-only job in their results - though a job
+that also has another source's listing (deduplication merged them) stays
+visible via that other listing, same as any multi-source job. The
+existing 15-minute `ProviderQueryCache` cooldown (see "Query-quota
+caching" below) still applies on top of the admin gate, further reducing
+burn for repeat identical searches within a session.
+
+**A persistent cumulative request counter tracks the lifetime spend.**
+`JobSourceSetting.request_count` (source_name="jooble") increments once
+per real outbound call - success or failure, since a request that reached
+Jooble's servers already cost its lifetime price regardless of what it
+returned - via `app/jobs/adapters/jooble.py`'s `record_jooble_request()`,
+called from `ingest_search()` right before the real call (never on a
+`ProviderQueryCache` hit, which never reaches the network at all). The
+running total is visible directly on `/admin` (a "Jooble requests used"
+stat, "N / 500"), and a `SystemLog` warning is logged once remaining
+budget drops to 50 or below (~10% of the total - enough runway that an
+admin logging in every few days, the expected usage pattern now that this
+is admin-only, sees it more than once before actual exhaustion).
 
 Same reasoning as Adzuna on `employment_type`: not defaulted to
 "Ausbildung" (Jooble's `type` field is generic, and keyword search doesn't
 guarantee apprenticeship-only results).
 
-**Result-quality question - also not answered by this pass**, same reason
-(no real key). `tests/test_live_providers.py::test_jooble_live_search_ausbildung_result_quality`
-is built and ready:
+**Terms-of-service ambiguity, still worth flagging.** `jooble.org/info/terms`
+(the public site ToS, read directly) prohibits bots/crawlers/automated
+access against the *website* and restricts republishing site content - it
+does not separately publish API-specific usage terms (attribution,
+retention, rate limits). The terms actually governing API use were
+presented during the manual key-request process (a human, not this
+codebase, completed that step) - read whatever agreement was presented
+there before relying on this beyond the admin's own use.
+
+**Result-quality**, now checkable against the real key (see
+`tests/test_live_providers.py::test_jooble_live_search_ausbildung_result_quality`):
 
 ```
 RUN_LIVE_PROVIDER_TESTS=1 JOOBLE_API_KEY=... \
@@ -204,16 +249,15 @@ RUN_LIVE_PROVIDER_TESTS=1 JOOBLE_API_KEY=... \
 
 ### What wasn't done, and why
 
-No Adzuna trial account and no Jooble API key request were created as part
-of this implementation pass. Both require a real named human (Adzuna's
-trial terms bind whoever signs up to the 14-day restriction; Jooble's form
-asks for a real name/role/contact) - creating either on your behalf
-without your knowledge would start a real, consequential clock (Adzuna) or
-submit your identity to a third party (Jooble) without your say. Both
-adapters are fully built, fully unit-tested against realistic mocked
-responses, and ready to use the moment real credentials are set in
-`.env`/your host's environment variables - see `DEPLOYMENT.md`'s env var
-table.
+No Adzuna trial account was created as part of this implementation pass -
+it requires a real named human (Adzuna's trial terms bind whoever signs up
+to the 14-day restriction) - creating one on your behalf without your
+knowledge would start a real, consequential clock. The adapter is fully
+built, fully unit-tested against realistic mocked responses, and ready to
+use the moment real credentials are set in `.env`/your host's environment
+variables - see `DEPLOYMENT.md`'s env var table. (Jooble's own key has
+since been obtained and is live - see above; it just isn't available to
+general users by design.)
 
 ### Manual import — universal fallback, not a "source" in the adapter sense
 

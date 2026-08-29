@@ -10,7 +10,7 @@ from app.ai.provider import AIProviderError
 from app.applications.status_route import latest_transition_at
 from app.extensions import db
 from app.i18n import format_local_date, refresh_locale, safe_next_path, set_locale_cookie, supported_locales
-from app.jobs.adapters.manager import get_enabled_adapter_names, KNOWN_SOURCES
+from app.jobs.adapters.manager import ADMIN_ONLY_SOURCES, get_enabled_adapter_names, KNOWN_SOURCES
 from app.models.job import SavedJob, JobRadarStatus
 from app.models.application import Application
 from app.models.profile import CHECKLIST_LABEL_TRANSLATIONS
@@ -96,8 +96,16 @@ def landing():
     # never hardcoded to the bundle's three. "manual" is excluded - it's a
     # user-driven one-URL-at-a-time import, not something AUSVIA searches on
     # a visitor's behalf, so it doesn't belong in a "we search these
-    # sources" claim.
-    source_names = [name for name in get_enabled_adapter_names() if name != "manual"]
+    # sources" claim. ADMIN_ONLY_SOURCES (Jooble, admin-only scoping pass,
+    # 2026-08-29) is excluded for the same reason a logged-out visitor is
+    # never an admin - this page is pre-auth by definition (authenticated
+    # users are redirected away above), so the claim here must stay
+    # accurate for that audience regardless of Jooble's own is_enabled
+    # toggle.
+    source_names = [
+        name for name in get_enabled_adapter_names()
+        if name != "manual" and name not in ADMIN_ONLY_SOURCES
+    ]
     source_display_names = [KNOWN_SOURCES[name] for name in source_names]
     return render_template("landing.html", source_display_names=source_display_names)
 

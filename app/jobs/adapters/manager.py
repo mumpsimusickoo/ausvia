@@ -31,6 +31,21 @@ KNOWN_SOURCES = {
     "manual": "Manual import",
 }
 
+# Jooble admin-only scoping pass (2026-08-29): Jooble's free tier is a
+# 500-request LIFETIME cap (no reset, only a new key), and this budget is
+# reserved for the maintainer's own account rather than spent on general
+# invited-user traffic. A source in this set stays fully configurable via
+# JobSourceSetting like any other (an admin can still enable/disable it
+# in /admin/job-sources), but is deliberately excluded from every
+# non-admin-facing enabled-source list regardless of that toggle - see
+# app/jobs/ingest.py's ingest_search(admin=...), app/jobs/routes.py's
+# search(), and app/main/routes.py's landing() for the three places this
+# is actually enforced (this module intentionally does NOT filter it out
+# of get_enabled_adapter_names()/get_enabled_adapters() itself, so admin
+# call sites can still see and use it). See DECISIONS.md for the full
+# reasoning.
+ADMIN_ONLY_SOURCES = {"jooble"}
+
 
 def _configured_adapters():
     """Adzuna/Jooble, built fresh per call from current_app.config - a

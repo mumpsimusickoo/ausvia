@@ -42,8 +42,8 @@ SAMPLE_JOB = {
 def test_successful_search_returns_jobs(monkeypatch):
     calls = []
 
-    def fake_post(url, json=None, timeout=None):
-        calls.append((url, json))
+    def fake_post(url, json=None, timeout=None, headers=None):
+        calls.append((url, json, headers))
         return FakeResponse(200, {"totalCount": 1, "jobs": [SAMPLE_JOB]})
 
     monkeypatch.setattr(requests, "post", fake_post)
@@ -51,17 +51,21 @@ def test_successful_search_returns_jobs(monkeypatch):
     results = adapter.search("Mechatroniker", location="Hamburg", results_size=25)
 
     assert results == [SAMPLE_JOB]
-    url, payload = calls[0]
-    assert url == "https://jooble.org/api/fake-jooble-key"
+    url, payload, headers = calls[0]
+    assert url == "https://de.jooble.org/api/fake-jooble-key"
     assert payload["keywords"] == "Mechatroniker"
     assert payload["location"] == "Hamburg"
     assert payload["ResultOnPage"] == "25"
+    # A default python-requests UA is a common, independent WAF/edge-block
+    # trigger - see the domain-key root-cause note in jooble.py's module
+    # docstring - so it must be set explicitly, not left to the default.
+    assert "python-requests" not in headers["User-Agent"]
 
 
 def test_optional_params_forwarded_when_provided(monkeypatch):
     captured = {}
 
-    def fake_post(url, json=None, timeout=None):
+    def fake_post(url, json=None, timeout=None, headers=None):
         captured.update(json)
         return FakeResponse(200, {"totalCount": 0, "jobs": []})
 
@@ -141,7 +145,7 @@ def test_connection_error_raises_adapter_error(monkeypatch):
 
 def test_api_key_never_leaks_into_error_message(monkeypatch):
     def fake_post(*a, **kw):
-        raise requests.exceptions.RequestException("failed for https://jooble.org/api/fake-jooble-key")
+        raise requests.exceptions.RequestException("failed for https://de.jooble.org/api/fake-jooble-key")
 
     monkeypatch.setattr(requests, "post", fake_post)
     with pytest.raises(JoobleAdapterError) as exc_info:

@@ -14,7 +14,7 @@ from app.models.manual_import import ManualImportBatch
 from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewForm
 from app.jobs.ingest import ingest_search, enrich_job_detail
 from app.jobs.radar import run_job_radar
-from app.jobs.adapters.manager import KNOWN_SOURCES, get_enabled_adapter_names
+from app.jobs.adapters.manager import ADMIN_ONLY_SOURCES, KNOWN_SOURCES, get_enabled_adapter_names
 from app.ai.job_requirements_extraction import extract_job_requirements, should_retry_requirements_extraction
 from app.tasks.runner import submit_task
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
@@ -132,6 +132,15 @@ def _build_filter_chips(form, enabled_source_names):
 def search():
     form = SearchForm(request.args, meta={"csrf": False})
     enabled_source_names = get_enabled_adapter_names()
+    if not current_user.is_admin:
+        # Jooble's lifetime request budget is reserved for the admin's own
+        # use (see app/jobs/adapters/manager.py's ADMIN_ONLY_SOURCES) - a
+        # regular user never sees it as a selectable source, and since
+        # WTForms' SelectMultipleField rejects submitted values outside
+        # its own .choices, this also blocks a hand-crafted ?sources=jooble
+        # from reaching form.sources.data at all, not just from being
+        # offered in the UI.
+        enabled_source_names = [name for name in enabled_source_names if name not in ADMIN_ONLY_SOURCES]
     form.sources.choices = [(name, KNOWN_SOURCES.get(name, name)) for name in enabled_source_names]
     if not form.sources.data:
         # No explicit selection yet (fresh search, or every box left
@@ -150,7 +159,9 @@ def search():
 
     if form.keywords.data:
         if form.validate():
-            outcome = ingest_search(form.keywords.data, location=form.location.data or None)
+            outcome = ingest_search(
+                form.keywords.data, location=form.location.data or None, admin=current_user.is_admin,
+            )
             ingest_errors = outcome.errors
 
             query = Job.query.filter(Job.title.ilike(f"%{form.keywords.data}%"))

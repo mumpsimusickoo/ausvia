@@ -7,7 +7,8 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 from app.extensions import db
-from app.jobs.adapters.manager import all_adapters, get_enabled_adapters, record_run
+from app.jobs.adapters.jooble import record_jooble_request
+from app.jobs.adapters.manager import ADMIN_ONLY_SOURCES, all_adapters, get_enabled_adapters, record_run
 from app.jobs.dedupe import find_or_create_canonical_job, merge_missing_fields
 from app.models.ai import JobMatch
 from app.models.job import ProviderQueryCache
@@ -49,13 +50,30 @@ def _record_query(source, query_key):
     db.session.commit()
 
 
-def ingest_search(keywords, location=None):
+def ingest_search(keywords, location=None, admin=False):
+    """admin=True is required for a source in ADMIN_ONLY_SOURCES (Jooble)
+    to be queried at all - see that constant's own docstring
+    (app/jobs/adapters/manager.py) for why. Callers pass the requesting
+    user's own current_user.is_admin, never a hardcoded value - see
+    app/jobs/routes.py's search() and app/jobs/radar.py's
+    run_job_radar()."""
     result = IngestResult()
     query_key = _query_key(keywords, location)
 
-    for adapter in get_enabled_adapters():
+    adapters = get_enabled_adapters()
+    if not admin:
+        adapters = [a for a in adapters if a.source_name not in ADMIN_ONLY_SOURCES]
+
+    for adapter in adapters:
         if _recently_queried(adapter.source_name, query_key):
             continue
+
+        if adapter.source_name == "jooble":
+            # Only a real, uncached call spends lifetime budget - counted
+            # before the call (not after) so a failure still counts, since
+            # a request that reached Jooble's servers already cost its
+            # lifetime price regardless of what it returned.
+            record_jooble_request()
 
         try:
             raw_results = adapter.search(keywords, location=location)

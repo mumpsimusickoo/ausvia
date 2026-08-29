@@ -199,3 +199,15 @@ class JobSourceSetting(db.Model):
     last_run_at = db.Column(db.DateTime, nullable=True)
     last_run_status = db.Column(db.String(20), nullable=True)  # "ok" | "error"
     last_run_message = db.Column(db.String(500), nullable=True)
+
+    # Jooble admin-only scoping pass (2026-08-29): a cumulative count of
+    # real outbound requests made against this source's API, kept per-
+    # source since this row already exists per source. Only Jooble
+    # increments it today (its free tier is a 500-request LIFETIME cap,
+    # not monthly - no reset, only a new key) - Adzuna's own limits
+    # (25/min, 250/day) self-heal, so tracking cumulative usage there
+    # would be tracking a number that resets before anyone needs to read
+    # it. Not generalized into a separate table/system for every adapter -
+    # one column, used where the risk actually is. See
+    # app/jobs/adapters/jooble.py's record_jooble_request().
+    request_count = db.Column(db.Integer, nullable=False, default=0, server_default="0")
