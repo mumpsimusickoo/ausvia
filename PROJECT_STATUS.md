@@ -788,6 +788,24 @@ for a redesign pass. Status:
   issue; the existing fixed-system-prompt equality test stands in its
   place. Full pytest suite: 588 passed / 3 skipped (586 + 2). Full
   detail: `DECISIONS.md`'s 2026-08-29 "i18n pass 3 resolve" entry.
+- **Job requirements extraction retry done, 2026-08-29** - a transient
+  failure (rate limit, timeout, malformed response) on the one-shot
+  skills/contact extraction used to strand a job with `skills == None`
+  forever, since it only ever fired once, chained off
+  `enrich_job_detail()`'s one-time `True` return. Added
+  `requirements_extraction_attempts` + `requirements_extraction_last_
+  attempted_at` on `Job` (migration `9aaadb1f6b0b`, needs `flask db
+  upgrade` on Railway) to distinguish never-attempted /
+  failed-and-retriable / gave-up-permanently - a count, not a boolean,
+  since a retry cap needs one. `should_retry_requirements_extraction()`
+  is OR'd into the existing view-triggered condition in `detail()`, no new
+  scheduler. 1-hour backoff, 3-attempt cap, reasoned from this app's own
+  precedent (existing `QUERY_CACHE_TTL_MINUTES`) and the real daily-quota
+  failure mode this session hit directly. No production backfill needed
+  (checked live data first: zero jobs match the
+  never-extracted-despite-enrichment signature). Full pytest suite: 596
+  passed / 3 skipped (588 + 8). Full detail: `DECISIONS.md`'s 2026-08-29
+  "job requirements extraction" entry.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - **the only named item left

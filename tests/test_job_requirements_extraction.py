@@ -4,11 +4,19 @@ app/jobs/ingest.py's enrich_job_detail(). Uses the same FakeProvider(
 AIProvider) pattern as tests/test_reply_ai.py rather than mocking
 .complete() directly - a real, minimal AIProvider implementation.
 """
+from datetime import timedelta
+
 import app.ai.job_requirements_extraction as extraction_module
-from app.ai.job_requirements_extraction import extract_job_requirements
+from app.ai.job_requirements_extraction import (
+    MAX_EXTRACTION_ATTEMPTS,
+    RETRY_BACKOFF,
+    extract_job_requirements,
+    should_retry_requirements_extraction,
+)
 from app.ai.provider import AIProvider, AIProviderError, AIResponse
 from app.models.ai import JobMatch
 from app.models.job import Job
+from app.models.user import utcnow
 
 PFIZER_DESCRIPTION = """Möchtest du in einem internationalen Unternehmen arbeiten?
 
@@ -459,3 +467,122 @@ def test_no_contact_section_found_contact_fields_stay_none(app, db, make_user, m
     db.session.refresh(job)
     assert job.contact_person is None
     assert job.contact_email is None
+
+
+# --- Extraction retry pass (2026-08-29): attempt-count / last-attempted-at tracking ---
+
+def test_provider_error_records_attempt_and_timestamp(app, db, make_user, monkeypatch):
+    user = make_user(email="ex23@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+    assert job.requirements_extraction_attempts == 0
+    assert job.requirements_extraction_last_attempted_at is None
+
+    fake = FakeProvider(raise_error=AIProviderError("provider unavailable"))
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    before = utcnow()
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.skills is None
+    assert job.requirements_extraction_attempts == 1
+    assert job.requirements_extraction_last_attempted_at is not None
+    assert job.requirements_extraction_last_attempted_at >= before
+
+
+def test_malformed_response_records_attempt_and_timestamp(app, db, make_user, monkeypatch):
+    user = make_user(email="ex24@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+
+    fake = FakeProvider(text="not json at all, just prose")
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.skills is None
+    assert job.requirements_extraction_attempts == 1
+    assert job.requirements_extraction_last_attempted_at is not None
+
+
+def test_successful_extraction_does_not_touch_attempt_tracking(app, db, make_user, monkeypatch):
+    # A prior failed attempt's count should be left alone once a later
+    # retry actually succeeds - attempts is a "how many tries so far"
+    # counter, not something success needs to reset or increment further.
+    user = make_user(email="ex25@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+    job.requirements_extraction_attempts = 1
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF
+    db.session.commit()
+
+    fake = FakeProvider(text='{"skills": ["Deutschkenntnisse"], "languages": []}')
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.skills == ["Deutschkenntnisse"]
+    assert job.requirements_extraction_attempts == 1
+
+
+def test_extraction_refuses_once_attempt_cap_reached(app, db, make_user, monkeypatch):
+    user = make_user(email="ex26@example.com")
+    job = make_job(db, PFIZER_DESCRIPTION)
+    job.requirements_extraction_attempts = MAX_EXTRACTION_ATTEMPTS
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF
+    db.session.commit()
+
+    calls = []
+    fake = FakeProvider(text='{"skills": ["Deutschkenntnisse"], "languages": []}')
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: calls.append(1) or fake)
+
+    result = extract_job_requirements(job.id, user.id)
+
+    assert calls == []  # provider never even called - cap enforced before the call
+    assert "exhausted" in result.lower()
+    db.session.refresh(job)
+    assert job.skills is None
+    assert job.requirements_extraction_attempts == MAX_EXTRACTION_ATTEMPTS
+
+
+def test_should_retry_false_for_never_attempted_job(db):
+    # Triggering a *first* attempt outside the enrichment moment is
+    # enrich_job_detail()'s concern, not this function's - see its
+    # docstring in app/ai/job_requirements_extraction.py.
+    job = make_job(db, PFIZER_DESCRIPTION)
+    assert job.requirements_extraction_attempts == 0
+    assert should_retry_requirements_extraction(job) is False
+
+
+def test_should_retry_false_before_backoff_elapses(db):
+    job = make_job(db, PFIZER_DESCRIPTION)
+    job.requirements_extraction_attempts = 1
+    job.requirements_extraction_last_attempted_at = utcnow()
+    db.session.commit()
+    assert should_retry_requirements_extraction(job) is False
+
+
+def test_should_retry_true_after_backoff_elapses(db):
+    job = make_job(db, PFIZER_DESCRIPTION)
+    job.requirements_extraction_attempts = 1
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF - timedelta(minutes=1)
+    db.session.commit()
+    assert should_retry_requirements_extraction(job) is True
+
+
+def test_should_retry_false_once_attempt_cap_reached(db):
+    job = make_job(db, PFIZER_DESCRIPTION)
+    job.requirements_extraction_attempts = MAX_EXTRACTION_ATTEMPTS
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF - timedelta(days=1)
+    db.session.commit()
+    assert should_retry_requirements_extraction(job) is False
+    # "gave up permanently" must stay visibly distinct from "never tried".
+    assert job.requirements_extraction_attempts != 0
+
+
+def test_should_retry_false_once_succeeded(db):
+    job = make_job(db, PFIZER_DESCRIPTION, skills=["Deutschkenntnisse"])
+    job.requirements_extraction_attempts = 1
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF - timedelta(minutes=1)
+    db.session.commit()
+    assert should_retry_requirements_extraction(job) is False

@@ -311,6 +311,20 @@ correctable, not permanent.
       value must be a literal substring of the source text) plus a basic
       email-format sanity check as an extra safety net. Never overwrites a
       manually-entered `contact_person`/`contact_email`, per field.
+- [x] **Extraction retry (2026-08-29)** - a transient failure (rate limit,
+      timeout, malformed response) on the one-shot extraction above used to
+      strand a job with `skills == None` forever, since it only ever fired
+      once, chained off `enrich_job_detail()`'s one-time `True` return.
+      Added `requirements_extraction_attempts` +
+      `requirements_extraction_last_attempted_at` on `Job` to distinguish
+      never-attempted / failed-and-retriable / gave-up-permanently: not a
+      bare boolean, since a retry cap needs a count. Retry check
+      (`should_retry_requirements_extraction()`) is OR'd into the existing
+      view-triggered condition in `detail()` - no new scheduler. 1-hour
+      backoff, 3-attempt cap; see `DECISIONS.md`'s 2026-08-29 entry for the
+      full reasoning and the scope boundary found while implementing
+      (deliberately does not trigger a *first* attempt outside the
+      enrichment moment - that's `enrich_job_detail()`'s own, separate gap).
 - [x] **Gemini added as a second real AI provider** (`GeminiProvider`,
       `AI_PROVIDER=gemini`) - same `AIProvider` interface as
       `AnthropicProvider`. Two bugs found live once a real key existed:

@@ -15,7 +15,7 @@ from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewFo
 from app.jobs.ingest import ingest_search, enrich_job_detail
 from app.jobs.radar import run_job_radar
 from app.jobs.adapters.manager import KNOWN_SOURCES, get_enabled_adapter_names
-from app.ai.job_requirements_extraction import extract_job_requirements
+from app.ai.job_requirements_extraction import extract_job_requirements, should_retry_requirements_extraction
 from app.tasks.runner import submit_task
 from app.jobs.manual_import import fetch_and_extract_text, FetchFailed
 from app.jobs.adapters.base import NormalizedJob
@@ -294,13 +294,18 @@ def detail(job_id):
     # education_requirements - and the cache invalidation it triggers -
     # are reflected in *this* view too, not just future ones.
     enriched = enrich_job_detail(job)
-    if enriched:
-        # Chained off a real enrichment, not every view - and off the
-        # request entirely (job-description extraction pass): a real AI
-        # call has meaningfully more latency than the fast inline detail
-        # fetch above, and unlike that fetch, there's no reason the
-        # current viewer needs to wait for it - the page is fully usable
-        # without extracted skills, same as before this feature existed.
+    # Chained off a real enrichment OR a previously-failed extraction
+    # that's eligible for a backoff-gated retry (extraction retry pass,
+    # 2026-08-29 - see should_retry_requirements_extraction()'s own
+    # docstring for the state machine and app/jobs/routes.py isn't the
+    # only caller: extract_job_requirements() itself double-checks the
+    # attempt cap too) - not every view regardless of state, and off the
+    # request entirely either way: a real AI call has meaningfully more
+    # latency than the fast inline detail fetch above, and unlike that
+    # fetch, there's no reason the current viewer needs to wait for it -
+    # the page is fully usable without extracted skills, same as before
+    # this feature existed.
+    if enriched or should_retry_requirements_extraction(job):
         submit_task(current_user, "job_requirements_extraction", extract_job_requirements, job.id, current_user.id)
     is_saved = SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first() is not None
     match = get_or_compute_match(current_user, job)

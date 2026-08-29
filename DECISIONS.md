@@ -6,6 +6,115 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-29 — job requirements extraction: a transient failure no longer strands a job forever
+
+**The gap:** `extract_job_requirements()` (skills/contact_person/contact_email
+from `job.description`) only ever fired once per job's lifetime, chained off
+`enrich_job_detail()`'s one-time `enriched` return value in
+`app/jobs/routes.py`'s `detail()` route. A transient failure on that single
+attempt - a rate limit, a timeout, a malformed response - meant `job.skills`
+stayed `None` forever, even once the transient cause had long since cleared.
+There was no way to tell "never tried" apart from "tried and failed" from the
+data alone.
+
+**The fix: two new columns on `Job`, not a boolean.**
+`requirements_extraction_attempts` (Integer, default 0) and
+`requirements_extraction_last_attempted_at` (DateTime, nullable) together
+distinguish three states a bare boolean or a timestamp-only field couldn't:
+never attempted (`attempts == 0`), attempted-and-failed and still eligible
+for a backoff-gated retry (`0 < attempts < MAX_EXTRACTION_ATTEMPTS`), and
+gave up permanently (`attempts >= MAX_EXTRACTION_ATTEMPTS`, `skills` still
+`None`). The count is what makes a retry cap and "gave up permanently"
+distinguishable from "never tried" - a timestamp alone can't tell you how
+many times something has already failed. Migration:
+`migrations/versions/9aaadb1f6b0b_job_requirements_extraction_retry_.py`
+(needs `flask db upgrade` on Railway, same as every schema change here).
+No backfill - live production has zero jobs matching the
+never-extracted-despite-enrichment signature (`skills is None`, `description`
+is not `None`), confirmed by direct inspection before starting; this fix
+only matters for failures going forward.
+
+**Retry trigger: reuses the existing view-triggered pattern, doesn't add a
+scheduler.** `should_retry_requirements_extraction(job)` in
+`app/ai/job_requirements_extraction.py` is OR'd alongside the existing
+`enriched` condition in the `detail()` route:
+`if enriched or should_retry_requirements_extraction(job): submit_task(...)`.
+Consistent with this app's deliberate no-scheduler architecture elsewhere
+(job radar, digest) - a page view is the trigger, not a background sweep.
+
+**Important scope boundary, found while implementing:** `should_retry_
+requirements_extraction()` returns `False` for a job with `attempts == 0`
+("never attempted") - it does NOT trigger a first attempt. Triggering a
+first attempt outside the enrichment moment is `enrich_job_detail()`'s own
+gap (jobs whose description arrives some other way than that function's
+`True` return - e.g. a manually-seeded job, or in principle a source that
+supplies a description directly) - explicitly out of scope for this pass
+(the user's own framing was "a transient failure means it never retries,"
+i.e. retrying a real prior attempt, not inventing new first-attempt trigger
+paths). An earlier draft of this function returned `True` for
+`attempts == 0` too, which is architecturally cleaner-looking but wrong: it
+silently expanded the trigger surface to fire extraction on *any* view of
+*any* job with `skills is None`, regardless of whether that view ever
+enriched anything - caught by an existing test
+(`test_detail_route_still_functions_when_description_already_present`)
+that asserts no extraction call for a job that already has a description
+but was never routed through enrichment. Fixed by scoping the function to
+only the retry case (`attempts > 0`); the "never attempted" state still
+exists and is fully legible in the data (`attempts == 0`), it's just not an
+automatic trigger from this function.
+
+**Backoff and cap values, reasoned from the codebase's own precedent, not
+copied as a default:**
+- `RETRY_BACKOFF = timedelta(hours=1)` - long enough to clear a burst rate
+  limit or a dropped request (Gemini's free-tier error for a short-lived
+  limit names retry delays in the tens of seconds, not minutes), short
+  enough that a candidate reopening the same posting later the same day - a
+  genuinely common pattern - gets a real second attempt rather than waiting
+  until the next calendar day. Deliberately longer than
+  `app/jobs/ingest.py`'s `QUERY_CACHE_TTL_MINUTES` (15 min) - that's a
+  different, higher-frequency concern (don't re-run the same search terms
+  too often); this is a single job's one-time extraction, viewed far less
+  often than a search is re-run.
+- `MAX_EXTRACTION_ATTEMPTS = 3` - bounds AI spend per job (this app already
+  treats AI cost as a first-class concern, see `app/ai/usage.py`) while
+  giving a transient issue multiple real chances to clear - three
+  hour-spaced attempts span up to ~2 hours of real wall-clock retries before
+  a job is left in "gave up permanently." A daily-quota exhaustion (a real
+  failure mode this session hit directly, not hypothetical) will
+  legitimately exhaust the cap within one day; that's an accepted resting
+  state, not a bug this mechanism is meant to prevent - a scheduled/admin-
+  triggered reset is future scope, not this pass's.
+- Mock mode deliberately does NOT increment `attempts` - nothing was
+  actually attempted against a real provider, and counting it would let
+  "no provider configured at all" exhaust the retry budget before a real
+  attempt ever happens.
+
+**Explicitly out of scope, left alone:** `enrich_job_detail()`'s own retry
+gap (no cap at all on its own fetch failures) - a separate, already-scoped-
+out problem; the grounding/validation logic in `extract_job_requirements()`
+itself; what gets extracted or how. Purely the retry trigger and state
+tracking.
+
+**Verification:** unit tests in `tests/test_job_requirements_extraction.py`
+cover `should_retry_requirements_extraction()`'s state machine directly
+(never-attempted → False, before-backoff → False, after-backoff → True,
+at-cap → False, already-succeeded → False) and confirm both failure paths
+(`AIProviderError`, malformed JSON) increment `attempts` and set
+`last_attempted_at`, that a later success doesn't further touch `attempts`,
+and that `extract_job_requirements()` refuses to call the provider at all
+once the cap is reached. Route-level tests in
+`tests/test_job_detail_extraction_lifecycle.py` prove the actual
+`/jobs/<id>` view behavior end to end: a failed extraction is not retried on
+an immediate second view, is retried once the backoff window has elapsed
+(simulated by moving `last_attempted_at` backward, not a real `sleep`),
+stops retrying once `MAX_EXTRACTION_ATTEMPTS` is reached, and that a
+gave-up job's state (`attempts >= MAX`, `skills is None`) is
+programmatically distinct from a fresh job's (`attempts == 0`,
+`skills is None`). Full suite: 600 passed, 3 skipped, 0 failed (up from 588
+before this pass).
+
+---
+
 ## 2026-08-29 — i18n pass 3 resolve: dashboard_insight and process_qa join the "follows UI language" bucket, plus a LazyString sweep and a quota-blocked reply-suggestion verification
 
 **Resolved, not left open: `dashboard_insight.py` and `process_qa.py`

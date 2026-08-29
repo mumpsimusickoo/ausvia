@@ -7,12 +7,16 @@ existing detail route keeps working end to end. submit_task() runs
 synchronously under TESTING (see app/tasks/runner.py), so these can
 assert on results directly after a single client.get() call.
 """
+from datetime import timedelta
+
 import app.ai.job_requirements_extraction as extraction_module
-from app.ai.provider import AIProvider, AIResponse
+from app.ai.job_requirements_extraction import MAX_EXTRACTION_ATTEMPTS, RETRY_BACKOFF
+from app.ai.provider import AIProvider, AIProviderError, AIResponse
 from app.jobs.adapters import manager as adapter_manager
 from app.jobs.adapters.base import NormalizedJob
 from app.jobs.dedupe import find_or_create_canonical_job
 from app.models.job import Job
+from app.models.user import utcnow
 from tests.conftest import login
 
 RAW_SEARCH_RESULT = {
@@ -33,10 +37,13 @@ DETAIL_RESPONSE = {
 class FakeProvider(AIProvider):
     provider_name = "fake"
 
-    def __init__(self, text):
+    def __init__(self, text=None, raise_error=None):
         self._text = text
+        self._raise_error = raise_error
 
     def complete(self, system_prompt, user_prompt, max_tokens=1024):
+        if self._raise_error:
+            raise self._raise_error
         return AIResponse(text=self._text, model="fake-model", provider=self.provider_name)
 
 
@@ -140,3 +147,98 @@ def test_detail_route_still_functions_when_description_already_present(client, d
     resp = client.get(f"/jobs/{job.id}")
     assert resp.status_code == 200
     assert calls == []
+
+
+def test_failed_extraction_not_retried_before_backoff_elapses(client, db, make_user, monkeypatch):
+    make_user(email="life6@example.com", password="Password123!")
+    login(client, "life6@example.com", "Password123!")
+    job = make_arbeitsagentur_job(db)
+
+    monkeypatch.setattr(adapter_manager.ADAPTERS["arbeitsagentur"], "get_job", lambda external_id: DETAIL_RESPONSE)
+    calls = []
+
+    def fake_get_provider():
+        calls.append(1)
+        return FakeProvider(raise_error=AIProviderError("provider unavailable"))
+
+    monkeypatch.setattr(extraction_module, "get_provider", fake_get_provider)
+
+    # First view: enrichment fires, extraction is attempted and fails.
+    client.get(f"/jobs/{job.id}")
+    db.session.refresh(job)
+    assert job.skills is None
+    assert job.requirements_extraction_attempts == 1
+
+    # Second view, immediately after: backoff window hasn't elapsed, and
+    # enrich_job_detail() is now a no-op (description already set) - no
+    # retry should be scheduled.
+    client.get(f"/jobs/{job.id}")
+    assert len(calls) == 1
+
+
+def test_failed_extraction_retried_after_backoff_elapses(client, db, make_user, monkeypatch):
+    make_user(email="life7@example.com", password="Password123!")
+    login(client, "life7@example.com", "Password123!")
+    job = make_arbeitsagentur_job(db)
+
+    monkeypatch.setattr(adapter_manager.ADAPTERS["arbeitsagentur"], "get_job", lambda external_id: DETAIL_RESPONSE)
+    calls = []
+
+    def fake_get_provider():
+        calls.append(1)
+        return FakeProvider(raise_error=AIProviderError("provider unavailable"))
+
+    monkeypatch.setattr(extraction_module, "get_provider", fake_get_provider)
+
+    client.get(f"/jobs/{job.id}")
+    db.session.refresh(job)
+    assert job.requirements_extraction_attempts == 1
+
+    # Simulate the backoff window having elapsed since the failed attempt.
+    job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF - timedelta(minutes=1)
+    db.session.commit()
+
+    client.get(f"/jobs/{job.id}")
+    assert len(calls) == 2
+    db.session.refresh(job)
+    assert job.requirements_extraction_attempts == 2
+
+
+def test_extraction_stops_retrying_after_attempt_cap_and_state_stays_distinct(client, db, make_user, monkeypatch):
+    make_user(email="life8@example.com", password="Password123!")
+    login(client, "life8@example.com", "Password123!")
+    job = make_arbeitsagentur_job(db)
+
+    monkeypatch.setattr(adapter_manager.ADAPTERS["arbeitsagentur"], "get_job", lambda external_id: DETAIL_RESPONSE)
+    calls = []
+
+    def fake_get_provider():
+        calls.append(1)
+        return FakeProvider(raise_error=AIProviderError("provider unavailable"))
+
+    monkeypatch.setattr(extraction_module, "get_provider", fake_get_provider)
+
+    for _ in range(MAX_EXTRACTION_ATTEMPTS):
+        client.get(f"/jobs/{job.id}")
+        db.session.refresh(job)
+        job.requirements_extraction_last_attempted_at = utcnow() - RETRY_BACKOFF - timedelta(minutes=1)
+        db.session.commit()
+
+    assert len(calls) == MAX_EXTRACTION_ATTEMPTS
+    db.session.refresh(job)
+    assert job.requirements_extraction_attempts == MAX_EXTRACTION_ATTEMPTS
+
+    # One more view, well past the backoff window: the cap stops the retry.
+    client.get(f"/jobs/{job.id}")
+    assert len(calls) == MAX_EXTRACTION_ATTEMPTS
+
+    # "Gave up permanently" (attempts >= cap, skills still None) must read
+    # differently from "never attempted" (attempts == 0, skills None) - a
+    # fresh job never went through any of this even though it looks the
+    # same on job.skills alone.
+    fresh_job = Job(title="Elektroniker", dedup_key="life8-fresh", description="Fresh, never viewed.")
+    db.session.add(fresh_job)
+    db.session.commit()
+    assert fresh_job.requirements_extraction_attempts == 0
+    assert job.requirements_extraction_attempts >= MAX_EXTRACTION_ATTEMPTS
+    assert job.skills is None and fresh_job.skills is None

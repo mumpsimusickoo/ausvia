@@ -46,6 +46,24 @@ class Job(db.Model):
     skills = db.Column(db.JSON, nullable=True)  # ["PLC", "STEP7", ...]
     education_requirements = db.Column(db.Text, nullable=True)
 
+    # Extraction retry pass (2026-08-29): app/ai/job_requirements_extraction.py
+    # fills skills/contact_person/contact_email from job.description. skills
+    # staying None (not []) means "never succeeded" - distinct from an empty
+    # list, "ran, found nothing usable" - same convention that column
+    # already carried before this pass, just now paired with *why* it's
+    # still None. attempts/last_attempted_at together distinguish three
+    # states a bare boolean or timestamp-only field couldn't: never
+    # attempted (attempts == 0), attempted-and-failed and still eligible for
+    # a backoff-gated retry (0 < attempts < MAX_EXTRACTION_ATTEMPTS), and
+    # gave up permanently (attempts >= MAX_EXTRACTION_ATTEMPTS, skills still
+    # None) - see should_retry_requirements_extraction() for the read side.
+    # Only incremented on a real attempt that reached the AI provider and
+    # either failed or returned something unusable - mock mode (no provider
+    # configured at all) deliberately leaves both columns untouched, since
+    # nothing was actually attempted.
+    requirements_extraction_attempts = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+    requirements_extraction_last_attempted_at = db.Column(db.DateTime, nullable=True)
+
     contact_person = db.Column(db.String(255), nullable=True)
     contact_email = db.Column(db.String(255), nullable=True)
     application_url = db.Column(db.String(1000), nullable=True)
