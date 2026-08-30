@@ -75,6 +75,13 @@ class ManualImportReviewForm(FlaskForm):
     company_name = StringField(_l("Company"), validators=[DataRequired(message=REQUIRED), Length(max=255, message=_max_length_message(255))])
     location = StringField(_l("Location"), validators=[Optional(), Length(max=255, message=_max_length_message(255))])
     start_date = StringField(_l("Start date"), validators=[Optional(), Length(max=50, message=_max_length_message(50))])
+    # Salary follow-up pass (2026-08-30): matches Job.salary's own
+    # db.String(255) column length (app/models/job.py) - free text, not a
+    # structured number, since real postings state pay in wildly
+    # different shapes (a single figure, a per-year range, a per-training-
+    # year table, gross vs. net, etc.) that a numeric field couldn't hold
+    # without lossy normalization.
+    salary = StringField(_l("Salary"), validators=[Optional(), Length(max=255, message=_max_length_message(255))])
     application_url = URLField(_l("Application URL"), validators=[Optional(), URL(require_tld=True, message=_l("Please enter a valid URL."))])
     description = TextAreaField(_l("Description / pasted job text"), validators=[Optional(), Length(max=20000, message=_max_length_message(20000))])
     # Which batch item (by index) this save belongs to, if any - empty for a

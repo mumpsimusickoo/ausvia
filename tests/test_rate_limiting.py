@@ -74,7 +74,7 @@ def test_manual_import_extraction_is_rate_limited(rate_limited_client, monkeypat
         def complete(self, system_prompt, user_prompt, max_tokens=1024):
             real_calls.append(1)
             return AIResponse(
-                text='{"title": null, "company_name": null, "location": null, "start_date": null, "exclude_line_numbers": []}',
+                text='{"title": null, "company_name": null, "location": null, "start_date": null, "salary": null, "exclude_line_numbers": []}',
                 model="fake-model", provider="fake", input_tokens=5, output_tokens=5,
             )
 

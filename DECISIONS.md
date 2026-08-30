@@ -6,6 +6,123 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Manual import salary extraction + API-sourced salary investigated, not fixed
+
+**The gap (manual import).** `app/ai/manual_import_extraction.py` never
+extracted salary at all - not in the field list, and
+`ManualImportReviewForm` had no salary field either, so a pasted or
+fetched posting with a clearly stated salary just never made it into the
+form. Fixed the same way as the other grounded fields: a new salary
+bullet in `app/ai/prompts/manual_import_extraction.py`'s `SYSTEM`
+prompt, `salary` added to the required-keys/grounding logic in
+`_validate_and_ground()`, a `salary` `StringField` on the review form
+(`db.String(255)`, matching `Job.salary`'s own column - free text, not a
+number, since real postings state pay in wildly different shapes a
+numeric field couldn't hold without lossy normalization), and wired
+through the same fetch/paste caching path
+(`_store_extraction_result()`/`_render_batch_review()`/`import_save()`)
+everything else already used.
+
+**Two real bugs found only by live-testing against real pages, not by
+the pytest suite - same pattern as the pasted-text pass above.**
+
+1. **Response truncation on an unusually large real page.** A real
+   LinkedIn posting (534 lines once its "similar jobs" sidebar - dozens
+   of other listings - is included) hit `max_tokens=2048` and got cut
+   off mid-`exclude_line_numbers` array (`output_tokens: 2044`),
+   producing a full fallback to raw title/blank fields. This is the
+   exact failure mode an earlier pass's `max_tokens` bump (1200→2048,
+   for a 176-line page) was meant to prevent - just at a page size that
+   pass didn't anticipate. Raised to 4096; re-verified directly against
+   the same page (`output_tokens: 2494`, no truncation). Line count on a
+   scraped page has no fixed upper bound; this number will likely need
+   raising again someday.
+
+2. **A genuine prompt gap around multi-line salary tables.** German
+   Ausbildung postings very commonly state pay as a per-training-year
+   breakdown spanning several separate lines (e.g. "1. Ausbildungsjahr
+   1.250 € brutto" / "2. Ausbildungsjahr 1.350 € brutto" / "3.
+   Ausbildungsjahr 1.500 € brutto") rather than one single figure. The
+   model was declining to extract these (`"salary": null`) even when
+   genuinely, unambiguously present and correctly labeled (verified
+   against a real ALDI Nord posting) - the prompt never said multi-line
+   reporting was acceptable, so it defaulted to caution. Before touching
+   the prompt, confirmed the grounding mechanism itself already handles
+   this correctly: `_normalize_whitespace()` collapses `\s` (which
+   matches newlines) to a single space on both the candidate value and
+   the source haystack, so a multi-line answer joined with spaces grounds
+   fine. Confirmed via a standalone script before writing a single line
+   of prompt text - the fix belonged in the prompt, not the grounding
+   check. Added explicit instruction text telling the model to report
+   the whole breakdown, joined in line order, and that a line break
+   between figures is expected, not a reason for null.
+
+**Live verification, including the honest failure modes along the
+way.** After both fixes, live-testing the same real ALDI Nord posting
+through the actual browser UI was flaky across a few consecutive
+attempts - one run declined salary alone while every other field
+extracted correctly (consistent with real LLM sampling variance on this
+one field), and one run failed everything with a logged `"AI provider
+error (HTTP 503)"` - a genuine transient Gemini outage, correctly caught
+by the existing `except AIProviderError` handler and gracefully
+degraded to the raw-text fallback exactly as designed, not a code
+defect. A subsequent clean retry through the UI succeeded end-to-end:
+title/company/location/start_date/salary all populated correctly
+(salary as `"-1. Ausbildungsjahr 1.250,00 € brutto -2. Ausbildungsjahr
+1.350,00 € brutto -3. Ausbildungsjahr 1.500,00 € brutto"`, matching the
+source exactly), saved as a real job record, and rendered correctly on
+the job detail page. This mirrors every other AI feature in this app:
+the mechanism is proven correct, but any single live call can still hit
+real, uncontrollable upstream variance - graceful degradation, not
+100%-success, is the correct bar. Full suite: 718 passed, 3 skipped.
+
+**Item 2: API-sourced jobs (Arbeitsagentur/Adzuna/Jooble) - investigated
+in the dev DB, no fix built.** All three adapters only ever read salary
+from each API's own structured field. Before building anything, pulled
+every job in the dev DB currently showing no salary per source and
+checked whether the description text (or, for Arbeitsagentur, the raw
+API snapshot itself, since `Job.description` was empty for nearly all of
+them) contains a figure the structured field missed:
+
+- **Arbeitsagentur (296 of 343 jobs, 86%, missing salary - by far the
+  largest sample).** In all 296 cases, `verguetungsangabe` is explicitly
+  the enum `KEINE_ANGABEN` ("no info given" - an honest signal from the
+  source itself, already handled as `None` rather than shown as a raw
+  enum string) - and the raw API response contains no free-text
+  `stellenangebotsBeschreibung` at all for any of them. There is
+  nothing to mine a salary from; the API itself doesn't return prose
+  text for these listings. Not an extraction gap - a data-availability
+  gap on the source's side.
+- **Jooble (18 of 23 jobs, 78%, missing salary).** Manually read all 18
+  description texts; none contain a salary figure. Root cause: Jooble's
+  `description` (`raw.get("snippet")`) is a short ~300-character search
+  snippet, not the full posting body - frequently truncated mid-sentence
+  with `...`. Even where the real full posting (on the employer's own
+  site, which Jooble only links to) states a salary, Jooble's own API
+  response never exposes enough text to find it. An extraction pass
+  here would need to fetch each external page separately per job just
+  to have a chance - the same cost/latency/rate-limit expansion the task
+  flagged as worth scoping only if the underlying case is common.
+- **Adzuna (2 jobs total in the dev DB, 0 missing salary).** Too small a
+  sample to conclude anything either way; Adzuna is off-by-default (see
+  the Adzuna entry below) so volume is low, and both jobs present
+  already carry Adzuna's own structured `salary_min`/`salary_max`.
+
+**Recommendation: not worth a follow-up fix, for either of the two
+sources where it could matter.** Arbeitsagentur (the dominant source by
+volume) has no hidden text to extract from in any sampled case - a new
+AI pass would find nothing 100% of the time here. Jooble's API
+structurally can't expose more than a short snippet, so a real fix would
+mean adding a whole second fetch-and-extract pipeline (network call +
+AI call per job, plus the same rate-limit/caching questions the
+manual-import pipeline already has to manage) to catch a case this
+sample found zero evidence of. The manual-import salary fix already
+covers the actual case where a user cares enough about one specific
+opportunity's real pay to look: paste that job's own full page in, and
+it now works, including multi-line breakdowns.
+
+---
+
 ## 2026-08-30 — Manual import: extraction from pasted text, not just fetched pages
 
 **The gap.** `app/ai/manual_import_extraction.py` (earlier same-day entry

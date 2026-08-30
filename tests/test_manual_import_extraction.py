@@ -47,7 +47,7 @@ class FakeProvider(AIProvider):
 def test_validate_and_ground_grounded_values_pass_through():
     raw = (
         '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": "Beispiel GmbH", '
-        '"location": "Leipzig", "start_date": "01.09.2027", "exclude_line_numbers": []}'
+        '"location": "Leipzig", "start_date": "01.09.2027", "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
     assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
@@ -61,14 +61,17 @@ def test_validate_and_ground_ungrounded_company_is_dropped():
     # be dropped, not trusted, even though it's a plausible-looking name.
     raw = (
         '{"title": null, "company_name": "Fabricated GmbH", "location": null, '
-        '"start_date": null, "exclude_line_numbers": []}'
+        '"start_date": null, "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
     assert result["company_name"] is None
 
 
 def test_validate_and_ground_ungrounded_start_date_is_dropped():
-    raw = '{"title": null, "company_name": null, "location": null, "start_date": "15.03.2028", "exclude_line_numbers": []}'
+    raw = (
+        '{"title": null, "company_name": null, "location": null, "start_date": "15.03.2028", '
+        '"salary": null, "exclude_line_numbers": []}'
+    )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
     assert result["start_date"] is None
 
@@ -76,7 +79,10 @@ def test_validate_and_ground_ungrounded_start_date_is_dropped():
 def test_validate_and_ground_title_can_be_grounded_via_body_not_just_title_tag():
     # The clean title genuinely appears in the body even though it's not
     # an exact substring of the raw <title> tag (which has extra branding).
-    raw = '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, "location": null, "start_date": null, "exclude_line_numbers": []}'
+    raw = (
+        '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, "location": null, '
+        '"start_date": null, "salary": null, "exclude_line_numbers": []}'
+    )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
     assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
 
@@ -92,7 +98,7 @@ def test_validate_and_ground_markdown_fenced_json_is_parsed():
     raw = (
         "```json\n"
         '{"title": null, "company_name": "Beispiel GmbH", "location": null, '
-        '"start_date": null, "exclude_line_numbers": []}\n'
+        '"start_date": null, "salary": null, "exclude_line_numbers": []}\n'
         "```"
     )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
@@ -105,8 +111,32 @@ def test_validate_and_ground_wrong_shape_returns_none():
 
 
 def test_validate_and_ground_non_int_exclude_line_numbers_returns_none():
-    raw = '{"title": null, "company_name": null, "location": null, "start_date": null, "exclude_line_numbers": ["a", "b"]}'
+    raw = (
+        '{"title": null, "company_name": null, "location": null, "start_date": null, '
+        '"salary": null, "exclude_line_numbers": ["a", "b"]}'
+    )
     assert _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT) is None
+
+
+def test_validate_and_ground_salary_grounded_pass_through():
+    source = "Ausbildung Mechatroniker (m/w/d)\nVergütung: 1.272 € im ersten Ausbildungsjahr"
+    raw = (
+        '{"title": null, "company_name": null, "location": null, "start_date": null, '
+        '"salary": "1.272 € im ersten Ausbildungsjahr", "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, source)
+    assert result["salary"] == "1.272 € im ersten Ausbildungsjahr"
+
+
+def test_validate_and_ground_ungrounded_salary_is_dropped():
+    # A plausible-looking figure that never actually appears in the
+    # source - must be dropped, never trusted as a guess/estimate.
+    raw = (
+        '{"title": null, "company_name": null, "location": null, "start_date": null, '
+        '"salary": "3.500 € pro Monat", "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
+    assert result["salary"] is None
 
 
 # --- whitespace-normalized grounding (2026-08-30, follow-up: strict literal
@@ -120,7 +150,7 @@ def test_grounded_tolerates_non_breaking_space_in_source():
     source = "Ausbildung Mechatroniker (m/w/d)"
     raw = (
         '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, '
-        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+        '"location": null, "start_date": null, "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, source)
     assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
@@ -133,7 +163,7 @@ def test_grounded_tolerates_title_joined_across_source_lines():
     source = "Ausbildung Mechatroniker\n(m/w/d) 2027"
     raw = (
         '{"title": "Ausbildung Mechatroniker (m/w/d) 2027", "company_name": null, '
-        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+        '"location": null, "start_date": null, "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, source)
     assert result["title"] == "Ausbildung Mechatroniker (m/w/d) 2027"
@@ -143,7 +173,7 @@ def test_grounded_tolerates_doubled_internal_whitespace_in_source():
     source = "Ausbildung  Mechatroniker (m/w/d)"  # markup-indentation double space
     raw = (
         '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, '
-        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+        '"location": null, "start_date": null, "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, source)
     assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
@@ -154,7 +184,7 @@ def test_grounded_still_rejects_genuine_fabrication():
     # genuinely isn't in the source is still rejected.
     raw = (
         '{"title": null, "company_name": "Completely Made Up Company GmbH", '
-        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+        '"location": null, "start_date": null, "salary": null, "exclude_line_numbers": []}'
     )
     result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
     assert result["company_name"] is None
@@ -220,6 +250,7 @@ def test_mock_mode_returns_exact_baseline_fallback(app):
         "company_name": None,
         "location": None,
         "start_date": None,
+        "salary": None,
         "description": RAW_TEXT,
     }
 
@@ -238,6 +269,7 @@ def test_provider_error_returns_exact_baseline_fallback(app, db, make_user, monk
         "company_name": None,
         "location": None,
         "start_date": None,
+        "salary": None,
         "description": RAW_TEXT,
     }
 
@@ -257,6 +289,7 @@ def test_malformed_response_returns_exact_baseline_fallback(app, db, make_user, 
         "company_name": None,
         "location": None,
         "start_date": None,
+        "salary": None,
         "description": RAW_TEXT,
     }
 
@@ -265,7 +298,7 @@ def test_successful_extraction_populates_grounded_fields(app, db, make_user, mon
     user = make_user(email="extract1@example.com")
     fake_json = (
         '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": "Beispiel GmbH", '
-        '"location": "Leipzig", "start_date": "01.09.2027", '
+        '"location": "Leipzig", "start_date": "01.09.2027", "salary": null, '
         '"exclude_line_numbers": [1, 2, 8, 9, 10]}'
     )
     fake = FakeProvider(text=fake_json)
@@ -284,7 +317,10 @@ def test_successful_extraction_populates_grounded_fields(app, db, make_user, mon
 
 def test_successful_real_call_is_logged_via_record_usage(app, db, make_user, monkeypatch):
     user = make_user(email="extract2@example.com")
-    fake_json = '{"title": null, "company_name": null, "location": null, "start_date": null, "exclude_line_numbers": []}'
+    fake_json = (
+        '{"title": null, "company_name": null, "location": null, "start_date": null, '
+        '"salary": null, "exclude_line_numbers": []}'
+    )
     fake = FakeProvider(text=fake_json)
     monkeypatch.setattr("app.ai.manual_import_extraction.get_provider", lambda: fake)
 

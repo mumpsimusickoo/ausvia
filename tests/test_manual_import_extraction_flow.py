@@ -38,7 +38,7 @@ def _fake_fetch(results):
 
 GROUNDED_JSON = (
     '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": "Beispiel GmbH", '
-    '"location": "Leipzig", "start_date": "01.09.2027", "exclude_line_numbers": [1, 5]}'
+    '"location": "Leipzig", "start_date": "01.09.2027", "salary": null, "exclude_line_numbers": [1, 5]}'
 )
 
 ITEM_TEXT = (
@@ -73,7 +73,7 @@ def test_extraction_runs_lazily_only_for_currently_reviewed_item(client, db, mak
 
     def fake_extract(page_title, text, user_id):
         calls.append(page_title)
-        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "description": text}
+        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "salary": None, "description": text}
 
     monkeypatch.setattr(routes_module, "extract_manual_import_fields", fake_extract)
 
@@ -105,7 +105,7 @@ def test_extraction_result_is_cached_on_the_item_not_rerun(client, db, make_user
 
     def fake_extract(page_title, text, user_id):
         calls.append(page_title)
-        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "description": text}
+        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "salary": None, "description": text}
 
     monkeypatch.setattr(routes_module, "extract_manual_import_fields", fake_extract)
 
@@ -133,7 +133,7 @@ def test_extraction_advances_to_next_item_only_when_that_item_is_shown(client, d
 
     def fake_extract(page_title, text, user_id):
         calls.append(page_title)
-        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "description": text}
+        return {"title": page_title, "company_name": None, "location": None, "start_date": None, "salary": None, "description": text}
 
     monkeypatch.setattr(routes_module, "extract_manual_import_fields", fake_extract)
 
@@ -164,6 +164,78 @@ def test_review_form_populated_with_grounded_extraction_result(client, db, make_
     assert "Beispiel GmbH" in body
     assert "Leipzig" in body
     assert "01.09.2027" in body
+
+
+# --- Salary follow-up pass (2026-08-30) ---
+
+SALARY_TEXT = (
+    "Zur Startseite\n"
+    "Ausbildung Mechatroniker (m/w/d)\n"
+    "Beispiel GmbH sucht dich fuer Leipzig.\n"
+    "Startdatum: 01.09.2027\n"
+    "Verguetung: 1.272 Euro im ersten Ausbildungsjahr\n"
+    "Impressum\n"
+)
+
+SALARY_GROUNDED_JSON = (
+    '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": "Beispiel GmbH", '
+    '"location": "Leipzig", "start_date": "01.09.2027", '
+    '"salary": "1.272 Euro im ersten Ausbildungsjahr", "exclude_line_numbers": [1, 6]}'
+)
+
+
+def test_review_form_populated_with_grounded_salary(client, db, make_user, monkeypatch):
+    _make_admin_or_user(db, client, make_user)
+    monkeypatch.setattr(
+        "app.jobs.routes.fetch_and_extract_text",
+        _fake_fetch({"https://a.test/1": {"page_title": "Raw Title | Site", "text": SALARY_TEXT}}),
+    )
+    fake = FakeProvider(text=SALARY_GROUNDED_JSON)
+    monkeypatch.setattr("app.ai.manual_import_extraction.get_provider", lambda: fake)
+
+    resp = client.post("/jobs/import/fetch", data={"urls": "https://a.test/1"}, follow_redirects=True)
+    body = resp.data.decode("utf-8")
+    assert 'value="1.272 Euro im ersten Ausbildungsjahr"' in body
+
+
+def test_review_form_leaves_salary_blank_when_genuinely_absent(client, db, make_user, monkeypatch):
+    # GROUNDED_JSON's salary is null - ITEM_TEXT never states a figure at
+    # all, so a correct extraction must leave the field blank rather than
+    # guess or estimate one, same discipline as start date.
+    _make_admin_or_user(db, client, make_user)
+    monkeypatch.setattr(
+        "app.jobs.routes.fetch_and_extract_text",
+        _fake_fetch({"https://a.test/1": {"page_title": "Raw Title | Site", "text": ITEM_TEXT}}),
+    )
+    fake = FakeProvider(text=GROUNDED_JSON)
+    monkeypatch.setattr("app.ai.manual_import_extraction.get_provider", lambda: fake)
+
+    resp = client.post("/jobs/import/fetch", data={"urls": "https://a.test/1"}, follow_redirects=True)
+    body = resp.data.decode("utf-8")
+    idx = body.find('id="salary"')
+    assert idx != -1
+    field_html = body[idx:idx + 200]
+    assert 'value=""' in field_html
+
+
+def test_ungrounded_salary_is_dropped_not_saved(client, db, make_user, monkeypatch):
+    # A plausible-looking figure the AI names but that never actually
+    # appears in the source - must be dropped, never trusted as a guess.
+    _make_admin_or_user(db, client, make_user)
+    monkeypatch.setattr(
+        "app.jobs.routes.fetch_and_extract_text",
+        _fake_fetch({"https://a.test/1": {"page_title": "Raw Title | Site", "text": ITEM_TEXT}}),
+    )
+    fabricated_json = (
+        '{"title": null, "company_name": null, "location": null, "start_date": null, '
+        '"salary": "9.999 Euro pro Monat", "exclude_line_numbers": []}'
+    )
+    fake = FakeProvider(text=fabricated_json)
+    monkeypatch.setattr("app.ai.manual_import_extraction.get_provider", lambda: fake)
+
+    resp = client.post("/jobs/import/fetch", data={"urls": "https://a.test/1"}, follow_redirects=True)
+    body = resp.data.decode("utf-8")
+    assert "9.999" not in body
 
 
 def test_review_form_falls_back_to_raw_baseline_when_ai_unconfigured(client, db, make_user, monkeypatch):
@@ -288,7 +360,7 @@ def test_pasted_text_extraction_second_save_actually_creates_the_job(client, db,
         calls.append(1)
         return {
             "title": "Ausbildung Mechatroniker (m/w/d)", "company_name": "Beispiel GmbH",
-            "location": "Leipzig", "start_date": "01.09.2027", "description": text,
+            "location": "Leipzig", "start_date": "01.09.2027", "salary": None, "description": text,
         }
 
     monkeypatch.setattr(routes_module, "extract_manual_import_fields", fake_extract)

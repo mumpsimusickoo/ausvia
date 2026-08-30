@@ -1138,6 +1138,29 @@ for a redesign pass, started 2026-08-24.
       See `DECISIONS.md` for full detail. Full suite: 713 passed, 3
       skipped.
 
+## Manual import salary + API-sourced salary investigation (complete)
+
+- [x] **Salary added to manual import extraction, same grounded
+      discipline as start date** - `app/ai/manual_import_extraction.py`
+      and `ManualImportReviewForm` (`app/jobs/forms.py`) gained a
+      `salary` field, wired through `_store_extraction_result()`,
+      `_render_batch_review()`, and `import_save()` the same way as the
+      other extracted fields. Never converts currencies, never averages
+      a range, never invents a figure from company reputation - null
+      when the source genuinely never states one, which is the common
+      case for Ausbildung roles on fixed collective-bargaining pay
+      scales. See `DECISIONS.md` for the two real bugs found and fixed
+      via live testing (response truncation on a large real page, and a
+      prompt gap around multi-line per-training-year salary tables).
+- [x] **API-sourced jobs (Arbeitsagentur/Adzuna/Jooble) investigated,
+      not fixed** - queried the dev DB for every job currently showing
+      no salary per source and checked whether description text (or, for
+      Arbeitsagentur, the raw API snapshot itself) contains a salary
+      figure the structured field missed. Found no evidence of a real
+      gap worth building a fix for - see `DECISIONS.md` for the full
+      finding and reasoning.
+- [x] Full suite: 718 passed, 3 skipped.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

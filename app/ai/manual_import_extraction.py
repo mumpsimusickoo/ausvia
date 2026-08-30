@@ -22,8 +22,9 @@ never treated as a sufficient guarantee, same discipline as
 job_requirements_extraction.py.
 
 Grounding is structurally different here than a plain substring check for
-one field: company_name/location/start_date/title are grounded the usual
-way (must be a literal, case-insensitive substring of the source text),
+one field: company_name/location/start_date/salary/title are grounded the
+usual way (must be a literal, case-insensitive substring of the source
+text),
 but the "cleaned description" is grounded by CONSTRUCTION instead - the
 AI never composes or copies out new description text at all, it only
 names which 1-based LINE NUMBERS (against the same numbered listing shown
@@ -97,6 +98,7 @@ def _raw_fallback(page_title, text):
         "company_name": None,
         "location": None,
         "start_date": None,
+        "salary": None,
         "description": text,
     }
 
@@ -159,7 +161,9 @@ def _validate_and_ground(raw_text, page_title, source_text):
         return None
     if not isinstance(data, dict):
         return None
-    if not all(k in data for k in ("title", "company_name", "location", "start_date", "exclude_line_numbers")):
+    if not all(
+        k in data for k in ("title", "company_name", "location", "start_date", "salary", "exclude_line_numbers")
+    ):
         return None
     exclude_line_numbers = data["exclude_line_numbers"]
     if not isinstance(exclude_line_numbers, list) or not all(
@@ -177,6 +181,7 @@ def _validate_and_ground(raw_text, page_title, source_text):
         "company_name": _grounded(data.get("company_name"), haystack_lower),
         "location": _grounded(data.get("location"), haystack_lower),
         "start_date": _grounded(data.get("start_date"), haystack_lower),
+        "salary": _grounded(data.get("salary"), haystack_lower),
         "exclude_line_numbers": exclude_line_numbers,
     }
 
@@ -258,11 +263,18 @@ def extract_manual_import_fields(page_title, text, user_id):
 
     system, prompt = build_extraction_prompt(page_title, text)
     try:
-        # 2048 despite the line-number redesign making the response far
-        # smaller per exclusion: a very chrome-heavy page can still have
-        # several hundred lines, and this is cheap headroom against the
-        # exact silent-truncation failure mode this pass was fixing.
-        response = provider.complete(system, prompt, max_tokens=2048)
+        # 4096, raised from an initial 2048 (salary follow-up pass,
+        # 2026-08-30): live-verified against a real LinkedIn posting
+        # (534 lines once its "similar jobs" sidebar - dozens of other
+        # listings - is included) that 2048 still wasn't enough headroom
+        # and truncated mid-response (2044/2048 output tokens, response
+        # cut off mid-way through exclude_line_numbers) - the exact
+        # silent-fallback failure mode this pass's own earlier bump was
+        # meant to prevent, just at a larger page size than was tested
+        # against at the time. Line numbers are still far cheaper than
+        # verbatim text for the same exclusions, but a page's chrome
+        # doesn't have a fixed upper bound on line count.
+        response = provider.complete(system, prompt, max_tokens=4096)
     except AIProviderError as e:
         log_event(
             "job_source", f"Manual import extraction failed: {e}",
@@ -286,5 +298,6 @@ def extract_manual_import_fields(page_title, text, user_id):
         "company_name": validated["company_name"],
         "location": validated["location"],
         "start_date": validated["start_date"],
+        "salary": validated["salary"],
         "description": _clean_description(text, validated["exclude_line_numbers"]),
     }

@@ -36,12 +36,13 @@ class ManualImportBatch(db.Model):
          Save (source: whatever they just typed on that submission -
          there's nothing to extract from until then),
        "extracted_title"/"extracted_company_name"/"extracted_location"/
-         "extracted_start_date"/"extracted_description": str or None
-         (only once "extracted" is True) - grounded AI-suggested values,
-         or the same safe fallback (raw page_title/text for a fetched
-         item, the user's own pasted text unchanged for a failed one;
-         blank company/location/start_date either way) if extraction
-         declined, failed, or found nothing usable. These, not
+         "extracted_start_date"/"extracted_salary"/"extracted_description":
+         str or None (only once "extracted" is True) - grounded
+         AI-suggested values, or the same safe fallback (raw page_title/
+         text for a fetched item, the user's own pasted text unchanged
+         for a failed one; blank company/location/start_date/salary
+         either way) if extraction declined, failed, or found nothing
+         usable. These, not
          page_title/text directly, are what the review form actually
          displays - see _render_batch_review() in app/jobs/routes.py.}
     `items` is always *reassigned* wholesale when an item changes (never

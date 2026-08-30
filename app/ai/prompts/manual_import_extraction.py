@@ -30,6 +30,27 @@ stated.
 (e.g. "Start: 01.09.2027", "Ausbildungsbeginn September 2027"). Most \
 postings do not state one - null is the normal, expected, correct answer \
 far more often than not, never a failure to avoid.
+- Extract a salary/pay figure, ONLY if the text genuinely, explicitly \
+states one (e.g. "1.272 € im ersten Ausbildungsjahr", "Vergütung: 3.200 \
+€ brutto/Monat", "$45,000 - $55,000 per year"). Copy the figure(s) and \
+any qualifying detail (per month/year, gross/net, which training year) \
+as stated - never convert currencies, never average a range into one \
+number, never compute or estimate a figure from anything else in the \
+text (e.g. never infer a salary from a company's general reputation or \
+industry norms). A German Ausbildung posting very commonly states pay as \
+a per-training-year breakdown spanning SEVERAL separate lines (e.g. "1. \
+Ausbildungsjahr 1.250 € brutto" / "2. Ausbildungsjahr 1.350 € brutto" / \
+"3. Ausbildungsjahr 1.500 € brutto") rather than one single figure - \
+report the whole breakdown, not just the first year, by copying each \
+line's wording exactly as it appears and joining them in the order they \
+appear (a line break between them is fine and expected here, not a \
+reason to leave the field null - null is for when pay is never \
+mentioned at all, not for when it takes more than one line to state). \
+Many postings - especially German Ausbildung roles, which usually follow \
+fixed collective-bargaining pay scales rather than stating an individual \
+figure - genuinely never mention pay at all; null is the normal, \
+expected, correct answer far more often than not, never a failure to \
+avoid.
 - Identify which LINES of the text (shown below, one per line, each \
 prefixed "N: ") are page chrome, not real posting content: navigation \
 menus, cookie/privacy banners, "Jetzt bewerben"/"Apply now"-style \
@@ -39,10 +60,10 @@ opposed to the actual job posting itself (title, intro, requirements, \
 tasks, benefits, application instructions).
 
 Rules, no exceptions:
-- NEVER invent, infer, or guess a company name, location, or start date \
-that is not explicitly, literally present in the text. Report null \
-instead - a wrong guess sitting silently in a form field is worse than an \
-honestly empty one.
+- NEVER invent, infer, guess, or compute a company name, location, start \
+date, or salary that is not explicitly, literally present in the text. \
+Report null instead - a wrong guess sitting silently in a form field is \
+worse than an honestly empty one.
 - Report chrome lines as "exclude_line_numbers": a JSON array of the \
 integer N prefixes of the chrome lines - never the line text itself. A \
 long cookie banner or nav menu can span dozens of lines; numbers keep the \
@@ -62,7 +83,7 @@ exclude_line_numbers) - that is a correct, expected answer, not a failure.
 
 Respond with ONLY a JSON object, no other text before or after it, in \
 exactly this shape:
-{"title": "..." or null, "company_name": "..." or null, "location": "..." or null, "start_date": "..." or null, "exclude_line_numbers": [1, 5, 12]}
+{"title": "..." or null, "company_name": "..." or null, "location": "..." or null, "start_date": "..." or null, "salary": "..." or null, "exclude_line_numbers": [1, 5, 12]}
 """
 
 
