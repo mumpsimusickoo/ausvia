@@ -51,6 +51,20 @@
 <section class="rounded-xl border border-line bg-card shadow-sm p-6">
   <h2 class="font-semibold text-t1 mb-4">{% if batch %}{{ _("Review and save") }}{% else %}{{ _("2. Review and save") }}{% endif %}</h2>
   {% if show_review %}
+  {#
+    Manual import extraction pass (2026-08-30): title/company/location/
+    start date can now be AI-suggested (grounded against the fetched
+    page, never invented - see app/ai/manual_import_extraction.py), not
+    just a raw text dump the user had to type structured fields around
+    themselves. A short, real transparency note - not just "review
+    before saving" in the abstract, since these specific fields are new
+    AI-suggested content that deserves the same "check this" scrutiny
+    this app already gives every other AI surface (intelligence_surface()
+    labels its own AI origin the same way).
+  #}
+  {% if auto_filled %}
+  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the page - please double-check every field, especially company, location, and start date, before saving.") }}</p>
+  {% endif %}
   <form method="post" action="{{ url_for('jobs.import_save') }}">
     {{ review_form.hidden_tag() }}
     {{ review_form.batch_index() }}

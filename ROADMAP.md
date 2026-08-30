@@ -956,6 +956,52 @@ for a redesign pass, started 2026-08-24.
       have caught proactively but wasn't run until after the bug showed
       up live).
 
+## Manual import: real AI field extraction (complete)
+
+- [x] **Grounded field extraction on manual import** -
+      `/jobs/import` used to prefill only a raw `<title>` tag and an
+      unfiltered full-page text dump (company/location/start date always
+      blank). A new AI pass (`app/ai/manual_import_extraction.py`,
+      `app/ai/prompts/manual_import_extraction.py`) extracts a clean
+      title, company, location, and start date (null unless genuinely
+      stated - never guessed), plus a chrome-filtered description.
+      Grounded the usual way for the scalar fields (literal,
+      case-insensitive substring of the source); the description is
+      grounded **by construction** - the AI cites 1-based line numbers
+      to remove rather than composing or copying text, so fabricated
+      description content is structurally impossible, not just checked
+      for. Least-trusted input in the app (arbitrary third-party scraped
+      text), fenced via the existing `wrap_untrusted_external_text()`.
+      Runs lazily (only the batch item on screen) and caches onto that
+      item so revisiting never burns a second AI call. Same mock-mode/
+      `AIProviderError`/rate-limit degradation as every other AI
+      feature - any hiccup falls back to exactly the old raw-title/
+      raw-text baseline.
+- [x] **Two bugs found only by testing real pages, not canned
+      responses** - see `DECISIONS.md`'s 2026-08-30 entry for the full
+      story: (1) Gemini wraps JSON replies in a markdown code fence even
+      when told not to, silently collapsing every real call to the
+      fallback; (2) the original "copy excluded lines back out verbatim"
+      design blew past `max_tokens` on a real 176-line chrome-heavy page
+      and truncated mid-JSON - same silent-fallback symptom, only caught
+      by dumping the raw response directly. Fixed by stripping the
+      fence and switching to line-number citation (truncation-resistant
+      and equally grounded); `MAX_EXCLUDED_FRACTION`'s original 0.6 cap
+      (assumed chrome is a page minority) was also raised to 0.95 after
+      the same live test showed a real cookie-consent-heavy corporate
+      page can legitimately be ~78% chrome. Both silent-fallback paths
+      were logging nothing at all (`logger.warning()`, console-only) -
+      swapped for `log_event(..., level="warning")` so a real failure is
+      now visible in `/admin`, matching
+      `job_requirements_extraction.py`'s convention.
+- [x] **Live-verified against two real, messy postings** - Festo
+      (`jobs.festo.com`) and TE Connectivity (`careers.te.com`), not
+      mocked. TE Connectivity's page correctly left start date blank
+      (its only date field is the ad's publish date, not an
+      apprenticeship start date - the extraction did not conflate the
+      two). Caching confirmed via `/admin/ai-usage`'s flat call count
+      across repeat visits. Full suite: 688 passed, 3 skipped.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

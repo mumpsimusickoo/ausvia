@@ -18,9 +18,25 @@ class ManualImportBatch(db.Model):
 
     `items` is a JSON list of dicts, each shaped:
       {"url": str, "status": one of MANUAL_IMPORT_ITEM_STATUSES,
-       "page_title": str (only when status == "fetched"),
-       "text": str (only when status == "fetched"),
-       "error": str (only when status == "failed")}
+       "page_title": str (only when status == "fetched") - the raw
+         <title> tag, unchanged, kept as the fallback source of truth,
+       "text": str (only when status == "fetched") - the raw fetched
+         text dump, unchanged, kept as the fallback source of truth,
+       "error": str (only when status == "failed"),
+       "extracted": bool (only when status == "fetched", once the lazy
+         AI extraction pass - app/ai/manual_import_extraction.py, see
+         app/jobs/routes.py's _ensure_item_extracted() - has actually run
+         for this item, whether or not it found anything; never re-run
+         once True, so revisiting an already-reviewed item never burns a
+         second AI call),
+       "extracted_title"/"extracted_company_name"/"extracted_location"/
+         "extracted_start_date"/"extracted_description": str or None
+         (only once "extracted" is True) - grounded AI-suggested values,
+         or the same safe fallback (raw page_title/text, blank
+         company/location/start_date) if extraction declined, failed, or
+         found nothing usable. These, not page_title/text directly, are
+         what the review form actually displays - see _render_batch_
+         review() in app/jobs/routes.py.}
     `items` is always *reassigned* wholesale when an item changes (never
     mutated in place) so SQLAlchemy's change tracking on the JSON column
     reliably notices the update without needing sqlalchemy.ext.mutable.

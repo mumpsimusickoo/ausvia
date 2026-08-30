@@ -6,6 +6,97 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Manual import: real AI field extraction, grounded, and two bugs only live testing caught
+
+**The feature.** Manual job import (`/jobs/import`) used to prefill only a
+raw `<title>` tag and an unfiltered full-page text dump - company,
+location, and start date were always left blank, and the description
+routinely carried nav/cookie-consent chrome that survives BeautifulSoup's
+`<script>`/`<style>`/`<nav>`/`<footer>`/`<header>` stripping (most of it
+lives in plain `<div>`/`<a>`/`<span>` elements instead). A new AI-grounded
+extraction pass (`app/ai/manual_import_extraction.py`,
+`app/ai/prompts/manual_import_extraction.py`) now pulls a clean title,
+company, location, and start date (only if genuinely stated), plus a
+chrome-filtered description - run lazily, only for the batch item
+actually on screen, and cached onto that item
+(`app/jobs/routes.py::_ensure_item_extracted()`) so revisiting one never
+burns a second AI call. Same mock-mode/`AIProviderError`/rate-limit
+degradation discipline as `job_requirements_extraction.py`: any AI
+hiccup falls back to exactly today's raw title + raw text, never worse.
+
+**Grounding.** Scraped third-party page text is the least trusted input
+this app ever shows an AI (arbitrary URL, no verified source) - fenced
+via the existing `wrap_untrusted_external_text()` (the completed W8
+remediation, reused rather than reinvented). company_name/location/
+start_date/title are grounded the usual way (must literally appear in
+the source, case-insensitive, else null). The cleaned description is
+grounded **by construction** instead: the AI never composes or copies
+out description text at all, it only cites which 1-based line numbers
+(of a numbered listing shown in the prompt) are chrome to remove -
+`_clean_description()` only ever deletes lines at those indices, so
+fabricated content is structurally impossible, not just checked-for.
+
+**Two real bugs, found only by testing against real, messy pages -
+neither would have surfaced from unit tests with canned responses:**
+
+1. **Gemini wraps JSON replies in a markdown code fence** (` ```json
+   ... ``` `) even when told to answer with JSON only. The original
+   `json.loads(raw_text.strip())` rejected this outright, so every real
+   call against a real page silently fell back to the raw-text baseline
+   - indistinguishable in the UI from mock mode, and (see bug 2) also
+   invisible in the logs. Fixed with a fence-stripping regex before
+   parsing.
+2. **The original design asked the AI to copy excluded chrome lines back
+   out verbatim**, which sounds safer (exact grounding is trivial to
+   check) but isn't token-efficient: Festo's real career page (SAP
+   SuccessFactors + a OneTrust-style cookie manager) has 176 lines once
+   nav/cookie chrome is included, and copying dozens of them out in full
+   pushed the response past `max_tokens` and truncated it mid-JSON -
+   same silent-fallback symptom as bug 1, confirmed by inspecting the raw
+   response directly. **Redesigned to cite 1-based line numbers instead
+   of copying text** - equally grounded (an index can't fabricate
+   content, it can only reference or fail to reference a real line), and
+   the same 176-line page's response dropped from 1196 (truncated, at
+   the cap) to 696 output tokens (complete). `max_tokens` was also
+   raised 1200→2048 as cheap headroom against the same failure mode on
+   an even chattier page.
+
+   A related, initially-wrong assumption fell out of the same live test:
+   `MAX_EXCLUDED_FRACTION` (a safety cap discarding "suspiciously
+   aggressive" cleaning) was set to 0.6 on the assumption that chrome is
+   a minority of a real page. Festo's page is genuinely ~78% chrome once
+   its cookie-consent manager is included, so the cap was silently
+   discarding a fully correct cleaning result. Raised to 0.95 - it now
+   exists only as a floor against true near-total wipeout, not an
+   estimate of normal chrome ratio (which real corporate career sites
+   can blow past legitimately).
+
+   Both silent-fallback paths (bug 1, and the pre-existing
+   "validation failed" branch generally) were also logging nothing at
+   all - `logger.warning()` (stdlib, console-only) was swapped for
+   `log_event(..., level="warning")` (writes to `SystemLog`, visible in
+   `/admin`), matching `job_requirements_extraction.py`'s own
+   convention. This is what actually made bug 1 diagnosable: a genuinely
+   malformed-response log line appearing in `/admin`'s Recent Activity
+   after the first fix, for a page that still hadn't been fixed yet
+   (bug 2), is what pointed at the truncation rather than something else.
+
+**Live verification (real pages, real Gemini calls, not mocked):**
+Festo (`jobs.festo.com`, Esslingen Ausbildung Mechatroniker) extracted
+title "Ausbildung Mechatroniker (m/w/d)", company "Festo SE & Co. KG",
+location "Esslingen", start date "September 2027", all correctly
+grounded, and a chrome-free description; TE Connectivity
+(`careers.te.com`, Wört) extracted title, company "TE Connectivity",
+location "Wört", and correctly left start date **blank** - the page
+states "Startdatum der Ausschreibung: 13.05.26" (the job ad's
+*publication* date, not an apprenticeship start date), and the
+extraction correctly did not conflate the two rather than guessing.
+Caching confirmed live via `/admin/ai-usage`'s call count staying flat
+across repeated visits to an already-extracted item. Full suite: 688
+passed, 3 skipped.
+
+---
+
 ## 2026-08-30 — Urgent security fix: password reset link exposure (account takeover, live in production)
 
 **The vulnerability.** `request_reset()`'s (`app/auth/routes.py`) "show

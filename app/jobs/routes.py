@@ -25,6 +25,7 @@ from app.jobs.matching import (
     generate_improvement_tips, match_label, summarize_match_line,
 )
 from app.ai.job_explainer import get_job_explainer, generate_job_explainer
+from app.ai.manual_import_extraction import extract_manual_import_fields
 from app.ai.provider import AIProviderError
 from app.extensions import limiter
 from app.utils.logging import log_event
@@ -471,7 +472,7 @@ def _bookmarklet_href():
     return "javascript:" + quote(js)
 
 
-def _render_import_page(url_form=None, review_form=None, show_review=False, batch=None):
+def _render_import_page(url_form=None, review_form=None, show_review=False, batch=None, auto_filled=False):
     return render_template(
         "jobs/import.html",
         url_form=url_form or ManualImportUrlForm(),
@@ -487,7 +488,47 @@ def _render_import_page(url_form=None, review_form=None, show_review=False, batc
         batch=batch,
         max_batch_urls=MAX_BATCH_URLS,
         bookmarklet_href=_bookmarklet_href(),
+        # Manual import extraction pass (2026-08-30): whether the fields
+        # now in review_form were auto-filled from a fetched page (batch
+        # path) rather than typed by hand or left blank after a failed
+        # fetch - drives a small transparency notice in the template so
+        # the user knows to double-check company/location/start date
+        # specifically, since those are new AI-suggested content, not
+        # just the raw text dump this flow used to show unconditionally.
+        auto_filled=auto_filled,
     )
+
+
+def _ensure_item_extracted(batch, item):
+    """Manual import extraction pass (2026-08-30): lazy, cached AI field
+    extraction for the one batch item about to be reviewed - never run
+    upfront for every fetched item in a batch (that would burn an AI call
+    on URLs the user might skip and never actually see), and never run
+    twice for the same item (cached onto the item dict itself, checked via
+    the "extracted" flag below, so navigating back to an already-reviewed
+    item never re-triggers a second AI call for the same URL).
+
+    Only called for status == "fetched" items - a "failed" item (fetch
+    itself failed) has no page_title/text to extract from at all.
+    """
+    if item.get("extracted"):
+        return item
+
+    result = extract_manual_import_fields(item["page_title"], item["text"], current_user.id)
+
+    items = list(batch.items)
+    items[batch.current_index] = {
+        **item,
+        "extracted": True,
+        "extracted_title": result["title"],
+        "extracted_company_name": result["company_name"],
+        "extracted_location": result["location"],
+        "extracted_start_date": result["start_date"],
+        "extracted_description": result["description"],
+    }
+    batch.items = items
+    db.session.commit()
+    return items[batch.current_index]
 
 
 def _render_batch_review(batch):
@@ -502,8 +543,12 @@ def _render_batch_review(batch):
     review_form.batch_index.data = str(batch.current_index)
 
     if item["status"] == "fetched":
-        review_form.title.data = item["page_title"]
-        review_form.description.data = item["text"]
+        item = _ensure_item_extracted(batch, item)
+        review_form.title.data = item["extracted_title"]
+        review_form.company_name.data = item["extracted_company_name"]
+        review_form.location.data = item["extracted_location"]
+        review_form.start_date.data = item["extracted_start_date"]
+        review_form.description.data = item["extracted_description"]
         review_form.application_url.data = item["url"]
     else:
         review_form.application_url.data = item["url"]
@@ -515,7 +560,10 @@ def _render_batch_review(batch):
             "error",
         )
 
-    return _render_import_page(review_form=review_form, show_review=True, batch=batch)
+    return _render_import_page(
+        review_form=review_form, show_review=True, batch=batch,
+        auto_filled=item["status"] == "fetched",
+    )
 
 
 @bp.route("/import", methods=["GET"])

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-30 05:35+0100\n"
+"POT-Creation-Date: 2026-08-30 06:05+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -1054,54 +1054,54 @@ msgstr ""
 "Lege mindestens ein gewünschtes Berufsfeld in deinen Ausbildungswünschen "
 "fest, bevor du nach neuen Anzeigen suchst."
 
-#: app/jobs/routes.py:112
+#: app/jobs/routes.py:113
 #, python-format
 msgid "Start %(lo)s–%(hi)s"
 msgstr "Start %(lo)s–%(hi)s"
 
-#: app/jobs/routes.py:114
+#: app/jobs/routes.py:115
 #, python-format
 msgid "Start from %(lo)s"
 msgstr "Start ab %(lo)s"
 
-#: app/jobs/routes.py:116
+#: app/jobs/routes.py:117
 #, python-format
 msgid "Start by %(hi)s"
 msgstr "Start bis %(hi)s"
 
-#: app/jobs/routes.py:120
+#: app/jobs/routes.py:121
 #, python-format
 msgid "Score ≥ %(score)s"
 msgstr "Score ≥ %(score)s"
 
-#: app/jobs/routes.py:240
+#: app/jobs/routes.py:241
 msgid "Please enter valid search terms."
 msgstr "Bitte gib gültige Suchbegriffe ein."
 
-#: app/jobs/routes.py:277
+#: app/jobs/routes.py:278
 #, python-format
 msgid "%(num)d new listing found."
 msgid_plural "%(num)d new listings found."
 msgstr[0] "%(num)d neue Anzeige gefunden."
 msgstr[1] "%(num)d neue Anzeigen gefunden."
 
-#: app/jobs/routes.py:279
+#: app/jobs/routes.py:280
 msgid "No new listings found for your preferences right now."
 msgstr "Gerade keine neuen Anzeigen für deine Wünsche gefunden."
 
-#: app/jobs/routes.py:360
+#: app/jobs/routes.py:361
 msgid "Plain-language summary generated."
 msgstr "Verständliche Zusammenfassung erstellt."
 
-#: app/jobs/routes.py:402
+#: app/jobs/routes.py:403
 msgid "Saved."
 msgstr "Gespeichert."
 
-#: app/jobs/routes.py:413
+#: app/jobs/routes.py:414
 msgid "Removed from saved jobs."
 msgstr "Aus gespeicherten Stellen entfernt."
 
-#: app/jobs/routes.py:512
+#: app/jobs/routes.py:557
 #, python-format
 msgid ""
 "Couldn't fetch %(url)s: %(error)s Paste the text yourself below, or skip "
@@ -1110,59 +1110,59 @@ msgstr ""
 "Konnte %(url)s nicht abrufen: %(error)s Füge den Text unten selbst ein "
 "oder überspringe diesen Eintrag."
 
-#: app/jobs/routes.py:536 app/jobs/routes.py:541
+#: app/jobs/routes.py:584 app/jobs/routes.py:589
 msgid "Please paste at least one URL."
 msgstr "Bitte füge mindestens eine URL ein."
 
-#: app/jobs/routes.py:574
+#: app/jobs/routes.py:622
 #, python-format
 msgid "Only the first %(max)d URLs were used - that's the limit per batch."
 msgstr ""
 "Nur die ersten %(max)d URLs wurden verwendet - das ist das Limit pro "
 "Stapel."
 
-#: app/jobs/routes.py:576
+#: app/jobs/routes.py:624
 #, python-format
 msgid "Fetched %(succeeded)d of %(total)d page successfully."
 msgid_plural "Fetched %(succeeded)d of %(total)d pages successfully."
 msgstr[0] "%(succeeded)d von %(total)d Seite erfolgreich abgerufen."
 msgstr[1] "%(succeeded)d von %(total)d Seiten erfolgreich abgerufen."
 
-#: app/jobs/routes.py:583
+#: app/jobs/routes.py:631
 #, python-format
 msgid "%(num)d failed - you'll get a chance to paste those in manually."
 msgid_plural "%(num)d failed - you'll get a chance to paste those in manually."
 msgstr[0] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
 msgstr[1] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
 
-#: app/jobs/routes.py:608
+#: app/jobs/routes.py:656
 msgid "Please fill in at least the job title and company."
 msgstr "Bitte gib mindestens Berufsbezeichnung und Unternehmen an."
 
-#: app/jobs/routes.py:630 app/jobs/routes.py:640
+#: app/jobs/routes.py:678 app/jobs/routes.py:688
 msgid "Job imported."
 msgstr "Anzeige importiert."
 
-#: app/jobs/routes.py:630
+#: app/jobs/routes.py:678
 msgid "This matched an already-known opportunity - merged."
 msgstr "Das entspricht einer bereits bekannten Anzeige - zusammengeführt."
 
-#: app/jobs/routes.py:640
+#: app/jobs/routes.py:688
 msgid "Matched an already-known opportunity - merged."
 msgstr "Entspricht einer bereits bekannten Anzeige - zusammengeführt."
 
-#: app/jobs/routes.py:671
+#: app/jobs/routes.py:719
 msgid "Import batch cancelled."
 msgstr "Import-Stapel abgebrochen."
 
-#: app/jobs/routes.py:683
+#: app/jobs/routes.py:731
 #, python-format
 msgid "Batch complete: %(saved)d imported, %(not_imported)d not imported."
 msgstr ""
 "Stapel abgeschlossen: %(saved)d importiert, %(not_imported)d nicht "
 "importiert."
 
-#: app/jobs/routes.py:687
+#: app/jobs/routes.py:735
 #, python-format
 msgid "Batch complete: %(saved)d imported."
 msgstr "Stapel abgeschlossen: %(saved)d importiert."
@@ -3360,15 +3360,24 @@ msgid "2. Review and save"
 msgstr "2. Überprüfen und speichern"
 
 #: app/templates/jobs/import.html:66
+msgid ""
+"Filled in automatically from the page - please double-check every field, "
+"especially company, location, and start date, before saving."
+msgstr ""
+"Automatisch aus der Seite ausgefüllt – bitte prüfe jedes Feld "
+"sorgfältig, besonders Unternehmen, Ort und Startdatum, bevor du "
+"speicherst."
+
+#: app/templates/jobs/import.html:80
 #: app/templates/jobs/import_bookmarklet.html:21
 msgid "Save opportunity"
 msgstr "Anzeige speichern"
 
-#: app/templates/jobs/import.html:68
+#: app/templates/jobs/import.html:82
 msgid "Skip this one"
 msgstr "Diese überspringen"
 
-#: app/templates/jobs/import.html:73
+#: app/templates/jobs/import.html:87
 msgid ""
 "Fetch a URL above, or use the bookmarklet below - either will fill in "
 "this form for you to review."
@@ -3376,11 +3385,11 @@ msgstr ""
 "Rufe oben eine URL ab oder nutze das Lesezeichen-Tool unten - beides "
 "füllt dieses Formular zur Überprüfung für dich aus."
 
-#: app/templates/jobs/import.html:78
+#: app/templates/jobs/import.html:92
 msgid "Browser bookmarklet"
 msgstr "Browser-Lesezeichen-Tool"
 
-#: app/templates/jobs/import.html:80
+#: app/templates/jobs/import.html:94
 msgid ""
 "Drag this to your bookmarks bar. While viewing any job posting in your "
 "own browser, click it to send that page's title, URL, and visible text "
@@ -3397,11 +3406,11 @@ msgstr ""
 "Nichts wird gespeichert, bevor du es hier prüfst und auf \"Anzeige "
 "speichern\" klickst."
 
-#: app/templates/jobs/import.html:84
+#: app/templates/jobs/import.html:98
 msgid "Import to AUSVIA"
 msgstr "Zu AUSVIA importieren"
 
-#: app/templates/jobs/import.html:98
+#: app/templates/jobs/import.html:112
 msgid ""
 "Drag this link to your bookmarks bar, then click it later while viewing a"
 " job posting."
