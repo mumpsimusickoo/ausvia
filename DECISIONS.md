@@ -6,6 +6,137 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Plans page + real access expiry, no payment gateway
+
+**What shipped:** a public `/plans` pricing page (three plans by max
+simultaneous users per code - 1/2/5 - at 150/250/500 DH per month, a
+yearly option at exactly 10x the monthly price, not 12x), a "Request
+access" CTA on the landing page next to the existing "Enter access code"
+one, an admin "Plan" convenience selector on the code-creation form, and
+the real mechanism behind all of it: `User.access_expires_at`, computed
+from `InvitationCode.access_duration_months` at redemption via calendar-
+month arithmetic, enforced at two checkpoints so an account's access
+actually ends when it should - not just stops accepting new logins.
+Still no payment gateway - unchanged from the existing decision (see
+`PRODUCT.md`); every CTA is a pre-filled WhatsApp link
+(`wa.me/212707935808`) naming the specific plan and billing period, and
+an admin still manually issues the code after that conversation.
+
+**Yearly = monthly x 10, computed, not duplicated.** `app/plans.py`'s
+`yearly_price_dh()` derives the yearly figure from the monthly one at the
+point of use (`YEARLY_MULTIPLIER = 10`) rather than storing two parallel
+price lists that could drift out of the stated "exactly 10x" rule if one
+were ever edited without the other. The plans page's own "2 MONTHS FREE"
+badge is a real, checked consequence of that ratio (10 months' price for
+12 months' access), not a separately-authored marketing claim.
+
+**Toggle switch: a real `<button role="switch">` with vanilla JS, not a
+CSS-only `peer-checked` construction.** Checked Context7's current
+Tailwind v3 docs before building this (per the user's explicit
+instruction): Tailwind's own `peer`/`peer-checked` pattern is the
+idiomatic way to build a toggle, but it only reaches elements that are
+true DOM siblings of the checkbox - it cannot drive three separate plan
+cards' nested price/CTA blocks, which are descendants of *later*
+siblings, not siblings themselves. Vanilla JS instead, matching this
+app's own existing pattern for pure client-side, no-server-round-trip
+interactivity (`base.html`'s theme toggle, mobile drawer) - unlike
+`language_switcher()`, nothing about which prices are shown needs to
+change on the server. Each card renders both its monthly and yearly
+price+CTA blocks; the toggle shows/hides the pair site-wide via one
+`aria-checked`-driven class toggle, so the WhatsApp link swaps along with
+the visible price rather than needing a separate href-rewrite step.
+
+**Access-duration arithmetic: `dateutil.relativedelta`, calendar months,
+not a flat day count** - a flat 30-day approximation would short a
+mid-month purchase and drift across leap-year Februaries. Verified
+directly, not just trusted: `datetime(2027, 1, 31) + relativedelta(months=1)`
+returns `2027-02-28` (clamped to February's real last day, no error, no
+rollover into March); the same call against `2028-01-31` (a leap year)
+returns `2028-02-29`. `python-dateutil` was already present transitively
+(pulled in by another dependency) but never imported directly before this
+pass - pinned explicitly in `requirements.txt` now that real code depends
+on it.
+
+**Two enforcement checkpoints, no scheduler - consistent with this app's
+existing check-at-request-time architecture** (job radar, priority
+digest): a login-time refusal (`app/auth/routes.py`'s `login()`, checked
+after credentials are confirmed valid so the message can be specific -
+"your access ended," not the generic invalid-credentials one) and an
+app-wide `before_request` hook (`app/access_expiry.py`'s
+`enforce_access_expiry()`, registered in `app/__init__.py`, not scoped to
+any one blueprint) that logs an already-authenticated session out on its
+very next request once expiry passes - "their access ends" means during
+an active session too, not only at the next login screen. Both share one
+`is_access_expired()` check so they can never drift on what "expired"
+means. Live-verified end to end, not just unit-tested: forced a real dev
+user's `access_expires_at` into the past and attempted login - refused
+with the exact message, WhatsApp reference included; logged the same
+user in with a future expiry, expired it mid-session via direct DB write
+(no new login attempt), then made one more request in the same browser
+session - redirected to login with the identical message, and a fresh
+request afterward confirmed the session was genuinely ended (redirected
+again), not just that one response.
+
+**`InvitationCode.access_duration_months` is deliberately a different
+field from the existing `expires_at`, not a repurposing of it** - the
+existing field governs whether the *code itself* can still be redeemed
+(unchanged by this pass); the new one governs how long the *resulting
+account* stays active once redemption succeeds. Two different clocks
+that happen to live on the same row; conflating them would have meant a
+code that expires the moment it's used, which isn't what either field
+means. Admin visibility: `/admin/codes`' table gained a distinct "Access
+length" column so the two are never confused there either.
+
+**Admin "Plan" convenience selector is UI-only, not a form field** - it
+has no backing model column and isn't submitted; selecting an option just
+JS-fills the three real, already-existing form fields it maps to (Type,
+Max uses, the new Access duration). Chosen over adding a bound
+`SelectField` for the plan itself because the six plan combinations are
+just presets over fields that already need to stay independently,
+manually editable for trial/admin/custom codes - a bound field would
+mean either syncing two sources of truth or disabling manual edits
+outright, neither of which this form needs.
+
+**Explicitly out of scope, and staying that way for now: the
+1000-generation AI limit is still unenforced.** `PLAN_AI_LIMITS`
+(`app/models/access_code.py`) already defines the number per plan and has
+since the original access-code system was built, but nothing anywhere
+checks a user's actual generation count against it - this pass adds
+*time*-based expiry (`access_expires_at`) only, never touches
+*usage*-count expiry. Flagged here explicitly, per instruction, so a
+future session doesn't mistake "access expiry now works" for "the
+1000-limit is enforced too" - they are unrelated mechanisms that happen
+to both be attached to the same `plan` field.
+
+**Two real process gaps found while shipping this, neither a defect in
+the feature itself:**
+- A `pybabel update`-assigned `#, fuzzy` flag on 9 newly-translated
+  strings silently excluded them from the compiled `.mo` even after their
+  `msgstr` was filled in correctly - found only by looking at the live
+  rendered page, not by any automated signal. See `DEPLOYMENT.md`'s
+  Translations section for the fix and the check to run going forward.
+- The plans page's new toggle-switch markup used Tailwind utility classes
+  (`translate-x-5`, etc.) that didn't exist yet in the committed,
+  purged `app/static/css/tailwind.css` - the switch rendered with no
+  visible track/knob at all until `npm run build:css` was rerun. This
+  project already has `npm run check:css` documented in `DEPLOYMENT.md`
+  specifically to catch this before a commit; it wasn't run proactively
+  here and should have been - caught live instead, the more expensive way.
+
+**Verification:** full pytest suite: 642 passed, 3 skipped, 0 failed (up
+from 618 - 24 new tests across `test_plans_page.py`, `test_access_expiry.py`,
+and two added to `test_admin.py`).
+Live Playwright verification covered: the plans page in both themes at
+375px and 1920px, the monthly/yearly toggle actually swapping all three
+displayed prices and their WhatsApp links (confirmed the link text itself
+changes between "monatlich"/"jährlich" per plan), the landing page's new
+CTA resolving to `/plans`, the admin Plan selector auto-filling all three
+target fields and a real code created end-to-end showing the correct
+"12 months" access length, and both access-expiry checkpoints as
+described above.
+
+---
+
 ## 2026-08-29 — Jooble fixed and re-enabled: admin-only, with a lifetime-budget counter
 
 **Root cause of the earlier 403s (diagnosed outside this session): a

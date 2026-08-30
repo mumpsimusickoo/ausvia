@@ -280,6 +280,26 @@ resolve" entry for the full `LazyString` sweep result and why reply
 suggestion's live re-verification was blocked (a real, account-wide daily
 Gemini quota, not a code issue).
 
+**Plans page + access expiry pass, 2026-08-30 - a new `pybabel update`
+gotcha found while filling the catalog by script:** `pybabel update`
+marks an entry `#, fuzzy` whenever it guesses a new/changed `msgid` is
+probably a reworded version of some existing, already-translated one -
+and `pybabel compile` **silently excludes any `#, fuzzy` entry from the
+compiled `.mo`**, even one whose `msgstr` has since been filled in
+correctly. Overwriting `message.string` via `read_po`/`write_po` (this
+project's usual way to fill translations programmatically, in a scratch
+script) does NOT clear that flag on its own - nine strings this pass
+translated correctly still silently rendered their English `msgid` at
+runtime, discovered only by looking at the actual live page, not by any
+`pybabel`/pytest signal. **After translating any entry, also clear its
+fuzzy flag** (`message.flags.discard("fuzzy")`) before writing the
+catalog back out - or run `grep -c '^#, fuzzy' translations/de/LC_MESSAGES/messages.po`
+after `pybabel update` and treat a nonzero count as a to-do list, not
+just a formatting note. `pybabel compile --use-fuzzy` also exists (bakes
+the guess in instead), but is the wrong tool here - a fuzzy guess should
+be reviewed and either confirmed (clear the flag) or corrected, never
+shipped un-reviewed.
+
 **A compiled `.mo` catalog only loads once per process - a running
 server must be restarted for a new `pybabel compile` to take effect,**
 the same way it already needs a restart to pick up new Python code (but

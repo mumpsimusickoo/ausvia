@@ -14,6 +14,7 @@ from app.jobs.adapters.manager import ADMIN_ONLY_SOURCES, get_enabled_adapter_na
 from app.models.job import SavedJob, JobRadarStatus
 from app.models.application import Application
 from app.models.profile import CHECKLIST_LABEL_TRANSLATIONS
+from app.plans import PLAN_MONTHLY_PRICES_DH, whatsapp_plan_url, yearly_price_dh
 from app.priority_digest import ACTIVE_STATUSES, TERMINAL_STATUSES, compute_priority_digest
 from app.jobs.matching import get_or_compute_match
 from app.utils.logging import log_event
@@ -108,6 +109,30 @@ def landing():
     ]
     source_display_names = [KNOWN_SOURCES[name] for name in source_names]
     return render_template("landing.html", source_display_names=source_display_names)
+
+
+@bp.route("/plans")
+def plans():
+    # Plans page + access expiry pass (2026-08-30): public, pre-auth
+    # marketing page - same redirect-authenticated-users-away convention
+    # landing() already uses above, since an existing account has no use
+    # for a page about requesting one. No payment gateway; each card's CTA
+    # is a WhatsApp link naming that specific plan - see PRODUCT.md/
+    # DECISIONS.md for why (payments are explicitly out of scope, handled
+    # off-platform) and app/plans.py for the actual numbers/link-building.
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    plan_rows = [
+        {
+            "users": users,
+            "monthly_dh": monthly_dh,
+            "yearly_dh": yearly_price_dh(monthly_dh),
+            "whatsapp_monthly_url": whatsapp_plan_url(users, yearly=False),
+            "whatsapp_yearly_url": whatsapp_plan_url(users, yearly=True),
+        }
+        for users, monthly_dh in PLAN_MONTHLY_PRICES_DH
+    ]
+    return render_template("plans.html", plan_rows=plan_rows)
 
 
 @bp.route("/health")

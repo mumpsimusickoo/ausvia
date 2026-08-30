@@ -44,6 +44,21 @@ class InvitationCode(db.Model):
     expires_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
+    # Plans page + access expiry pass (2026-08-30): None = no auto-expiry -
+    # the same backward-compatible default as every other field here, so
+    # every code type this app already issues (trial/standard/admin, and
+    # any premium code created the old way) behaves exactly as before.
+    # When set, redeeming this code computes the new user's
+    # User.access_expires_at as redeemed_at + this many CALENDAR months
+    # (dateutil.relativedelta, not a flat day count - see
+    # app/auth/routes.py's register()). Deliberately NOT the same field as
+    # `expires_at` above: that one governs the CODE's own redemption
+    # window (unchanged by this pass, still just "can this code still be
+    # used"); this one governs how long the RESULTING ACCOUNT stays
+    # active once redeemed - two different clocks that happen to both
+    # live on this row.
+    access_duration_months = db.Column(db.Integer, nullable=True)
+
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
 

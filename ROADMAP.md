@@ -905,6 +905,57 @@ for a redesign pass, started 2026-08-24.
       those tokens on existing headings/cards site-wide is itself part of
       this not-yet-started work.
 
+## Plans page + real access expiry (complete)
+
+- [x] **Public `/plans` pricing page** - three plans by max simultaneous
+      users per code (1/2/5, 150/250/500 DH/month), a yearly option at
+      exactly 10x monthly (not 12x - "2 months free" is a checked
+      consequence of that ratio, not a separate claim), one toggle
+      switching all three cards at once. Built within the existing design
+      system only (Tiefsee Teal tokens, existing `_components.html`
+      macros, `btn()` extended with optional `target`/`rel` for the
+      external WhatsApp links) - checked Context7's current Tailwind v3
+      docs for toggle-switch patterns before building (per explicit
+      instruction), landed on a real `role="switch"` button + vanilla JS
+      rather than a CSS-only `peer-checked` construction, since the
+      latter can't reach descendants of later siblings (three separate
+      cards), only true siblings of the checkbox. Each card's CTA is a
+      plan- and billing-period-specific pre-filled WhatsApp link
+      (`app/plans.py`), not a generic one. Landing page gained a second
+      "Request access" CTA next to the existing "Enter access code" one,
+      linking here. Fully bilingual from the start (no fourth
+      string-sweep gap).
+- [x] **Real automatic access expiry** - `User.access_expires_at`
+      (nullable, None = unaffected) computed at redemption time from a
+      new `InvitationCode.access_duration_months` (nullable, backward-
+      compatible default) via `dateutil.relativedelta` calendar-month
+      arithmetic, not a flat day count - verified directly that a Jan 31
+      redemption + 1 month lands on Feb 28, and on Feb 29 in a leap year,
+      never an error or a March rollover. Two enforcement checkpoints, no
+      scheduler (same check-at-request-time architecture as the job
+      radar/priority digest elsewhere in this app): a login-time refusal
+      with a WhatsApp-renewal message, and an app-wide `before_request`
+      hook (`app/access_expiry.py`) that ends an already-authenticated
+      session on its very next request once expiry passes, not just at
+      the next login attempt. Both live-verified via Playwright against a
+      real dev account, not just unit-tested. Admin code-creation form
+      gained a "Plan" convenience selector (JS-fills Type/Max uses/Access
+      duration from six presets) - a UI-only convenience, not a bound
+      form field, so the underlying raw fields stay directly editable for
+      trial/admin/custom codes exactly as before.
+- [ ] **Explicitly not done, flagged so it isn't mistaken for finished:**
+      the 1000-generation AI limit (`PLAN_AI_LIMITS`,
+      `app/models/access_code.py`) is still completely unenforced - this
+      pass added *time*-based expiry only, never touched *usage*-count
+      expiry. Two unrelated mechanisms that happen to both hang off the
+      same `plan` field. See `DECISIONS.md`'s 2026-08-30 entry for full
+      reasoning throughout, including two real process gaps found while
+      shipping this (a `pybabel update` fuzzy-flag trap that silently
+      dropped 9 translations from the compiled catalog, and a Tailwind
+      CSS purge staleness this project's own `npm run check:css` would
+      have caught proactively but wasn't run until after the bug showed
+      up live).
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

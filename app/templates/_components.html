@@ -30,8 +30,12 @@
    mode (fails AA) - already measured and rejected for the 27 existing
    primary-button call sites during the theme pass; same reasoning
    applies here, not re-litigated.
+
+   target/rel (added 2026-08-30, plans page pass): optional, only used
+   when an href needs to open in a new tab (the plans page's WhatsApp
+   CTAs) - every existing call site leaves both unset and is unaffected.
    ============================================================ #}
-{% macro btn(label, variant='primary', href=None, type='button', compact=false, disabled=false, extra_classes='', name=None, value=None) %}
+{% macro btn(label, variant='primary', href=None, type='button', compact=false, disabled=false, extra_classes='', name=None, value=None, target=None, rel=None) %}
 {% set height = 'h-[30px] px-3 text-[13.5px]' if compact else 'h-9 px-4 text-sm' %}
 {% set base = 'inline-flex items-center justify-center rounded-lg font-semibold transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand ' ~ height %}
 {% if variant == 'primary' %}
@@ -56,7 +60,7 @@
   {% set tone = 'bg-tint text-brand border border-tint2 hover:bg-tint2' %}
 {% endif %}
 {% if href and variant != 'disabled' %}
-<a href="{{ href }}" class="{{ base }} {{ tone }} {{ extra_classes }}">{{ label }}</a>
+<a href="{{ href }}" {% if target %}target="{{ target }}"{% endif %} {% if rel %}rel="{{ rel }}"{% endif %} class="{{ base }} {{ tone }} {{ extra_classes }}">{{ label }}</a>
 {% else %}
 <button type="{{ type }}" {% if name %}name="{{ name }}"{% endif %} {% if value %}value="{{ value }}"{% endif %} {% if variant == 'disabled' or disabled %}disabled{% endif %} class="{{ base }} {{ tone }} {{ extra_classes }}">{{ label }}</button>
 {% endif %}

@@ -814,9 +814,37 @@ for a redesign pass. Status:
   precedent (existing `QUERY_CACHE_TTL_MINUTES`) and the real daily-quota
   failure mode this session hit directly. No production backfill needed
   (checked live data first: zero jobs match the
-  never-extracted-despite-enrichment signature). Full pytest suite: 596
-  passed / 3 skipped (588 + 8). Full detail: `DECISIONS.md`'s 2026-08-29
+  never-extracted-despite-enrichment signature). Full pytest suite: 600
+  passed / 3 skipped (588 + 12). Full detail: `DECISIONS.md`'s 2026-08-29
   "job requirements extraction" entry.
+- **Jooble fixed and re-enabled, admin-only, 2026-08-29** - the earlier
+  403s were a wrong-domain API key (Jooble issues keys per regional
+  domain; `de.jooble.org` fixed it), not an account-side block. Free tier
+  turned out to be a 500-request *lifetime* cap with no reset, so it's
+  admin-only (`ADMIN_ONLY_SOURCES`), with a persistent request counter
+  and a real hard stop (not just a warning) once the budget nears
+  exhaustion. Full pytest suite: 618 passed / 3 skipped (613 + 5, after
+  the hard-stop follow-up). Full detail: `DECISIONS.md`'s two 2026-08-29
+  Jooble entries, `JOB_SOURCES.md`.
+- **Plans page + real access expiry done, 2026-08-30** - a public
+  `/plans` pricing page (1/2/5-user plans, yearly at exactly 10x monthly,
+  a real toggle, WhatsApp CTAs naming the specific plan/period), a second
+  landing-page CTA, and the real mechanism behind it: `User.
+  access_expires_at` computed from `InvitationCode.access_duration_months`
+  via `dateutil.relativedelta` calendar-month arithmetic (migration
+  `faa3774fd6ec`, needs `flask db upgrade` on Railway), enforced at both
+  login time and mid-session (an app-wide `before_request` hook, no
+  scheduler). Still no payment gateway - unchanged product decision. The
+  1000-generation AI limit remains explicitly, deliberately unenforced -
+  a separate, unrelated mechanism, flagged so it isn't mistaken for done.
+  Two real process gaps found and fixed along the way, neither a defect
+  in the feature itself: a `pybabel update` fuzzy-flag trap silently
+  dropped 9 translations from the compiled catalog, and new Tailwind
+  utility classes weren't in the committed, purged CSS until `npm run
+  build:css` was rerun (this project's own `npm run check:css` would
+  have caught it proactively). Full pytest suite: 642 passed / 3 skipped
+  (618 + 24). Full detail: `DECISIONS.md`'s 2026-08-30 entry,
+  `DEPLOYMENT.md`'s Translations section for the fuzzy-flag gotcha.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - **the only named item left

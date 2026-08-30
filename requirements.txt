@@ -13,6 +13,13 @@ Flask-Limiter==3.8.0
 Flask-Babel==4.0.0
 email-validator==2.2.0
 python-dotenv==1.0.1
+# Plans page + access expiry pass (2026-08-30): relativedelta for
+# calendar-month arithmetic on access_expires_at (a flat day count would
+# short a mid-month purchase and drift across leap-year Februaries). Was
+# already present transitively (pulled in by another dependency) but never
+# imported directly until this pass - pinned explicitly now that real code
+# depends on it, not left to however a transitive chain happens to resolve.
+python-dateutil==2.9.0.post0
 requests==2.33.0
 beautifulsoup4==4.12.3
 anthropic==0.121.0

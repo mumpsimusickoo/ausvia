@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-29 06:42+0100\n"
+"POT-Creation-Date: 2026-08-30 04:15+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -17,6 +17,28 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
+
+#: app/access_expiry.py:57 app/auth/routes.py:131
+#, python-format
+msgid ""
+"Your access period has ended. Contact us on WhatsApp (%(whatsapp)s) to "
+"renew."
+msgstr ""
+"Dein Zugangszeitraum ist abgelaufen. Kontaktiere uns per WhatsApp "
+"(%(whatsapp)s), um zu verlängern."
+
+#: app/plans.py:54
+msgid "yearly"
+msgstr "jährlich"
+
+#: app/plans.py:54
+msgid "monthly"
+msgstr "monatlich"
+
+#: app/plans.py:56
+#, python-format
+msgid "Hi, I'd like to request the %(users)s-user / %(period)s AUSVIA plan."
+msgstr "Hallo, ich möchte den %(users)s-Nutzer / %(period)s AUSVIA-Plan anfragen."
 
 #: app/priority_digest.py:65
 msgid "Follow-up date has arrived"
@@ -56,7 +78,7 @@ msgstr[1] "Seit %(num)d Tagen keine Aktivität"
 msgid "Strong match (%(score)d/100) - no application started yet"
 msgstr "Starke Übereinstimmung (%(score)d/100) – noch keine Bewerbung gestartet"
 
-#: app/admin/forms.py:10 app/templates/admin/codes.html:26
+#: app/admin/forms.py:10 app/templates/admin/codes.html:66
 #: app/templates/documents/list.html:24
 msgid "Type"
 msgstr "Typ"
@@ -69,7 +91,11 @@ msgstr "Maximale Nutzungen"
 msgid "Expires on (optional)"
 msgstr "Läuft ab am (optional)"
 
-#: app/admin/forms.py:13
+#: app/admin/forms.py:20
+msgid "Access duration in months (optional)"
+msgstr "Zugangsdauer in Monaten (optional)"
+
+#: app/admin/forms.py:22
 msgid "Notes (optional)"
 msgstr "Notizen (optional)"
 
@@ -85,21 +111,21 @@ msgstr "Nutzer aktiviert."
 msgid "User deactivated."
 msgstr "Nutzer deaktiviert."
 
-#: app/admin/routes.py:94
+#: app/admin/routes.py:95
 #, python-format
 msgid "Code created: %(code)s"
 msgstr "Code erstellt: %(code)s"
 
-#: app/admin/routes.py:107
+#: app/admin/routes.py:108
 msgid "Code revoked."
 msgstr "Code widerrufen."
 
-#: app/admin/routes.py:129
+#: app/admin/routes.py:130
 #, python-format
 msgid "%(source)s enabled."
 msgstr "%(source)s aktiviert."
 
-#: app/admin/routes.py:131
+#: app/admin/routes.py:132
 #, python-format
 msgid "%(source)s disabled."
 msgstr "%(source)s deaktiviert."
@@ -329,7 +355,7 @@ msgstr "Lebenslauf-Kurzprofil"
 msgid "Suggested reply"
 msgstr "Vorgeschlagene Antwort"
 
-#: app/applications/forms.py:66 app/templates/admin/codes.html:29
+#: app/applications/forms.py:66 app/templates/admin/codes.html:75
 #: app/templates/admin/job_sources.html:12 app/templates/admin/users.html:12
 msgid "Status"
 msgstr "Status"
@@ -555,7 +581,7 @@ msgstr "Vorbereitet"
 msgid "Approved"
 msgstr "Freigegeben"
 
-#: app/applications/status_route.py:45 app/templates/landing.html:168
+#: app/applications/status_route.py:45 app/templates/landing.html:179
 msgid "Reply"
 msgstr "Antwort"
 
@@ -638,8 +664,8 @@ msgstr "Phase Vorstellungsgespräch erreicht."
 msgid "Offer received."
 msgstr "Angebot erhalten."
 
-#: app/auth/forms.py:19 app/templates/landing.html:212
-#: app/templates/landing.html:213
+#: app/auth/forms.py:19 app/templates/landing.html:223
+#: app/templates/landing.html:224
 msgid "Access code"
 msgstr "Zugangscode"
 
@@ -687,15 +713,15 @@ msgstr "Neues Passwort"
 msgid "Confirm new password"
 msgstr "Neues Passwort bestätigen"
 
-#: app/auth/routes.py:33
+#: app/auth/routes.py:35
 msgid "Invalid access code."
 msgstr "Ungültiger Zugangscode."
 
-#: app/auth/routes.py:42
+#: app/auth/routes.py:44
 msgid "An account with this email already exists."
 msgstr "Für diese E-Mail-Adresse existiert bereits ein Konto."
 
-#: app/auth/routes.py:75
+#: app/auth/routes.py:86
 msgid ""
 "This access code just became invalid (it may have already been used, "
 "expired, or been deactivated). Please request a new one."
@@ -704,33 +730,33 @@ msgstr ""
 "bereits verwendet, ist abgelaufen oder wurde deaktiviert). Bitte fordere "
 "einen neuen an."
 
-#: app/auth/routes.py:94
+#: app/auth/routes.py:105
 msgid "Welcome! Let's set up your candidate profile."
 msgstr "Willkommen! Lass uns dein Kandidatenprofil einrichten."
 
-#: app/auth/routes.py:123
+#: app/auth/routes.py:151
 msgid "Invalid email or password."
 msgstr "E-Mail-Adresse oder Passwort ungültig."
 
-#: app/auth/routes.py:134
+#: app/auth/routes.py:162
 msgid "You have been logged out."
 msgstr "Du wurdest abgemeldet."
 
-#: app/auth/routes.py:152
+#: app/auth/routes.py:180
 msgid "If an account with that email exists, a reset link has been generated."
 msgstr ""
 "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum "
 "Zurücksetzen erstellt."
 
-#: app/auth/routes.py:165
+#: app/auth/routes.py:193
 msgid "This reset link has expired. Please request a new one."
 msgstr "Dieser Link zum Zurücksetzen ist abgelaufen. Bitte fordere einen neuen an."
 
-#: app/auth/routes.py:168 app/auth/routes.py:173
+#: app/auth/routes.py:196 app/auth/routes.py:201
 msgid "This reset link is invalid."
 msgstr "Dieser Link zum Zurücksetzen ist ungültig."
 
-#: app/auth/routes.py:181
+#: app/auth/routes.py:209
 msgid "Your password has been reset. Please log in."
 msgstr "Dein Passwort wurde zurückgesetzt. Bitte melde dich an."
 
@@ -882,7 +908,7 @@ msgstr "Mindest-Match-Wert"
 msgid "Sort by"
 msgstr "Sortieren nach"
 
-#: app/jobs/forms.py:57 app/templates/landing.html:233
+#: app/jobs/forms.py:57 app/templates/landing.html:244
 msgid "Sources"
 msgstr "Quellen"
 
@@ -968,15 +994,15 @@ msgstr ""
 "Lücken werden direkt aus deinem Profil und den Daten dieser Anzeige "
 "berechnet, nicht von KI, und sind daher trotzdem vollständig korrekt."
 
-#: app/jobs/matching.py:137 app/templates/landing.html:119
+#: app/jobs/matching.py:137 app/templates/landing.html:130
 msgid "Strong match"
 msgstr "Starke Übereinstimmung"
 
-#: app/jobs/matching.py:138 app/templates/landing.html:121
+#: app/jobs/matching.py:138 app/templates/landing.html:132
 msgid "Good match"
 msgstr "Gute Übereinstimmung"
 
-#: app/jobs/matching.py:139 app/templates/landing.html:123
+#: app/jobs/matching.py:139 app/templates/landing.html:134
 msgid "Some gaps"
 msgstr "Einige Lücken"
 
@@ -1141,66 +1167,66 @@ msgstr ""
 msgid "Batch complete: %(saved)d imported."
 msgstr "Stapel abgeschlossen: %(saved)d importiert."
 
-#: app/main/routes.py:35
+#: app/main/routes.py:36
 msgid "Good morning"
 msgstr "Guten Morgen"
 
-#: app/main/routes.py:37
+#: app/main/routes.py:38
 msgid "Good afternoon"
 msgstr "Guten Tag"
 
-#: app/main/routes.py:38
+#: app/main/routes.py:39
 msgid "Good evening"
 msgstr "Guten Abend"
 
-#: app/main/routes.py:52 app/templates/jobs/detail.html:247
+#: app/main/routes.py:53 app/templates/jobs/detail.html:247
 msgid "today"
 msgstr "heute"
 
-#: app/main/routes.py:54
+#: app/main/routes.py:55
 msgid "yesterday"
 msgstr "gestern"
 
-#: app/main/routes.py:56
+#: app/main/routes.py:57
 #, python-format
 msgid "%(num)d day ago"
 msgid_plural "%(num)d days ago"
 msgstr[0] "vor %(num)d Tag"
 msgstr[1] "vor %(num)d Tagen"
 
-#: app/main/routes.py:73
+#: app/main/routes.py:74
 msgid "Nothing urgent right now — good time to keep applying."
 msgstr ""
 "Gerade nichts Dringendes — ein guter Zeitpunkt, um weiter Bewerbungen zu "
 "schreiben."
 
-#: app/main/routes.py:76
+#: app/main/routes.py:77
 #, python-format
 msgid "%(num)d item needs your attention this week."
 msgid_plural "%(num)d items need your attention this week."
 msgstr[0] "%(num)d Punkt braucht diese Woche deine Aufmerksamkeit."
 msgstr[1] "%(num)d Punkte brauchen diese Woche deine Aufmerksamkeit."
 
-#: app/main/routes.py:85
+#: app/main/routes.py:86
 msgid "One has a deadline coming up."
 msgstr "Bei einem Punkt steht eine Frist bevor."
 
-#: app/main/routes.py:160
+#: app/main/routes.py:185
 #, python-format
 msgid "unchanged for %(num)d day"
 msgid_plural "unchanged for %(num)d days"
 msgstr[0] "seit %(num)d Tag unverändert"
 msgstr[1] "seit %(num)d Tagen unverändert"
 
-#: app/models/access_code.py:56
+#: app/models/access_code.py:71
 msgid "This access code has been deactivated."
 msgstr "Dieser Zugangscode wurde deaktiviert."
 
-#: app/models/access_code.py:58
+#: app/models/access_code.py:73
 msgid "This access code has expired."
 msgstr "Dieser Zugangscode ist abgelaufen."
 
-#: app/models/access_code.py:60
+#: app/models/access_code.py:75
 msgid "This access code has already been used the maximum number of times."
 msgstr "Dieser Zugangscode wurde bereits die maximale Anzahl an Malen verwendet."
 
@@ -1244,12 +1270,12 @@ msgstr "Gesendet"
 msgid "Follow-up"
 msgstr "Nachfassen"
 
-#: app/models/application.py:36 app/templates/landing.html:168
+#: app/models/application.py:36 app/templates/landing.html:179
 msgid "Interview"
 msgstr "Vorstellungsgespräch"
 
 #: app/models/application.py:37 app/models/integration.py:27
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Offer"
 msgstr "Angebot"
 
@@ -1633,89 +1659,89 @@ msgstr "Sprache hinzugefügt."
 msgid "Please correct the errors in the language form."
 msgstr "Bitte korrigiere die Fehler im Sprachformular."
 
-#: app/templates/_components.html:168 app/templates/jobs/saved.html:15
+#: app/templates/_components.html:172 app/templates/jobs/saved.html:15
 #: app/templates/profile/view.html:66 app/templates/profile/view.html:104
 msgid "Remove"
 msgstr "Entfernen"
 
-#: app/templates/_components.html:191
+#: app/templates/_components.html:195
 msgid "Fulfilled"
 msgstr "Erfüllt"
 
-#: app/templates/_components.html:193
+#: app/templates/_components.html:197
 msgid "Partial"
 msgstr "Teilweise"
 
-#: app/templates/_components.html:195
+#: app/templates/_components.html:199
 msgid "Missing"
 msgstr "Fehlt"
 
-#: app/templates/_components.html:197
+#: app/templates/_components.html:201
 msgid "Not evaluated"
 msgstr "Nicht bewertet"
 
-#: app/templates/_components.html:247
+#: app/templates/_components.html:251
 msgid "MATCH"
 msgstr "MATCH"
 
-#: app/templates/_components.html:277
+#: app/templates/_components.html:281
 #, python-format
 msgid "Segment width = weighting (%(breakdown)s), fill = achieved proportion."
 msgstr "Segmentbreite = Gewichtung (%(breakdown)s), Füllung = erreichter Anteil."
 
-#: app/templates/_components.html:277
+#: app/templates/_components.html:281
 #, python-format
 msgid "Not evaluated: %(categories)s."
 msgstr "Nicht bewertet: %(categories)s."
 
-#: app/templates/_components.html:280
+#: app/templates/_components.html:284
 msgid "Show breakdown"
 msgstr "Details anzeigen"
 
-#: app/templates/_components.html:322
+#: app/templates/_components.html:326
 #, python-format
 msgid "%(num)d source was unreachable."
 msgid_plural "%(num)d sources were unreachable."
 msgstr[0] "%(num)d Quelle war nicht erreichbar."
 msgstr[1] "%(num)d Quellen waren nicht erreichbar."
 
-#: app/templates/_components.html:374
+#: app/templates/_components.html:378
 msgid "HIGH"
 msgstr "HOCH"
 
-#: app/templates/_components.html:374
+#: app/templates/_components.html:378
 msgid "MEDIUM"
 msgstr "MITTEL"
 
-#: app/templates/_components.html:374
+#: app/templates/_components.html:378
 msgid "LOW"
 msgstr "NIEDRIG"
 
-#: app/templates/_components.html:375
+#: app/templates/_components.html:379
 msgid "NO PROVIDER"
 msgstr "KEIN ANBIETER"
 
-#: app/templates/_components.html:379
+#: app/templates/_components.html:383
 msgid "EDITED BY YOU"
 msgstr "VON DIR BEARBEITET"
 
-#: app/templates/_components.html:380
+#: app/templates/_components.html:384
 #, python-format
 msgid "LAST EDITED %(when)s"
 msgstr "ZULETZT BEARBEITET %(when)s"
 
-#: app/templates/_components.html:382
+#: app/templates/_components.html:386
 #, python-format
 msgid "INTELLIGENCE · %(provider)s"
 msgstr "INTELLIGENCE · %(provider)s"
 
-#: app/templates/_components.html:383
+#: app/templates/_components.html:387
 #: app/templates/applications/detail.html:245
 #, python-format
 msgid "RELIABILITY %(level)s"
 msgstr "ZUVERLÄSSIGKEIT %(level)s"
 
-#: app/templates/_components.html:388
+#: app/templates/_components.html:392
 #: app/templates/applications/detail.html:140
 #: app/templates/applications/detail.html:161
 #: app/templates/applications/detail.html:298
@@ -1725,7 +1751,7 @@ msgstr "ZUVERLÄSSIGKEIT %(level)s"
 msgid "Regenerate"
 msgstr "Neu erzeugen"
 
-#: app/templates/_components.html:457 app/templates/base.html:301
+#: app/templates/_components.html:461 app/templates/base.html:301
 msgid "Switch to dark theme"
 msgstr "Zu dunklem Modus wechseln"
 
@@ -1839,13 +1865,13 @@ msgstr "Zu hellem Modus wechseln"
 msgid "Access code only"
 msgstr "Nur mit Zugangscode"
 
-#: app/templates/landing.html:44 app/templates/landing.html:99
+#: app/templates/landing.html:44 app/templates/landing.html:110
 msgid "See how it works"
 msgstr "So funktioniert's"
 
 #: app/templates/auth/login.html:3 app/templates/auth/login.html:6
 #: app/templates/auth/login.html:14 app/templates/auth/register.html:19
-#: app/templates/landing.html:49
+#: app/templates/landing.html:49 app/templates/plans.html:24
 msgid "Log in"
 msgstr "Anmelden"
 
@@ -1867,26 +1893,30 @@ msgstr ""
 "sie zu dir passen, hilft dir bei einer vollständigen Bewerbung und "
 "verfolgt sie bis zur Antwort. Nichts wird ohne dich verschickt."
 
-#: app/templates/landing.html:96 app/templates/landing.html:235
+#: app/templates/landing.html:96 app/templates/landing.html:246
 msgid "Enter access code"
 msgstr "Zugangscode eingeben"
 
 #: app/templates/landing.html:107
+msgid "Request access"
+msgstr "Zugang anfragen"
+
+#: app/templates/landing.html:118
 msgid "FIND AUSBILDUNG · LEIPZIG"
 msgstr "AUSBILDUNG FINDEN · LEIPZIG"
 
-#: app/templates/landing.html:108
+#: app/templates/landing.html:119
 #, python-format
 msgid "%(num)s SOURCE"
 msgid_plural "%(num)s SOURCES"
 msgstr[0] "%(num)s QUELLE"
 msgstr[1] "%(num)s QUELLEN"
 
-#: app/templates/landing.html:142
+#: app/templates/landing.html:153
 msgid "APPLICATION · HANSEATIK SYSTEME"
 msgstr "BEWERBUNG · HANSEATIK SYSTEME"
 
-#: app/templates/landing.html:146
+#: app/templates/landing.html:157
 msgid ""
 "Sent 18 Aug · Reply pending · Cover letter, email, and PDF package "
 "included."
@@ -1894,35 +1924,35 @@ msgstr ""
 "Gesendet 18. Aug. · Antwort ausstehend · Anschreiben, E-Mail und PDF-"
 "Paket enthalten."
 
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Discover"
 msgstr "Entdecken"
 
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Match"
 msgstr "Match"
 
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Prepare"
 msgstr "Vorbereiten"
 
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Apply"
 msgstr "Bewerben"
 
-#: app/templates/landing.html:168
+#: app/templates/landing.html:179
 msgid "Track"
 msgstr "Verfolgen"
 
-#: app/templates/landing.html:178
+#: app/templates/landing.html:189
 msgid "TRANSPARENT"
 msgstr "TRANSPARENT"
 
-#: app/templates/landing.html:178
+#: app/templates/landing.html:189
 msgid "Every score you can check yourself"
 msgstr "Jede Bewertung selbst nachvollziehbar"
 
-#: app/templates/landing.html:178
+#: app/templates/landing.html:189
 msgid ""
 "Five criteria with fixed weights — Skills, Language, Education, Location,"
 " Start. You see exactly what's met and what's missing. Never a black box."
@@ -1931,15 +1961,15 @@ msgstr ""
 "Ort, Start. Du siehst genau, was erfüllt ist und was fehlt. Nie eine "
 "Black Box."
 
-#: app/templates/landing.html:179
+#: app/templates/landing.html:190
 msgid "PREPARED"
 msgstr "VORBEREITET"
 
-#: app/templates/landing.html:179
+#: app/templates/landing.html:190
 msgid "Cover letter, email, PDF package"
 msgstr "Anschreiben, E-Mail, PDF-Paket"
 
-#: app/templates/landing.html:179
+#: app/templates/landing.html:190
 msgid ""
 "Generated from your real profile and the real posting — never invented "
 "experience, never invented company details."
@@ -1947,15 +1977,15 @@ msgstr ""
 "Erstellt aus deinem echten Profil und der echten Stellenanzeige — nie "
 "erfundene Erfahrung, nie erfundene Unternehmensdetails."
 
-#: app/templates/landing.html:180
+#: app/templates/landing.html:191
 msgid "IN YOUR HANDS"
 msgstr "IN DEINER HAND"
 
-#: app/templates/landing.html:180
+#: app/templates/landing.html:191
 msgid "Nothing goes out without your OK"
 msgstr "Nichts wird ohne dein OK verschickt"
 
-#: app/templates/landing.html:180
+#: app/templates/landing.html:191
 msgid ""
 "AUSVIA drafts the cover letter and the email; you review and send them "
 "yourself. Replies stay your decision too."
@@ -1963,11 +1993,11 @@ msgstr ""
 "AUSVIA entwirft Anschreiben und E-Mail; du prüfst und versendest sie "
 "selbst. Auch Antworten bleiben deine Entscheidung."
 
-#: app/templates/landing.html:205
+#: app/templates/landing.html:216
 msgid "Ready for your first match?"
 msgstr "Bereit für dein erstes Match?"
 
-#: app/templates/landing.html:207
+#: app/templates/landing.html:218
 msgid ""
 "AUSVIA is currently invite-only. Enter your access code, fill in your "
 "profile, and see your first match — in under ten minutes."
@@ -1975,13 +2005,89 @@ msgstr ""
 "AUSVIA ist derzeit nur auf Einladung. Gib deinen Zugangscode ein, fülle "
 "dein Profil aus und sieh dein erstes Match — in unter zehn Minuten."
 
-#: app/templates/landing.html:216
+#: app/templates/landing.html:227
 msgid "Continue"
 msgstr "Weiter"
 
-#: app/templates/admin/job_sources.html:11 app/templates/landing.html:233
+#: app/templates/admin/job_sources.html:11 app/templates/landing.html:244
 msgid "Source"
 msgstr "Quelle"
+
+#: app/templates/plans.html:4
+msgid "Plans — AUSVIA"
+msgstr "Preise — AUSVIA"
+
+#: app/templates/plans.html:19
+msgid "Home"
+msgstr "Startseite"
+
+#: app/templates/plans.html:31
+msgid "PLANS"
+msgstr "PREISE"
+
+#: app/templates/plans.html:33
+msgid "Simple, transparent pricing."
+msgstr "Einfache, transparente Preise."
+
+#: app/templates/plans.html:36
+msgid ""
+"Every code allows a set number of people to be logged in with it at the "
+"same time. No payment gateway — request a plan on WhatsApp and we'll set "
+"up your access code directly."
+msgstr ""
+"Jeder Code erlaubt einer festgelegten Anzahl an Personen, gleichzeitig "
+"damit angemeldet zu sein. Kein Zahlungsanbieter — fordere einen Plan per "
+"WhatsApp an, und wir richten deinen Zugangscode direkt ein."
+
+#: app/templates/plans.html:52
+msgid "Monthly"
+msgstr "Monatlich"
+
+#: app/templates/plans.html:54
+msgid "Switch between monthly and yearly pricing"
+msgstr "Zwischen monatlicher und jährlicher Preisgestaltung wechseln"
+
+#: app/templates/plans.html:58
+msgid "Yearly"
+msgstr "Jährlich"
+
+#: app/templates/plans.html:59
+msgid "2 MONTHS FREE"
+msgstr "2 MONATE GRATIS"
+
+#: app/templates/plans.html:65
+#, python-format
+msgid "%(num)s USER"
+msgid_plural "%(num)s USERS"
+msgstr[0] "%(num)s NUTZER"
+msgstr[1] "%(num)s NUTZER"
+
+#: app/templates/plans.html:68
+msgid "DH / month"
+msgstr "DH / Monat"
+
+#: app/templates/plans.html:72
+msgid "DH / year"
+msgstr "DH / Jahr"
+
+#: app/templates/plans.html:75
+#, python-format
+msgid "%(num)s simultaneous login per code."
+msgid_plural "%(num)s simultaneous logins per code."
+msgstr[0] "%(num)s gleichzeitige Anmeldung pro Code."
+msgstr[1] "%(num)s gleichzeitige Anmeldungen pro Code."
+
+#: app/templates/plans.html:79 app/templates/plans.html:83
+msgid "Request on WhatsApp"
+msgstr "Per WhatsApp anfragen"
+
+#: app/templates/plans.html:121
+msgid "Already have a code?"
+msgstr "Hast du schon einen Code?"
+
+#: app/templates/plans.html:122
+msgid "Enter it here"
+msgstr "Hier eingeben"
 
 #: app/templates/admin/ai_usage.html:5
 msgid ""
@@ -2029,39 +2135,82 @@ msgstr "Noch keine KI-Aufrufe protokolliert."
 msgid "Create a code"
 msgstr "Code erstellen"
 
-#: app/templates/admin/codes.html:16
+#: app/templates/admin/codes.html:22
+msgid "Plan (convenience)"
+msgstr "Plan (Komfort-Auswahl)"
+
+#: app/templates/admin/codes.html:24
+msgid "None (manual)"
+msgstr "Keiner (manuell)"
+
+#: app/templates/admin/codes.html:25
+msgid "1 user – 1 month"
+msgstr "1 Nutzer – 1 Monat"
+
+#: app/templates/admin/codes.html:26
+msgid "2 users – 1 month"
+msgstr "2 Nutzer – 1 Monat"
+
+#: app/templates/admin/codes.html:27
+msgid "5 users – 1 month"
+msgstr "5 Nutzer – 1 Monat"
+
+#: app/templates/admin/codes.html:28
+msgid "1 user – 1 year"
+msgstr "1 Nutzer – 1 Jahr"
+
+#: app/templates/admin/codes.html:29
+msgid "2 users – 1 year"
+msgstr "2 Nutzer – 1 Jahr"
+
+#: app/templates/admin/codes.html:30
+msgid "5 users – 1 year"
+msgstr "5 Nutzer – 1 Jahr"
+
+#: app/templates/admin/codes.html:41
 msgid "Generate code"
 msgstr "Code erzeugen"
 
-#: app/templates/admin/codes.html:25
+#: app/templates/admin/codes.html:65
 msgid "Code"
 msgstr "Code"
 
-#: app/templates/admin/codes.html:27
+#: app/templates/admin/codes.html:67
 msgid "Uses"
 msgstr "Nutzungen"
 
-#: app/templates/admin/codes.html:28
+#: app/templates/admin/codes.html:68
 msgid "Expires"
 msgstr "Läuft ab"
 
-#: app/templates/admin/codes.html:41 app/templates/admin/users.html:24
+#: app/templates/admin/codes.html:74
+msgid "Access length"
+msgstr "Zugangsdauer"
+
+#: app/templates/admin/codes.html:87
+#, python-format
+msgid "%(num)s month"
+msgid_plural "%(num)s months"
+msgstr[0] "%(num)s Monat"
+msgstr[1] "%(num)s Monate"
+
+#: app/templates/admin/codes.html:91 app/templates/admin/users.html:24
 msgid "Active"
 msgstr "Aktiv"
 
-#: app/templates/admin/codes.html:42
+#: app/templates/admin/codes.html:92
 msgid "Revoked"
 msgstr "Widerrufen"
 
-#: app/templates/admin/codes.html:46
+#: app/templates/admin/codes.html:96
 msgid "Revoke this code?"
 msgstr "Diesen Code widerrufen?"
 
-#: app/templates/admin/codes.html:48
+#: app/templates/admin/codes.html:98
 msgid "Revoke"
 msgstr "Widerrufen"
 
-#: app/templates/admin/codes.html:54
+#: app/templates/admin/codes.html:104
 msgid "No codes created yet."
 msgstr "Noch keine Codes erstellt."
 

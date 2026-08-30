@@ -25,6 +25,18 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Plans page + access expiry pass (2026-08-30): None = no expiry -
+    # unaffected by default (trial/admin accounts, every pre-existing user,
+    # and any code redeemed without a duration set - see
+    # InvitationCode.access_duration_months). When set, both the login
+    # check (app/auth/routes.py's login()) and the mid-session check
+    # (app/access_expiry.py's enforce_access_expiry(), registered as an
+    # app-wide before_request) refuse/end access once this passes. Not
+    # itself the AI-generation-count limit (User.plan + PLAN_AI_LIMITS,
+    # app/models/access_code.py) - that limit stays unenforced, a known,
+    # separate, deliberate gap - see DECISIONS.md.
+    access_expires_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
 

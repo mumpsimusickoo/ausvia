@@ -147,6 +147,15 @@ def create_app(config_name=None):
     app.register_blueprint(admin_bp)
     app.register_blueprint(companies_bp)
 
+    # Plans page + access expiry pass (2026-08-30): the mid-session
+    # checkpoint - app-wide, not blueprint-scoped, since an expired
+    # session must be cut off no matter which page the next request hits.
+    # See app/access_expiry.py's own docstring for the two-checkpoint
+    # design (this one, plus a login-time check in app/auth/routes.py).
+    from app.access_expiry import enforce_access_expiry
+
+    app.before_request(enforce_access_expiry)
+
     register_error_handlers(app)
     register_cli(app)
 

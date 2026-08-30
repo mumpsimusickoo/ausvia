@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% from "_logo.html" import lockup %}
+{% from "_components.html" import btn, theme_toggle, language_switcher %}
+{% block title %}{{ _("Plans — AUSVIA") }}{% endblock %}
+{% block public_content %}
+
+{#
+  Plans page + access expiry pass (2026-08-30): same header treatment as
+  landing.html (same macros, same placement convention) so the two public
+  pages read as one site, not two. No "See how it works" link here - that
+  section doesn't exist on this page; "Home" replaces it.
+#}
+<header class="border-b border-line">
+  <div class="px-4 md:px-10 py-5 flex items-center gap-4">
+    <a href="{{ url_for('main.landing') }}" class="flex items-center shrink-0">
+      {{ lockup(24, symbol_color="var(--brand)", wordmark_color="var(--t1)") }}
+    </a>
+    <div class="ml-auto flex items-center gap-1">
+      <a href="{{ url_for('main.landing') }}" class="hidden md:inline-block text-sm font-medium text-t2 hover:text-t1 px-3 py-2">{{ _("Home") }}</a>
+      <div class="flex items-center gap-1">
+        {{ language_switcher() }}
+        {{ theme_toggle('theme-toggle-plans') }}
+      </div>
+      <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-t2 hover:text-t1 px-3 py-2">{{ _("Log in") }}</a>
+    </div>
+  </div>
+</header>
+
+<section class="max-w-content mx-auto px-4 md:px-10 py-16 md:py-20">
+  <div class="max-w-2xl">
+    <span class="block font-mono text-[11px] tracking-[0.11em] text-brand">{{ _("PLANS") }}</span>
+    <h1 class="mt-4 font-display font-semibold text-[32px] md:text-[44px] leading-[1.05] tracking-tight text-t1 text-balance">
+      {{ _("Simple, transparent pricing.") }}
+    </h1>
+    <p class="mt-5 text-base leading-relaxed text-t2 max-w-[58ch]">
+      {{ _("Every code allows a set number of people to be logged in with it at the same time. No payment gateway — request a plan on WhatsApp and we'll set up your access code directly.") }}
+    </p>
+  </div>
+
+  {#
+    Billing toggle: a real button (role="switch"), not a checkbox+peer
+    construction - the switch needs to drive THREE separate cards' nested
+    price displays, and CSS's peer-checked only reaches true siblings of
+    the checkbox, not descendants of later siblings (checked directly
+    against Tailwind's own docs before building this - see DECISIONS.md).
+    Vanilla JS instead, matching this app's existing pattern for pure
+    client-side, no-server-round-trip interactivity (base.html's theme
+    toggle/mobile drawer) - unlike language_switcher(), nothing here needs
+    to change on the server.
+  #}
+  <div class="mt-10 flex items-center gap-3">
+    <span id="plans-billing-monthly-label" class="text-sm font-semibold text-t1">{{ _("Monthly") }}</span>
+    <button type="button" id="plans-billing-toggle" role="switch" aria-checked="false"
+        aria-label="{{ _('Switch between monthly and yearly pricing') }}"
+        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-line2 transition-colors duration-150 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand">
+      <span id="plans-billing-knob" class="inline-block h-5 w-5 translate-x-0.5 transform rounded-full bg-card shadow-sm transition-transform duration-150"></span>
+    </button>
+    <span id="plans-billing-yearly-label" class="text-sm font-semibold text-t2">{{ _("Yearly") }}</span>
+    <span class="font-mono text-[10.5px] tracking-[0.08em] text-brand bg-tint rounded-full px-2.5 py-1">{{ _("2 MONTHS FREE") }}</span>
+  </div>
+
+  <div class="mt-8 grid gap-4 md:grid-cols-3">
+    {% for row in plan_rows %}
+    <div class="rounded-xl border border-line bg-card shadow-sm p-6 flex flex-col">
+      <span class="font-mono text-[10px] tracking-[0.11em] text-t3">{{ ngettext("%(num)s USER", "%(num)s USERS", row.users) }}</span>
+      <div class="mt-3 plan-price-monthly">
+        <span class="font-display font-semibold text-4xl tabular-nums text-t1">{{ row.monthly_dh }}</span>
+        <span class="text-sm text-t2">{{ _("DH / month") }}</span>
+      </div>
+      <div class="mt-3 plan-price-yearly hidden">
+        <span class="font-display font-semibold text-4xl tabular-nums text-t1">{{ row.yearly_dh }}</span>
+        <span class="text-sm text-t2">{{ _("DH / year") }}</span>
+      </div>
+      <p class="mt-2 text-sm text-t2">
+        {{ ngettext("%(num)s simultaneous login per code.", "%(num)s simultaneous logins per code.", row.users) }}
+      </p>
+      <div class="mt-auto pt-6">
+        {{ btn(
+          _("Request on WhatsApp"), variant='primary', href=row.whatsapp_monthly_url,
+          target='_blank', rel='noopener', extra_classes='plan-cta-monthly w-full',
+        ) }}
+        {{ btn(
+          _("Request on WhatsApp"), variant='primary', href=row.whatsapp_yearly_url,
+          target='_blank', rel='noopener', extra_classes='plan-cta-yearly hidden w-full',
+        ) }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script nonce="{{ csp_nonce }}">
+    (function () {
+      var toggle = document.getElementById('plans-billing-toggle');
+      var knob = document.getElementById('plans-billing-knob');
+      var monthlyLabel = document.getElementById('plans-billing-monthly-label');
+      var yearlyLabel = document.getElementById('plans-billing-yearly-label');
+      var monthlyEls = document.querySelectorAll('.plan-price-monthly, .plan-cta-monthly');
+      var yearlyEls = document.querySelectorAll('.plan-price-yearly, .plan-cta-yearly');
+
+      function setYearly(yearly) {
+        toggle.setAttribute('aria-checked', yearly ? 'true' : 'false');
+        toggle.classList.toggle('bg-brand', yearly);
+        toggle.classList.toggle('bg-line2', !yearly);
+        knob.classList.toggle('translate-x-5', yearly);
+        knob.classList.toggle('translate-x-0.5', !yearly);
+        monthlyLabel.classList.toggle('text-t1', !yearly);
+        monthlyLabel.classList.toggle('text-t2', yearly);
+        yearlyLabel.classList.toggle('text-t1', yearly);
+        yearlyLabel.classList.toggle('text-t2', !yearly);
+        monthlyEls.forEach(function (el) { el.classList.toggle('hidden', yearly); });
+        yearlyEls.forEach(function (el) { el.classList.toggle('hidden', !yearly); });
+      }
+
+      toggle.addEventListener('click', function () {
+        setYearly(toggle.getAttribute('aria-checked') !== 'true');
+      });
+    })();
+  </script>
+
+  <p class="mt-10 text-sm text-t2 max-w-[58ch]">
+    {{ _("Already have a code?") }}
+    <a href="{{ url_for('auth.register') }}" class="font-medium text-brand hover:underline">{{ _("Enter it here") }} &rarr;</a>
+  </p>
+</section>
+{% endblock %}

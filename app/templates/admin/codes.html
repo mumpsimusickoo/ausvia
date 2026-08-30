@@ -6,10 +6,35 @@
 
 <section class="mt-6 rounded-xl border border-line bg-card shadow-sm p-6">
   <h2 class="font-semibold text-t1 mb-4">{{ _("Create a code") }}</h2>
+  {#
+    Plans page + access expiry pass (2026-08-30): the "Plan" selector below
+    is a convenience layer only, not a form field of its own - it isn't
+    submitted, isn't validated, and has no backing model column. Selecting
+    an option just JS-fills the three real fields it maps to (Type, Max
+    uses, Access duration) with plain .value assignments - those fields
+    stay directly, manually editable underneath for trial/admin/custom
+    cases, exactly as before this pass. "None (manual)" leaves whatever is
+    currently in those fields untouched rather than clearing them, since an
+    admin switching back to manual mid-edit almost certainly wants to keep
+    tweaking values they've already set, not lose them.
+  #}
+  <div class="mb-4">
+    <label for="plan-selector" class="block text-sm font-medium text-t2 mb-1">{{ _("Plan (convenience)") }}</label>
+    <select id="plan-selector" class="w-full rounded-lg border border-line2 bg-card text-t1 px-3 py-2 text-sm focus:border-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand">
+      <option value="">{{ _("None (manual)") }}</option>
+      <option value="premium|1|1">{{ _("1 user – 1 month") }}</option>
+      <option value="premium|2|1">{{ _("2 users – 1 month") }}</option>
+      <option value="premium|5|1">{{ _("5 users – 1 month") }}</option>
+      <option value="premium|1|12">{{ _("1 user – 1 year") }}</option>
+      <option value="premium|2|12">{{ _("2 users – 1 year") }}</option>
+      <option value="premium|5|12">{{ _("5 users – 1 year") }}</option>
+    </select>
+  </div>
   <form method="post" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-end">
     {{ form.hidden_tag() }}
     {{ render_field(form.code_type) }}
     {{ render_field(form.max_uses) }}
+    {{ render_field(form.access_duration_months) }}
     {{ render_field(form.expires_at) }}
     {{ render_field(form.notes) }}
     <div class="lg:col-span-4">
@@ -17,6 +42,21 @@
     </div>
   </form>
 </section>
+<script nonce="{{ csp_nonce }}">
+  (function () {
+    var selector = document.getElementById('plan-selector');
+    var codeType = document.getElementById('{{ form.code_type.id }}');
+    var maxUses = document.getElementById('{{ form.max_uses.id }}');
+    var duration = document.getElementById('{{ form.access_duration_months.id }}');
+    selector.addEventListener('change', function () {
+      if (!selector.value) return;  // "None (manual)" - leave fields as-is
+      var parts = selector.value.split('|');
+      codeType.value = parts[0];
+      maxUses.value = parts[1];
+      duration.value = parts[2];
+    });
+  })();
+</script>
 
 <section class="mt-6 rounded-xl border border-line bg-card shadow-sm">
   <table class="w-full text-sm">
@@ -26,6 +66,12 @@
         <th class="px-5 py-3">{{ _("Type") }}</th>
         <th class="px-5 py-3">{{ _("Uses") }}</th>
         <th class="px-5 py-3">{{ _("Expires") }}</th>
+        {# Distinct from "Expires" above - that's the CODE's own redemption
+           window; this is how long the resulting ACCOUNT stays active once
+           redeemed (User.access_expires_at, computed at redemption time
+           from access_duration_months). Two different clocks, both real -
+           see InvitationCode.access_duration_months's own model comment. #}
+        <th class="px-5 py-3">{{ _("Access length") }}</th>
         <th class="px-5 py-3">{{ _("Status") }}</th>
         <th class="px-5 py-3"></th>
       </tr>
@@ -37,6 +83,10 @@
         <td class="px-5 py-3 text-t2">{{ code.code_type }}</td>
         <td class="px-5 py-3 text-t2">{{ code.use_count }} / {{ code.max_uses }}</td>
         <td class="px-5 py-3 text-t2">{{ format_local_date(code.expires_at) }}</td>
+        <td class="px-5 py-3 text-t2">
+          {% if code.access_duration_months %}{{ ngettext("%(num)s month", "%(num)s months", code.access_duration_months) }}
+          {% else %}&mdash;{% endif %}
+        </td>
         <td class="px-5 py-3">
           {% if code.is_active %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">{{ _("Active") }}</span>
           {% else %}<span class="rounded-full bg-line px-2 py-0.5 text-xs text-t2">{{ _("Revoked") }}</span>{% endif %}
@@ -51,7 +101,7 @@
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="6" class="px-5 py-6 text-sm text-t2">{{ _("No codes created yet.") }}</td></tr>
+      <tr><td colspan="7" class="px-5 py-6 text-sm text-t2">{{ _("No codes created yet.") }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

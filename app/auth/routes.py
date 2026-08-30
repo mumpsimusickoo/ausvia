@@ -4,10 +4,12 @@ from flask_babel import gettext as _
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
+from app.access_expiry import compute_access_expiry, is_access_expired
 from app.extensions import db, limiter
 from app.i18n import refresh_locale, sync_explicit_locale_to_user
 from app.models import User, InvitationCode, CodeRedemption, CandidateProfile
 from app.models.user import utcnow
+from app.plans import whatsapp_display
 from app.utils.logging import log_event
 from app.auth.forms import RegisterForm, LoginForm, RequestResetForm, ResetPasswordForm
 
@@ -47,6 +49,15 @@ def register():
 
         user = User(email=form.email.data.lower(), role=role, plan=plan)
         user.set_password(form.password.data)
+        # Plans page + access expiry pass (2026-08-30): only codes created
+        # through the admin "Plan" convenience selector set this - every
+        # other code type (trial/standard/admin, or a premium code created
+        # the old way) leaves it None, meaning no auto-expiry, unchanged
+        # from today. redeemed_at computed once here and reused below for
+        # CodeRedemption's own timestamp, so both reflect the same instant.
+        redeemed_at = utcnow()
+        if code.access_duration_months:
+            user.access_expires_at = compute_access_expiry(redeemed_at, code.access_duration_months)
         db.session.add(user)
         db.session.flush()  # assigns user.id before we reference it below
 
@@ -79,7 +90,7 @@ def register():
             )
             return render_template("auth/register.html", form=form)
 
-        db.session.add(CodeRedemption(code_id=code.id, user_id=user.id))
+        db.session.add(CodeRedemption(code_id=code.id, user_id=user.id, redeemed_at=redeemed_at))
         db.session.add(CandidateProfile(user_id=user.id, contact_email=user.email))
         # i18n pass 1: if this visitor already made an explicit language
         # choice while anonymous (a real switcher click, cookie-backed -
@@ -107,6 +118,23 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
         if user and user.check_password(form.password.data) and user.is_active:
+            # Plans page + access expiry pass (2026-08-30), checkpoint 1 of
+            # 2 (the other is app/access_expiry.py's mid-session
+            # before_request hook). Checked here, after credentials are
+            # confirmed valid, so the message can be specific ("your
+            # access ended") rather than the generic invalid-credentials
+            # one below - the password wasn't wrong, the account just
+            # isn't currently entitled to log in.
+            if is_access_expired(user):
+                flash(
+                    _(
+                        "Your access period has ended. Contact us on WhatsApp (%(whatsapp)s) to renew.",
+                        whatsapp=whatsapp_display(),
+                    ),
+                    "error",
+                )
+                log_event("auth", "Login refused: access period has expired.", user_id=user.id, level="warning")
+                return render_template("auth/login.html", form=form)
             # i18n pass 1: a locale cookie set by a real switcher click
             # while logged out must survive this login - without this,
             # get_locale() would immediately outrank it with whatever

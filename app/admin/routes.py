@@ -85,6 +85,7 @@ def codes():
             code_type=form.code_type.data,
             max_uses=form.max_uses.data,
             expires_at=expires_at,
+            access_duration_months=form.access_duration_months.data or None,
             notes=form.notes.data or None,
             created_by_id=current_user.id,
         )

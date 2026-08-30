@@ -95,6 +95,17 @@
         <a href="{{ url_for('auth.register') }}" class="rounded-lg bg-bright-action px-5 py-3 text-sm font-semibold text-ink hover:bg-bright-action-hover transition-colors duration-150">
           {{ _("Enter access code") }}
         </a>
+        {#
+          Plans page + access expiry pass (2026-08-30): second CTA,
+          distinct from "Enter access code" above (that's for someone who
+          already has one) - for someone who doesn't yet and wants to see
+          pricing first. Secondary/outline treatment, same as "See how it
+          works" below, since "Enter access code" stays the primary
+          action for a visitor who already knows they want in.
+        #}
+        <a href="{{ url_for('main.plans') }}" class="rounded-lg border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors duration-150">
+          {{ _("Request access") }}
+        </a>
         <a href="#how-it-works" class="rounded-lg border border-white/20 px-5 py-3 text-sm font-semibold text-white hover:bg-white/5 transition-colors duration-150">
           {{ _("See how it works") }}
         </a>
