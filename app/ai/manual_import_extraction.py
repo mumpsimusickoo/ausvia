@@ -101,14 +101,40 @@ def _raw_fallback(page_title, text):
     }
 
 
+def _normalize_whitespace(s):
+    """Collapses any run of whitespace (regular spaces, tabs, newlines,
+    and non-breaking space U+00A0 - common in scraped HTML, \\s does not
+    match it) to a single space. Purely cosmetic normalization, not a
+    loosening of the grounding guarantee: the check below is still a
+    literal, character-for-character containment test, just against a
+    normalized haystack, so it still cannot be satisfied by fabricated
+    content - only by a genuine reformatting of real text."""
+    return re.sub(r"[\s\xa0]+", " ", s).strip()
+
+
 def _grounded(value, haystack_lower):
     """None (leave blank) unless value is a non-empty string that's a
-    literal, case-insensitive substring of the real source text - the
-    same "never infer or fabricate, leave it blank rather than guess"
-    rule job_requirements_extraction.py's own grounding check uses."""
+    literal, case-insensitive, whitespace-normalized substring of the
+    real source text - the same "never infer or fabricate, leave it
+    blank rather than guess" rule job_requirements_extraction.py's own
+    grounding check uses.
+
+    Whitespace-normalized rather than a strict literal check: live-
+    verified this pass that a real, correct extraction - e.g. the exact
+    "clean title" the prompt explicitly asks for, joining text that was
+    split across separate DOM elements/lines in the source, or a source
+    line with irregular internal spacing (&nbsp;, doubled spaces from
+    markup indentation) - genuinely fails a strict substring check even
+    though nothing was fabricated. A strict check without this rejects
+    real, correct answers silently (same failure shape as the JSON-
+    parsing bugs found in this pass - a good extraction quietly becomes
+    the raw-text fallback with no signal). Normalizing whitespace on
+    both sides keeps the check exactly as strict about *content* while
+    tolerating *reformatting* - it still cannot be satisfied by content
+    that doesn't genuinely appear in the source."""
     if not isinstance(value, str):
         return None
-    value = value.strip()
+    value = _normalize_whitespace(value)
     if not value or value.lower() not in haystack_lower:
         return None
     return value
@@ -145,7 +171,7 @@ def _validate_and_ground(raw_text, page_title, source_text):
     # literal substring of the raw <title> tag (which is the whole point
     # of asking for a *cleaner* title than that tag usually gives) - ground
     # against the combined title+body text, not the title tag alone.
-    haystack_lower = f"{page_title}\n{source_text}".lower()
+    haystack_lower = _normalize_whitespace(f"{page_title}\n{source_text}".lower())
     return {
         "title": _grounded(data.get("title"), haystack_lower),
         "company_name": _grounded(data.get("company_name"), haystack_lower),

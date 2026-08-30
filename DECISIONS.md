@@ -6,6 +6,61 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Manual import follow-up: whitespace-normalized grounding, plus two more live checks
+
+Three follow-up checks on the entry below, requested before considering that
+pass closed.
+
+**1. Re-tested against the actual motivating page type.** Everything
+verified in the entry below was a corporate ATS page (Festo, TE
+Connectivity) - structured, single employer. Re-ran against a real
+small-business posting on a third-party portal instead
+(`ausbildung.de`, an independently-run EDEKA grocery store's listing,
+hosted in the portal's own template chrome, not the employer's site).
+Result: all four fields extracted correctly, including a case the
+corporate-ATS pages never exercised - the portal's generic listing
+label said "EDEKA Verbund" (the franchise umbrella), but the page body
+stated the actual operator ("Stelle bei EDEKA Serbes — ein Unternehmen
+von EDEKA Verbund"), and extraction correctly resolved to "EDEKA
+Serbes," not the more prominent umbrella name. Description came back
+grounded and readable, if slightly less aggressively trimmed than the
+corporate pages (a redundant title/company repeat before the real
+listing content was kept in, consistent with the prompt's deliberately
+conservative "when uncertain, leave it in" rule) - not a defect.
+
+**2. Found and fixed a real grounding bug.** `_grounded()`'s substring
+check was strictly literal apart from case-folding: `value.strip()` then
+a plain `in` test. Directly tested three realistic reformatting cases a
+correct extraction can legitimately produce - a non-breaking space
+(`&nbsp;`, U+00A0) in the source vs. a regular space in the AI's answer;
+a title split across two separate source lines that the AI correctly
+joins into one readable line (exactly what "give me a title cleaner
+than the raw `<title>` tag" asks for); doubled internal whitespace from
+markup indentation - and all three were silently rejected even though
+nothing was fabricated, dropping a genuinely correct value to null with
+no signal, the same failure shape as the JSON-parsing bugs in the entry
+below. Fixed with `_normalize_whitespace()` (collapses any run of
+whitespace, including `\xa0`, to a single space) applied to both the
+value and the haystack before the substring check - confirmed this
+doesn't loosen the actual guarantee: a control case (a genuinely
+fabricated company name) is still correctly rejected after the fix. Five
+new regression tests cover the three reformatting cases, the fabrication
+control, and `_normalize_whitespace()` directly.
+
+**3. Live-verified the fallback UI itself, not just its logging.**
+Restarted the dev server with `GEMINI_API_KEY` overridden to an invalid
+value via the process environment (real OS env vars win over `.env`,
+confirmed in `config.py` - no need to touch the real key on disk) so a
+real network call would genuinely fail rather than short-circuiting into
+mock mode. Fetched a real page through the actual UI: the review form
+came back with exactly `_raw_fallback()`'s baseline (raw `<title>` tag,
+blank company/location/start date, full unfiltered raw text including
+cookie chrome) - not just a passing unit test's assertion of the same.
+`/admin`'s Recent Activity confirmed this was a genuine HTTP 400 from
+Gemini rejecting the bad key (`log_event` firing, matching the entry
+below's fix), not an accidental mock-mode path. Server restarted with
+the real key afterward. Full suite: 693 passed, 3 skipped.
+
 ## 2026-08-30 — Manual import: real AI field extraction, grounded, and two bugs only live testing caught
 
 **The feature.** Manual job import (`/jobs/import`) used to prefill only a

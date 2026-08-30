@@ -5,6 +5,7 @@ and caching behavior lives in tests/test_manual_import_extraction_flow.py.
 """
 from app.ai.manual_import_extraction import (
     _clean_description,
+    _normalize_whitespace,
     _validate_and_ground,
     extract_manual_import_fields,
 )
@@ -106,6 +107,61 @@ def test_validate_and_ground_wrong_shape_returns_none():
 def test_validate_and_ground_non_int_exclude_line_numbers_returns_none():
     raw = '{"title": null, "company_name": null, "location": null, "start_date": null, "exclude_line_numbers": ["a", "b"]}'
     assert _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT) is None
+
+
+# --- whitespace-normalized grounding (2026-08-30, follow-up: strict literal
+# matching was silently rejecting real, correct extractions - see
+# DECISIONS.md) ---
+
+def test_grounded_tolerates_non_breaking_space_in_source():
+    # &nbsp; in real scraped HTML becomes U+00A0, not a regular space -
+    # \s doesn't match it, so a naive check would reject a genuinely
+    # correct answer that uses a normal space.
+    source = "Ausbildung Mechatroniker (m/w/d)"
+    raw = (
+        '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, '
+        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, source)
+    assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
+
+
+def test_grounded_tolerates_title_joined_across_source_lines():
+    # A real, correct "clean title" the prompt explicitly asks for can
+    # require joining text that's split across separate lines/DOM
+    # elements in the source - must not be rejected as ungrounded.
+    source = "Ausbildung Mechatroniker\n(m/w/d) 2027"
+    raw = (
+        '{"title": "Ausbildung Mechatroniker (m/w/d) 2027", "company_name": null, '
+        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, source)
+    assert result["title"] == "Ausbildung Mechatroniker (m/w/d) 2027"
+
+
+def test_grounded_tolerates_doubled_internal_whitespace_in_source():
+    source = "Ausbildung  Mechatroniker (m/w/d)"  # markup-indentation double space
+    raw = (
+        '{"title": "Ausbildung Mechatroniker (m/w/d)", "company_name": null, '
+        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, source)
+    assert result["title"] == "Ausbildung Mechatroniker (m/w/d)"
+
+
+def test_grounded_still_rejects_genuine_fabrication():
+    # Whitespace tolerance must not become a loophole - content that
+    # genuinely isn't in the source is still rejected.
+    raw = (
+        '{"title": null, "company_name": "Completely Made Up Company GmbH", '
+        '"location": null, "start_date": null, "exclude_line_numbers": []}'
+    )
+    result = _validate_and_ground(raw, PAGE_TITLE, RAW_TEXT)
+    assert result["company_name"] is None
+
+
+def test_normalize_whitespace_collapses_runs_and_strips():
+    assert _normalize_whitespace("  a  b\n\tc  ") == "a b c"
 
 
 # --- _clean_description() ---

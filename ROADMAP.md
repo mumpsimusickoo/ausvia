@@ -1001,6 +1001,23 @@ for a redesign pass, started 2026-08-24.
       apprenticeship start date - the extraction did not conflate the
       two). Caching confirmed via `/admin/ai-usage`'s flat call count
       across repeat visits. Full suite: 688 passed, 3 skipped.
+- [x] **Follow-up pass: whitespace-normalized grounding, plus a
+      small-business/third-party-portal re-test and a forced-failure
+      fallback check** - see `DECISIONS.md`'s second 2026-08-30 entry.
+      A real small-business posting on `ausbildung.de` (portal template
+      chrome, not a corporate ATS) extracted correctly, including
+      resolving the actual operator name ("EDEKA Serbes") over the
+      portal's more prominent franchise-umbrella label ("EDEKA
+      Verbund"). `_grounded()`'s literal substring check was silently
+      rejecting genuinely correct, non-fabricated extractions whenever
+      whitespace was reformatted (non-breaking spaces, a title joined
+      across source lines, doubled internal spacing) - fixed with
+      whitespace normalization on both sides of the check, confirmed a
+      genuine fabrication is still rejected after the fix. Fallback UI
+      itself (not just its logging) live-verified by forcing a real
+      Gemini rejection (invalid API key via process env, not `.env`) -
+      review form came back exactly as the pre-extraction baseline.
+      Full suite: 693 passed, 3 skipped.
 
 ## Before any public launch (not yet scheduled)
 
