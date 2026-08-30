@@ -488,34 +488,24 @@ def _render_import_page(url_form=None, review_form=None, show_review=False, batc
         batch=batch,
         max_batch_urls=MAX_BATCH_URLS,
         bookmarklet_href=_bookmarklet_href(),
-        # Manual import extraction pass (2026-08-30): whether the fields
-        # now in review_form were auto-filled from a fetched page (batch
-        # path) rather than typed by hand or left blank after a failed
-        # fetch - drives a small transparency notice in the template so
-        # the user knows to double-check company/location/start date
+        # Manual import extraction pass (2026-08-30) + pasted-text follow-
+        # up: False, "page", or "paste" - whether/how the fields now in
+        # review_form were AI-auto-filled, rather than typed by hand or
+        # left blank. Drives a small transparency notice in the template
+        # (worded differently for each source - "the page" vs. "the text
+        # you pasted" - so it stays factually accurate either way) so the
+        # user knows to double-check company/location/start date
         # specifically, since those are new AI-suggested content, not
-        # just the raw text dump this flow used to show unconditionally.
+        # just a text dump this flow used to show unconditionally.
         auto_filled=auto_filled,
     )
 
 
-def _ensure_item_extracted(batch, item):
-    """Manual import extraction pass (2026-08-30): lazy, cached AI field
-    extraction for the one batch item about to be reviewed - never run
-    upfront for every fetched item in a batch (that would burn an AI call
-    on URLs the user might skip and never actually see), and never run
-    twice for the same item (cached onto the item dict itself, checked via
-    the "extracted" flag below, so navigating back to an already-reviewed
-    item never re-triggers a second AI call for the same URL).
-
-    Only called for status == "fetched" items - a "failed" item (fetch
-    itself failed) has no page_title/text to extract from at all.
-    """
-    if item.get("extracted"):
-        return item
-
-    result = extract_manual_import_fields(item["page_title"], item["text"], current_user.id)
-
+def _store_extraction_result(batch, item, result):
+    """Shared caching step for both extraction trigger points below - the
+    same "extracted"/"extracted_*" keys either way, so downstream code
+    (rendering the review form) never needs to know whether a given
+    item's fields came from a fetched page or pasted text."""
     items = list(batch.items)
     items[batch.current_index] = {
         **item,
@@ -529,6 +519,53 @@ def _ensure_item_extracted(batch, item):
     batch.items = items
     db.session.commit()
     return items[batch.current_index]
+
+
+def _ensure_item_extracted(batch, item):
+    """Manual import extraction pass (2026-08-30): lazy, cached AI field
+    extraction for the one batch item about to be reviewed - never run
+    upfront for every fetched item in a batch (that would burn an AI call
+    on URLs the user might skip and never actually see), and never run
+    twice for the same item (cached onto the item dict itself, checked via
+    the "extracted" flag below, so navigating back to an already-reviewed
+    item never re-triggers a second AI call for the same URL).
+
+    Only called for status == "fetched" items - a "failed" item (fetch
+    itself failed) has no page_title/text to extract from at all; see
+    _ensure_pasted_text_extracted() below for that path instead.
+    """
+    if item.get("extracted"):
+        return item
+
+    result = extract_manual_import_fields(item["page_title"], item["text"], current_user.id)
+    return _store_extraction_result(batch, item, result)
+
+
+def _ensure_pasted_text_extracted(batch, item, review_form):
+    """Manual import extraction follow-up (2026-08-30): the same lazy,
+    cached AI field extraction as _ensure_item_extracted() above, but for
+    a batch item where the fetch FAILED and the user pasted the job text
+    themselves instead - there's no item["page_title"]/item["text"] to
+    read from (nothing was ever fetched), so the source text is whatever
+    the user just typed into the description field on this very
+    submission. Triggered from import_save() (see there for why: the
+    review form for a failed item starts blank, so there's no text to
+    extract from until the user has actually typed/pasted something and
+    submitted the form - unlike the fetch path, where extraction runs
+    before the form is ever shown).
+
+    Same caching contract as the fetch path: this only ever runs once per
+    item (checked via the same "extracted" flag by the caller), so a
+    second Save click for the same item - after the user has reviewed the
+    auto-filled result, per import_save()'s "populate and let the user
+    confirm" flow, same discipline as the fetch path never silently
+    committing an AI value the user hasn't seen - never re-runs extraction
+    or burns a second AI call.
+    """
+    page_title = (review_form.title.data or "").strip()
+    text = review_form.description.data or ""
+    result = extract_manual_import_fields(page_title, text, current_user.id)
+    return _store_extraction_result(batch, item, result)
 
 
 def _render_batch_review(batch):
@@ -550,6 +587,22 @@ def _render_batch_review(batch):
         review_form.start_date.data = item["extracted_start_date"]
         review_form.description.data = item["extracted_description"]
         review_form.application_url.data = item["url"]
+        auto_filled = "page"
+    elif item.get("extracted"):
+        # A failed-fetch item the user already pasted text into and saved
+        # once - import_save() ran _ensure_pasted_text_extracted() and
+        # re-rendered this same review step rather than saving straight
+        # away (see there for why). Show that cached result again instead
+        # of blank fields, e.g. if the user navigated away and came back
+        # without confirming the save - never re-runs extraction here,
+        # same cached-once contract as the fetched-page path.
+        review_form.title.data = item["extracted_title"]
+        review_form.company_name.data = item["extracted_company_name"]
+        review_form.location.data = item["extracted_location"]
+        review_form.start_date.data = item["extracted_start_date"]
+        review_form.description.data = item["extracted_description"]
+        review_form.application_url.data = item["url"]
+        auto_filled = "paste"
     else:
         review_form.application_url.data = item["url"]
         flash(
@@ -559,10 +612,11 @@ def _render_batch_review(batch):
             ),
             "error",
         )
+        auto_filled = False
 
     return _render_import_page(
         review_form=review_form, show_review=True, batch=batch,
-        auto_filled=item["status"] == "fetched",
+        auto_filled=auto_filled,
     )
 
 
@@ -651,6 +705,75 @@ def import_save():
         and not batch.is_complete
         and review_form.batch_index.data == str(batch.current_index)
     )
+
+    # Manual import extraction follow-up (2026-08-30): the fetch-success
+    # path extracts BEFORE the review form is ever shown (see
+    # _render_batch_review()), giving the user a chance to review/edit
+    # AI-suggested fields before this same Save action commits them. A
+    # failed-fetch item has nothing to extract from until the user has
+    # actually pasted the job text themselves - the only point that text
+    # exists is right here, on this very submission. Checked ahead of
+    # review_form.validate_on_submit() on purpose: title/company are
+    # required fields, and the whole point is letting the user leave them
+    # blank and have extraction fill them in, so validating first would
+    # reject the exact submission this is meant to handle. (CSRF is still
+    # enforced regardless - app-wide via Flask-WTF's CSRFProtect, app/
+    # extensions.py, not tied to calling validate_on_submit() here.)
+    if in_batch:
+        current_item = batch.items[batch.current_index]
+        if (
+            current_item["status"] == "failed"
+            and not current_item.get("extracted")
+            and (review_form.description.data or "").strip()
+        ):
+            extracted_item = _ensure_pasted_text_extracted(batch, current_item, review_form)
+            raw_description = review_form.description.data or ""
+            submitted_title = (review_form.title.data or "").strip()
+            submitted_company = (review_form.company_name.data or "").strip()
+            submitted_location = (review_form.location.data or "").strip()
+            submitted_start_date = (review_form.start_date.data or "").strip()
+
+            # Only fill fields the user left blank - anything they
+            # actually typed themselves is real, human-provided data and
+            # must never be silently overwritten by an AI guess.
+            filled_title = submitted_title or extracted_item["extracted_title"]
+            filled_company = submitted_company or extracted_item["extracted_company_name"]
+            filled_location = submitted_location or extracted_item["extracted_location"]
+            filled_start_date = submitted_start_date or extracted_item["extracted_start_date"]
+
+            # Whether extraction actually added anything worth a second
+            # look - if the user had already typed everything themselves
+            # (or a mock/unconfigured/declined AI found nothing new
+            # either way), there's no new AI content in the record and no
+            # reason to interrupt an otherwise-complete, valid submission
+            # with an extra confirmation click; save proceeds normally
+            # below using exactly what was submitted. This item is still
+            # marked "extracted" regardless (via _ensure_pasted_text_
+            # extracted() above), so this check never re-runs or re-calls
+            # the AI for it again either way.
+            added_new_value = (
+                (not submitted_title and filled_title)
+                or (not submitted_company and filled_company)
+                or (not submitted_location and filled_location)
+                or (not submitted_start_date and filled_start_date)
+                or extracted_item["extracted_description"] != raw_description
+            )
+            if added_new_value:
+                review_form.title.data = filled_title
+                review_form.company_name.data = filled_company
+                review_form.location.data = filled_location
+                review_form.start_date.data = filled_start_date
+                review_form.description.data = extracted_item["extracted_description"]
+                flash(
+                    _(
+                        "Filled in automatically from the text you pasted - please double-check every "
+                        "field, especially company, location, and start date, before saving."
+                    ),
+                    "info",
+                )
+                return _render_import_page(
+                    review_form=review_form, show_review=True, batch=batch, auto_filled="paste",
+                )
 
     if not review_form.validate_on_submit():
         flash(_("Please fill in at least the job title and company."), "error")

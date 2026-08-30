@@ -23,20 +23,27 @@ class ManualImportBatch(db.Model):
        "text": str (only when status == "fetched") - the raw fetched
          text dump, unchanged, kept as the fallback source of truth,
        "error": str (only when status == "failed"),
-       "extracted": bool (only when status == "fetched", once the lazy
-         AI extraction pass - app/ai/manual_import_extraction.py, see
-         app/jobs/routes.py's _ensure_item_extracted() - has actually run
-         for this item, whether or not it found anything; never re-run
-         once True, so revisiting an already-reviewed item never burns a
-         second AI call),
+       "extracted": bool, once the lazy AI extraction pass
+         (app/ai/manual_import_extraction.py) has actually run for this
+         item, whether or not it found anything; never re-run once True,
+         so revisiting an already-reviewed item never burns a second AI
+         call. Two trigger points, same caching contract either way (see
+         app/jobs/routes.py's _store_extraction_result()): a "fetched"
+         item runs it via _ensure_item_extracted() before the review form
+         is ever shown (source: page_title/text below); a "failed" item
+         instead runs it via _ensure_pasted_text_extracted() the first
+         time the user pastes text into the description field and clicks
+         Save (source: whatever they just typed on that submission -
+         there's nothing to extract from until then),
        "extracted_title"/"extracted_company_name"/"extracted_location"/
          "extracted_start_date"/"extracted_description": str or None
          (only once "extracted" is True) - grounded AI-suggested values,
-         or the same safe fallback (raw page_title/text, blank
-         company/location/start_date) if extraction declined, failed, or
-         found nothing usable. These, not page_title/text directly, are
-         what the review form actually displays - see _render_batch_
-         review() in app/jobs/routes.py.}
+         or the same safe fallback (raw page_title/text for a fetched
+         item, the user's own pasted text unchanged for a failed one;
+         blank company/location/start_date either way) if extraction
+         declined, failed, or found nothing usable. These, not
+         page_title/text directly, are what the review form actually
+         displays - see _render_batch_review() in app/jobs/routes.py.}
     `items` is always *reassigned* wholesale when an item changes (never
     mutated in place) so SQLAlchemy's change tracking on the JSON column
     reliably notices the update without needing sqlalchemy.ext.mutable.

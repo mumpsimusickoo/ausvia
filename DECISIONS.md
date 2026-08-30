@@ -6,6 +6,80 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Manual import: extraction from pasted text, not just fetched pages
+
+**The gap.** `app/ai/manual_import_extraction.py` (earlier same-day entry
+below) only ever ran on the fetch-success path - a failed-fetch item
+still required the user to manually type company/location/start date by
+hand into the review form, same as before extraction existed at all,
+even though the whole point of pasting the job text is that it's real,
+extractable content.
+
+**Design: extraction triggered by Save, not by a separate step - but
+still "populate and let the user confirm," never a silent one-shot
+commit.** Unlike the fetch path (which extracts before the review form
+is ever shown), a failed item's review form starts blank - there's
+nothing to extract from until the user has actually typed/pasted
+something and submitted it. `import_save()` now intercepts that first
+submission for a failed, not-yet-extracted item with pasted description
+text: runs `_ensure_pasted_text_extracted()` (same
+`extract_manual_import_fields()`, same grounding, same
+`log_event`/`record_usage` discipline as the fetch path, cached onto the
+item via the same `extracted`/`extracted_*` keys - see
+`_store_extraction_result()`, factored out of `_ensure_item_extracted()`
+for both trigger points to share), merges results into whatever fields
+the user left blank (never overwrites what they actually typed - real
+human input outranks an AI guess), and re-renders the review form for
+confirmation rather than saving immediately - same "never silently
+commit an AI-suggested value the user hasn't seen" discipline the fetch
+path already established.
+
+**Refinement found by a real test failure, not assumed upfront:** the
+first version intercepted unconditionally whenever a failed item had
+pasted text, even if the user had already typed everything themselves
+(title+company filled, AI mock/declined and found nothing new either
+way) - forcing a pointless extra confirmation click for a submission
+that was already complete. Fixed by only intercepting when extraction
+actually adds something new: a field the user left blank now has a
+value, or the description itself changed (chrome-cleaning applied). If
+extraction has nothing new to contribute, the save proceeds immediately,
+matching this feature's own baseline of never regressing below "already
+worked before this pass existed."
+
+**A real bug the test suite couldn't have caught - only a live browser
+could:** the title/company_name fields carry HTML5 `required` (WTForms'
+default render behavior for a `DataRequired` validator), which made the
+browser refuse to submit the form entirely whenever those fields were
+left blank for extraction to fill in - the exact submission this feature
+exists to handle. A pytest test client's POST never goes through a real
+browser's client-side constraint validation, so all 13 new tests passed
+while the feature was completely unreachable in an actual browser. Fixed
+with `formnovalidate` on the Save button, matching a precedent already
+established in this same file for the "Skip this one" button;
+server-side `review_form.validate_on_submit()` remains the real,
+authoritative check either way, with its existing flash-message error
+path unchanged.
+
+**Live-verified with real pasted text, real bot-blocked fetch failure:**
+a genuine Indeed URL was rejected by Indeed's own bot protection (a real
+`FetchFailed`, not simulated), landing the item in the exact "failed"
+state this feature targets. Real posting text - copied from a genuine
+LinkedIn listing for a Siemens Mechatroniker apprenticeship in Chemnitz -
+pasted into the description field with title/company/location/start
+date all left blank, then Save: extraction correctly populated title
+("Ausbildung zum Mechatroniker (w/m/d)"), company ("Siemens"), and
+location ("Chemnitz"), and correctly left start date blank - the source
+text states "Startdatum: 01/08/2027" in an ambiguous DD/MM-vs-MM/DD
+format, and the system declined to guess which reading is correct rather
+than picking one, the same grounding discipline working exactly as
+intended on a genuinely ambiguous real-world case, not just a genuinely
+absent one. Confirming Save a second time created the real job record
+(verified end-to-end: job detail page, correct company link, correct
+"Nicht angegeben" start date) and burned exactly one AI call total
+(confirmed via `/admin/ai-usage`'s call count, unchanged between the
+first and second Save). Full suite: 713 passed, 3 skipped (was 707
+before this pass).
+
 ## 2026-08-30 — Adzuna: credentials alone must never activate it for real users
 
 **A real, pre-existing gap - not a false alarm.** Investigated whether

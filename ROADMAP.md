@@ -1097,6 +1097,47 @@ for a redesign pass, started 2026-08-24.
       environment in the correct default state. See `DECISIONS.md` for
       full detail. Full suite: 707 passed, 3 skipped.
 
+## Manual import: extraction from pasted text (complete)
+
+- [x] **The same AI field extraction now runs on the failed-fetch/
+      paste path too, not just fetch-success** - `import_save()` in
+      app/jobs/routes.py intercepts the first Save on a failed item that
+      has pasted description text, runs the same
+      `extract_manual_import_fields()` (same grounding, same
+      log_event/record_usage discipline, cached onto the item the same
+      way), merges results into whatever fields the user left blank
+      (never overwrites what they actually typed), and re-shows the
+      review form for confirmation rather than saving immediately - same
+      "never silently commit an AI value the user hasn't seen"
+      discipline as the fetch path. Only intercepts when extraction
+      actually adds something new (a blank field gets filled, or the
+      description gets chrome-cleaned) - found via a real test failure
+      that intercepting unconditionally forced a pointless extra
+      confirmation click even when the user had already typed everything
+      themselves.
+- [x] **A real bug only a live browser could catch, not the test
+      suite** - the title/company HTML5 `required` attribute (WTForms'
+      default for a `DataRequired` field) blocked the browser from ever
+      submitting the form when those fields were deliberately left blank
+      for extraction to fill in - the exact case this feature exists
+      for. All 13 new pytest tests passed regardless, since a test
+      client's POST never goes through real client-side HTML5
+      validation. Fixed with `formnovalidate` on the Save button,
+      matching an existing precedent on the "Skip this one" button in
+      the same template; server-side validation remains the real,
+      unchanged authoritative check.
+- [x] **Live-verified with real pasted text and a genuine bot-blocked
+      fetch failure** - a real Indeed URL rejected by Indeed's own bot
+      protection, then real posting text copied from a genuine LinkedIn
+      Siemens Mechatroniker listing pasted into the description field.
+      Extraction correctly populated title/company/location and
+      correctly left start date blank for a genuinely ambiguous
+      DD/MM-vs-MM/DD date format in the source rather than guessing which
+      reading was right. Confirming Save created the real job record and
+      burned exactly one AI call total, confirmed via `/admin/ai-usage`.
+      See `DECISIONS.md` for full detail. Full suite: 713 passed, 3
+      skipped.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

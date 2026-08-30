@@ -52,18 +52,23 @@
   <h2 class="font-semibold text-t1 mb-4">{% if batch %}{{ _("Review and save") }}{% else %}{{ _("2. Review and save") }}{% endif %}</h2>
   {% if show_review %}
   {#
-    Manual import extraction pass (2026-08-30): title/company/location/
-    start date can now be AI-suggested (grounded against the fetched
-    page, never invented - see app/ai/manual_import_extraction.py), not
-    just a raw text dump the user had to type structured fields around
-    themselves. A short, real transparency note - not just "review
-    before saving" in the abstract, since these specific fields are new
-    AI-suggested content that deserves the same "check this" scrutiny
-    this app already gives every other AI surface (intelligence_surface()
-    labels its own AI origin the same way).
+    Manual import extraction pass (2026-08-30) + pasted-text follow-up:
+    title/company/location/start date can now be AI-suggested (grounded
+    against the fetched page, or against text the user pasted themselves
+    after a failed fetch - never invented either way, see
+    app/ai/manual_import_extraction.py), not just a raw text dump the
+    user had to type structured fields around themselves. A short, real
+    transparency note - not just "review before saving" in the abstract,
+    since these specific fields are new AI-suggested content that
+    deserves the same "check this" scrutiny this app already gives every
+    other AI surface (intelligence_surface() labels its own AI origin
+    the same way). Worded differently per source so it stays factually
+    accurate - "the page" is simply wrong when nothing was ever fetched.
   #}
-  {% if auto_filled %}
+  {% if auto_filled == "page" %}
   <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the page - please double-check every field, especially company, location, and start date, before saving.") }}</p>
+  {% elif auto_filled == "paste" %}
+  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the text you pasted - please double-check every field, especially company, location, and start date, before saving.") }}</p>
   {% endif %}
   <form method="post" action="{{ url_for('jobs.import_save') }}">
     {{ review_form.hidden_tag() }}
@@ -76,8 +81,22 @@
       {{ render_field(review_form.application_url) }}
     </div>
     {{ render_field(review_form.description) }}
+    {#
+      Pasted-text extraction follow-up (2026-08-30): formnovalidate here
+      too, same reasoning as "Skip this one" below already established -
+      the browser's native required-field bubble on title/company blocks
+      the form from ever submitting when they're deliberately left blank
+      for extraction to fill in (a real bug this app's own test suite
+      couldn't have caught, since a test client's POST never goes through
+      client-side HTML5 validation at all - only found by driving this
+      through a real browser). Server-side validation
+      (review_form.validate_on_submit() in import_save()) is the actual
+      authoritative check either way and already shows a proper error
+      message, so this loses nothing - it just stops the browser from
+      refusing to even ask.
+    #}
     <div class="flex items-center gap-4">
-      <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">{{ _("Save opportunity") }}</button>
+      <button type="submit" formnovalidate class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-on-fill hover:bg-brand-hover">{{ _("Save opportunity") }}</button>
       {% if batch %}
       <button type="submit" formaction="{{ url_for('jobs.import_skip') }}" formnovalidate class="text-sm text-t2 hover:text-t2 underline">{{ _("Skip this one") }}</button>
       {% endif %}
