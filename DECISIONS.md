@@ -6,7 +6,92 @@ format below for what was actually weighed.
 
 ---
 
-## 2026-08-30 — Manual import follow-up: whitespace-normalized grounding, plus two more live checks
+## 2026-08-30 — Password reset: real email delivery via Resend
+
+**What this completes.** The earlier security fix (this file's password-
+reset entry below) removed the on-page link exposure but left the reset
+flow genuinely unusable - a token was generated and logged internally,
+but never reached the user anywhere. `ausvia.org` is now verified with
+Resend (DKIM/SPF), so `app/mail.py`'s `send_password_reset_email()`
+actually emails the real link at the exact point `request_reset()`
+(`app/auth/routes.py`) used to just log and stop. The generic,
+enumeration-safe message is unchanged either way - a real send happening
+in the background is invisible to the response.
+
+**Graceful degradation, same discipline as every other optional provider
+in this app** (`AI_PROVIDER`, `STORAGE_PROVIDER`, Adzuna/Jooble):
+`RESEND_API_KEY` unset means nothing is attempted, just an internal
+`log_event()` and the same generic message - never an error, and
+critically never a fallback to showing the link, which would undo the
+earlier fix. A real `ResendError` (bad key, validation failure) and any
+other unexpected exception both degrade the same way, mirroring
+`app/ai/providers/gemini_provider.py`'s catch-all floor.
+
+**Locale: the account's own stored preference, not the request's.**
+The email is built inside `flask_babel.force_locale(user.locale)`
+(Flask-Babel's own documented pattern for exactly this case), not
+whatever `get_locale()` would resolve for the anonymous, logged-out
+request submitting the form - that visitor may not even be the account
+owner, or may be on a different browser/device than usual. The account's
+own `User.locale` is the correct signal for what language the actual
+recipient reads.
+
+**Resend SDK, not the plain HTTP API** - checked Context7 for the current
+SDK surface first (`resend.Emails.send`, `resend.exceptions.ResendError`
+et al.) rather than hand-rolling the HTTP call; `pip install resend`
+added no new transitive dependencies (it depends only on `requests` and
+`typing_extensions`, both already present). Imported lazily inside
+`send_password_reset_email()`, only once a real key is confirmed
+present - same convention as `app/documents/storage.py`'s lazy `boto3`
+import in `S3Storage.__init__`, not a module-level import.
+
+**Rate limiting confirmed to actually cover real-send abuse, not just
+redemption-style limits elsewhere.** `request_reset()`'s existing
+`@limiter.limit("10 per hour")` decorates the route itself (unlike
+manual import extraction's internally-caught limit two entries below),
+so Flask-Limiter enforces it directly and returns a real 429 once
+exceeded - confirmed live via a rate-limited test client hitting the
+route 12 times with a mocked Resend send: a 429 appears, and the real
+send call count never exceeds 10, so a spammer can't blast unlimited
+real emails at one victim inbox from a single IP.
+
+**A real regression, self-caught before it shipped:** the first i18n
+pass for this feature's 5 new strings ran `pybabel extract -F babel.cfg
+-o messages.pot .` - missing this project's own documented
+`-k lazy_gettext -k _l` flags (`DEPLOYMENT.md`'s i18n workflow section),
+which this project needs because every WTForms field label/validator
+message is wrapped via `_l` (its own alias for `lazy_gettext`), not `_`,
+and Babel only recognizes keywords it's told to look for. The resulting
+incomplete `messages.pot` silently dropped ~140 unrelated, already-
+translated strings out of the catalog when fed through `pybabel update`
+- caught immediately by the full pytest run (`test_i18n.py`'s own
+extraction-completeness guard, plus several locale-aware-content tests),
+not shipped. Fixed by discarding the corrupted `.po`/`.mo` (still
+uncommitted) via `git checkout --`, re-running the extraction with the
+correct flags, and re-applying just the 5 real new translations. Full
+suite: 700 passed, 3 skipped (was 693 before this pass).
+
+**Live end-to-end verification, both languages, real inbox (not
+mocked):** graceful degradation confirmed first (`RESEND_API_KEY`
+overridden empty via the process environment, not `.env` - real OS env
+vars win, confirmed in `config.py`) - generic message shown, `/admin`
+logged the "not configured" warning, no token exposed. Then with the
+real key: a real send through the actual `/auth/reset-password` form to
+a real Gmail inbox (the user's own, provided on request - `app.mail`'s
+docstring makes clear this app has no email inbox of its own to verify
+delivery into) produced no failure log, and a direct call to the real
+Resend API returned a genuine accepted-send response (a real email ID,
+real per-account rate-limit headers from Resend itself) for both an
+English- and a German-locale copy of the content - confirming Resend
+actually accepted both for delivery. Separately, the reset link's own
+mechanism was verified independently of email delivery: the identical
+token `request_reset()` would have emailed was reconstructed directly
+(deterministic given `SECRET_KEY`, same technique this file's password-
+reset entry below already established as the safe way to test the link
+without extracting it from an HTTP response), visited via Playwright,
+and used to complete a real password change - then logged in again with
+the new password to confirm it was genuinely active, not just accepted
+by the form.
 
 Three follow-up checks on the entry below, requested before considering that
 pass closed.

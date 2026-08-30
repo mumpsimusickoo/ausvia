@@ -42,6 +42,10 @@ psycopg2-binary==2.9.12
 # instantiated when STORAGE_PROVIDER=s3 - inert otherwise, same pattern as
 # the AI provider SDKs above.
 boto3==1.43.71
+# Real password reset email delivery (app/mail.py, 2026-08-30). Only
+# imported when RESEND_API_KEY is actually configured - inert otherwise,
+# same pattern as boto3/the AI provider SDKs above.
+resend==2.42.0
 pytest==8.3.3
 # dev-only: scripts/check_mobile_overflow.py (Phase 7 QA remediation) drives
 # a local Chromium/Edge install over the DevTools protocol - not imported

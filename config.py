@@ -63,6 +63,12 @@ class Config:
 
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI") or "memory://"
 
+    # Password reset email delivery (app/mail.py, 2026-08-30). Same
+    # "absence is fine" pattern as AI_PROVIDER/STORAGE_PROVIDER above -
+    # unset means the reset flow logs the attempt internally and sends
+    # nothing, never an error and never a fallback to exposing the link.
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+
     # Storage provider abstraction (see app/documents/storage.py). "local"
     # writes to UPLOAD_DIR on disk and needs no credentials - the right
     # default for dev/test, and wrong for most real hosts (local disk is
@@ -169,6 +175,10 @@ class TestingConfig(Config):
     ADZUNA_APP_ID = None
     ADZUNA_APP_KEY = None
     JOOBLE_API_KEY = None
+    # Same again: a real .env with a real RESEND_API_KEY must never make
+    # the test suite send a real email. Tests that specifically want to
+    # exercise the "configured" path monkeypatch this back in.
+    RESEND_API_KEY = None
 
 
 config_by_name = {

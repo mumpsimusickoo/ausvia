@@ -105,6 +105,12 @@ Arbeitsagentur (Bundesagentur für Arbeit Jobsuche) needs no credentials -
 see `JOB_SOURCES.md` for its current reliability status, which is more
 nuanced than a simple working/broken flag.
 
+### Password reset email (`app/mail.py`, 2026-08-30 pass)
+
+| Variable | Required? | Default | Notes |
+|---|---|---|---|
+| `RESEND_API_KEY` | No | none | Enables real password reset email delivery via [Resend](https://resend.com). Unset means the reset flow still works end-to-end (token generated, request logged internally) but sends no real email - the user-facing message is identical either way, and this never falls back to exposing the link in the response (see `DECISIONS.md`'s password-reset security fix). Sending domain (`ausvia.org`) must be verified in Resend (DKIM/SPF) before real sends will deliver. From address is hardcoded as `AUSVIA <noreply@ausvia.org>`, not configurable via env. |
+
 ### Gmail draft creation (optional feature)
 
 | Variable | Required? | Default | Notes |

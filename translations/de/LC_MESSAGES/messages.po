@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-30 06:05+0100\n"
+"POT-Creation-Date: 2026-08-30 07:23+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app/access_expiry.py:57 app/auth/routes.py:131
+#: app/access_expiry.py:57 app/auth/routes.py:132
 #, python-format
 msgid ""
 "Your access period has ended. Contact us on WhatsApp (%(whatsapp)s) to "
@@ -26,6 +26,40 @@ msgid ""
 msgstr ""
 "Dein Zugangszeitraum ist abgelaufen. Kontaktiere uns per WhatsApp "
 "(%(whatsapp)s), um zu verlängern."
+
+#: app/mail.py:44
+msgid "Hi,"
+msgstr "Hallo,"
+
+#: app/mail.py:46
+msgid ""
+"We received a request to reset the password for your AUSVIA account. "
+"Click the button below to choose a new password."
+msgstr ""
+"Wir haben eine Anfrage erhalten, das Passwort für dein AUSVIA-Konto "
+"zurückzusetzen. Klicke auf den Button unten, um ein neues Passwort zu "
+"wählen."
+
+#: app/mail.py:49 app/templates/auth/request_reset.html:3
+msgid "Reset password"
+msgstr "Passwort zurücksetzen"
+
+#: app/mail.py:51
+msgid ""
+"This link expires in 1 hour. If you didn't request this, you can safely "
+"ignore this email - your password will not be changed."
+msgstr ""
+"Dieser Link läuft in 1 Stunde ab. Wenn du das nicht angefordert hast, "
+"kannst du diese E-Mail einfach ignorieren – dein Passwort wird nicht "
+"geändert."
+
+#: app/mail.py:55
+msgid "The AUSVIA team"
+msgstr "Das AUSVIA-Team"
+
+#: app/mail.py:56
+msgid "Reset your AUSVIA password"
+msgstr "Setze dein AUSVIA-Passwort zurück"
 
 #: app/plans.py:54
 msgid "yearly"
@@ -713,15 +747,15 @@ msgstr "Neues Passwort"
 msgid "Confirm new password"
 msgstr "Neues Passwort bestätigen"
 
-#: app/auth/routes.py:35
+#: app/auth/routes.py:36
 msgid "Invalid access code."
 msgstr "Ungültiger Zugangscode."
 
-#: app/auth/routes.py:44
+#: app/auth/routes.py:45
 msgid "An account with this email already exists."
 msgstr "Für diese E-Mail-Adresse existiert bereits ein Konto."
 
-#: app/auth/routes.py:86
+#: app/auth/routes.py:87
 msgid ""
 "This access code just became invalid (it may have already been used, "
 "expired, or been deactivated). Please request a new one."
@@ -730,33 +764,33 @@ msgstr ""
 "bereits verwendet, ist abgelaufen oder wurde deaktiviert). Bitte fordere "
 "einen neuen an."
 
-#: app/auth/routes.py:105
+#: app/auth/routes.py:106
 msgid "Welcome! Let's set up your candidate profile."
 msgstr "Willkommen! Lass uns dein Kandidatenprofil einrichten."
 
-#: app/auth/routes.py:151
+#: app/auth/routes.py:152
 msgid "Invalid email or password."
 msgstr "E-Mail-Adresse oder Passwort ungültig."
 
-#: app/auth/routes.py:162
+#: app/auth/routes.py:163
 msgid "You have been logged out."
 msgstr "Du wurdest abgemeldet."
 
-#: app/auth/routes.py:205
+#: app/auth/routes.py:208
 msgid "If an account with that email exists, a password reset link has been sent."
 msgstr ""
 "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum "
 "Zurücksetzen des Passworts gesendet."
 
-#: app/auth/routes.py:216
+#: app/auth/routes.py:219
 msgid "This reset link has expired. Please request a new one."
 msgstr "Dieser Link zum Zurücksetzen ist abgelaufen. Bitte fordere einen neuen an."
 
-#: app/auth/routes.py:219 app/auth/routes.py:224
+#: app/auth/routes.py:222 app/auth/routes.py:227
 msgid "This reset link is invalid."
 msgstr "Dieser Link zum Zurücksetzen ist ungültig."
 
-#: app/auth/routes.py:232
+#: app/auth/routes.py:235
 msgid "Your password has been reset. Please log in."
 msgstr "Dein Passwort wurde zurückgesetzt. Bitte melde dich an."
 
@@ -2694,10 +2728,6 @@ msgstr "Konto erstellen"
 msgid "Already have an account?"
 msgstr "Hast du bereits ein Konto?"
 
-#: app/templates/auth/request_reset.html:3
-msgid "Reset password"
-msgstr "Passwort zurücksetzen"
-
 #: app/templates/auth/request_reset.html:6
 msgid "Reset your password"
 msgstr "Setze dein Passwort zurück"
@@ -3364,9 +3394,8 @@ msgid ""
 "Filled in automatically from the page - please double-check every field, "
 "especially company, location, and start date, before saving."
 msgstr ""
-"Automatisch aus der Seite ausgefüllt – bitte prüfe jedes Feld "
-"sorgfältig, besonders Unternehmen, Ort und Startdatum, bevor du "
-"speicherst."
+"Automatisch aus der Seite ausgefüllt – bitte prüfe jedes Feld sorgfältig,"
+" besonders Unternehmen, Ort und Startdatum, bevor du speicherst."
 
 #: app/templates/jobs/import.html:80
 #: app/templates/jobs/import_bookmarklet.html:21

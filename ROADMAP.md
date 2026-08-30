@@ -1019,6 +1019,48 @@ for a redesign pass, started 2026-08-24.
       review form came back exactly as the pre-extraction baseline.
       Full suite: 693 passed, 3 skipped.
 
+## Password reset: real email delivery (complete)
+
+- [x] **Real Resend delivery wired into the reset flow** - `app/mail.py`'s
+      `send_password_reset_email()` actually emails the reset link at the
+      exact point `request_reset()` (`app/auth/routes.py`) used to only
+      generate the token and log the request internally. `ausvia.org` is
+      verified with Resend (DKIM/SPF); from address is the hardcoded
+      `AUSVIA <noreply@ausvia.org>`. The generic, enumeration-safe message
+      is unchanged either way - a real send happening in the background
+      never shows up in the response. Content is built in the account's
+      own stored `User.locale` (`flask_babel.force_locale()`), not the
+      anonymous requester's browser locale.
+- [x] **Same graceful-degradation discipline as every other optional
+      provider** (AI/storage/job-source adapters) - unset
+      `RESEND_API_KEY`, a real `ResendError`, or any other unexpected
+      exception all degrade to "log internally, send nothing," never to
+      an error or a fallback toward exposing the link (which would undo
+      the earlier security fix two entries below). Confirmed the route's
+      existing `@limiter.limit("10 per hour")` actually covers real-send
+      abuse specifically, not just redemption-style limits elsewhere -
+      it's a real route decoration (unlike manual import extraction's
+      internally-caught limit), so Flask-Limiter returns a genuine 429
+      once exceeded.
+- [x] **A real regression, self-caught before it shipped** - see
+      `DECISIONS.md`'s full account: the first i18n extraction pass for
+      this feature's 5 new strings omitted this project's own documented
+      `-k lazy_gettext -k _l` flags, which silently dropped ~140
+      unrelated, already-translated strings (every WTForms field label
+      uses the `_l` alias, not `_`) out of the catalog. Caught by the
+      full pytest run before anything was committed, fixed by discarding
+      the corrupted catalog and re-running the extraction correctly.
+- [x] **Live end-to-end verification, both languages, a real inbox** -
+      graceful degradation confirmed first (forced-empty key via process
+      env). With the real key: a real send through the actual form to a
+      real Gmail inbox produced no failure log, and a direct Resend API
+      call confirmed genuine acceptance (a real email ID, real Resend
+      rate-limit headers) for both an English and a German copy. The
+      reset link's own mechanism was separately verified end-to-end by
+      reconstructing the identical token and completing a real password
+      change, then logging in with the new password to confirm it was
+      genuinely active. Full suite: 700 passed, 3 skipped.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

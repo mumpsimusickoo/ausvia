@@ -91,3 +91,33 @@ def test_manual_import_extraction_is_rate_limited(rate_limited_client, monkeypat
         assert resp.status_code in (200, 302)  # never a 429 - always degrades gracefully
 
     assert len(real_calls) <= 30, f"expected the real provider to be called at most 30 times, got {len(real_calls)}"
+
+
+def test_password_reset_request_is_rate_limited(rate_limited_client, monkeypatch):
+    """Real email delivery pass (2026-08-30): confirms the route's own
+    10/hour limit (app/auth/routes.py's @limiter.limit("10 per hour") on
+    request_reset()) actually covers real-send abuse - someone spamming
+    the form to blast real emails at one victim inbox - not just the
+    redemption-style limits elsewhere in this app. Unlike manual import
+    extraction's internally-caught rate limit, this route is decorated
+    directly, so Flask-Limiter enforces it itself and returns a real 429
+    once exceeded, without ever reaching send_password_reset_email()."""
+    client = rate_limited_client
+
+    user = User(email="rl3@example.com", role="user", plan="trial")
+    user.set_password("Password123!")
+    _db.session.add(user)
+    _db.session.flush()
+    _db.session.add(CandidateProfile(user_id=user.id, contact_email=user.email))
+    _db.session.commit()
+
+    real_sends = []
+    monkeypatch.setattr("resend.Emails.send", lambda params: real_sends.append(params))
+    client.application.config["RESEND_API_KEY"] = "test-key-not-real"
+
+    statuses = [
+        client.post("/auth/reset-password", data={"email": "rl3@example.com"}).status_code
+        for _ in range(12)
+    ]
+    assert 429 in statuses, f"expected a 429 within 12 requests against a 10/hour limit, got: {statuses}"
+    assert len(real_sends) <= 10, f"expected at most 10 real send attempts at the target inbox, got {len(real_sends)}"

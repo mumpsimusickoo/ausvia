@@ -20,10 +20,13 @@ review" list with reasoning; this file is the security-specific summary.
   their own browser, no access to the victim's inbox required. Now
   returns one identical generic message regardless of whether the
   account exists (closing the email-enumeration side channel too), and
-  never renders the token anywhere under any config state. Real email
-  delivery (so the reset flow is actually usable again) is separate,
-  larger, not-yet-built work - a reset flow with no delivery path is the
-  correct, safe interim state, not a regression to fix urgently.
+  never renders the token anywhere under any config state. **Real email
+  delivery added the same day** (`app/mail.py`, via Resend): the token
+  now reaches the user in an actual email, never in the HTTP response -
+  the reset flow is safe and usable again, not just safe. Graceful
+  degradation mirrors every other optional provider in this app: an
+  unconfigured or failing mail provider logs internally and shows the
+  same generic message, never falls back toward exposing the link.
 - **CSRF:** Flask-WTF CSRF protection app-wide, on every state-changing
   route (both WTForms-rendered and manual forms include the token).
 - **Authorization / data isolation:** every user-owned resource
@@ -80,14 +83,12 @@ review" list with reasoning; this file is the security-specific summary.
    request cycle. Availability concern more than a security one, but worth
    tracking here since it affects how much load the auth/session layer needs
    to tolerate per request.
-5. **No real email delivery mechanism exists anywhere in this app**
-   (confirmed by a full-codebase search, 2026-08-30 - no `smtplib`,
-   `Flask-Mail`, SMTP config, or third-party mail SDK). Password reset is
-   the one place this is user-visible: the flow generates a real token
-   and responds with an honest, non-revealing message, but has no way to
-   actually deliver that token to the user right now - see the
-   "Password reset never exposes..." entry above. Building real email
-   sending is separate, not-yet-scoped work.
+5. ~~No real email delivery mechanism exists anywhere in this app~~ -
+   **resolved 2026-08-30**: `app/mail.py` sends real password reset
+   emails via Resend when `RESEND_API_KEY` is configured (see the
+   "Password reset never exposes..." entry above). Still the only place
+   this app sends real email - nothing else (application confirmations,
+   digest notifications, etc.) goes through it.
 
 ## What's explicitly out of scope for now
 

@@ -7,6 +7,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from app.access_expiry import compute_access_expiry, is_access_expired
 from app.extensions import db, limiter
 from app.i18n import refresh_locale, sync_explicit_locale_to_user
+from app.mail import send_password_reset_email
 from app.models import User, InvitationCode, CodeRedemption, CandidateProfile
 from app.models.user import utcnow
 from app.plans import whatsapp_display
@@ -180,27 +181,29 @@ def request_reset():
     unconditionally - not just "unless a mail provider is configured" (that
     condition never actually worked, and shouldn't be trusted again even if
     it did: the token must never appear in an HTTP response body under any
-    config state, only ever in a real, separately-sent email). The route
-    still generates the token and logs the request - that plumbing is
-    exactly what a real mail-sending integration will need to call
-    (send the email with `reset_link` here) once that's built as its own
-    pass; until then, the reset flow has no delivery path and is correctly
-    unusable, rather than usable-and-exploitable. Same generic response
-    whether or not the account exists, unconditionally too - the
+    config state, only ever in a real, separately-sent email). Same generic
+    response whether or not the account exists, unconditionally too - the
     email-enumeration side channel was the other half of this same bug
     (a real account produced a link in the page; a fake one produced
     nothing distinguishable in the old flash-only path, but the *link's
     presence itself* was already the tell).
+
+    Real delivery, 2026-08-30 (later same day - see DECISIONS.md's
+    follow-up entry): send_password_reset_email() (app/mail.py) now
+    actually emails `reset_link` via Resend when a real account matches.
+    It never raises and never exposes the link anywhere but the email
+    itself - an unconfigured or failing mail provider silently logs and
+    does nothing further, it does NOT fall back to showing the link here.
+    That's what keeps this route safe regardless of mail-provider state.
     """
     form = RequestResetForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
         if user:
             token = _serializer().dumps(user.email, salt=RESET_SALT)
-            reset_link = url_for("auth.reset_password", token=token, _external=True)  # noqa: F841
+            reset_link = url_for("auth.reset_password", token=token, _external=True)
             log_event("auth", "Password reset requested.", user_id=user.id)
-            # TODO(real email sending, separate pass): send `reset_link` to
-            # user.email via the real mail provider here. Never render it.
+            send_password_reset_email(user, reset_link)
         flash(
             _("If an account with that email exists, a password reset link has been sent."),
             "info",
