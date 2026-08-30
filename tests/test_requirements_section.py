@@ -9,6 +9,20 @@ styles) are exactly what the isolator has to survive.
 """
 from app.jobs.requirements_section import extract_contact_section, extract_requirements_section
 
+# Real posting (Arbeitsagentur job id 119, CASISOFT MindWare GmbH), trimmed
+# to the two lines that matter here: contact info given as a run-on
+# sentence with no heading, where the email/name live on a line with no
+# colon at all - the shape that motivated the EMAIL_RE fix (contact-info
+# follow-up pass, 2026-08-30). Its unrelated duties section separately
+# says "Du bist der erste Ansprechpartner für die Kunden" - a real
+# false-positive trap for any broader "ansprechpartner"-anywhere rule,
+# which is why the fix is anchored on the email address instead.
+CASISOFT_EINZELHANDEL = """Du bist der erste Ansprechpartner für die Kunden und stehst ihnen mit Rat und Tat zur Seite.
+
+Wir haben Dein Interesse geweckt? Dann freuen wir uns auf Deine Bewerbung per E-Mail an:
+bewerbung@casisoft.de, Ansprechpartnerin ist Frau Hubbes
+"""
+
 STUB_DESCRIPTION = """ZUKUNFT
 ANPACKEN. Starte deine Ausbildung bei Zoth! Elektroniker (m/w/d)
 
@@ -213,13 +227,13 @@ def test_contact_section_captures_inline_ansprechpartner_vergoelst():
     assert "Ausbildungsabteilung" in section
 
 
-def test_contact_section_not_found_when_only_dense_prose_sorg():
-    # Known v1 limitation, documented in the module: a contact invitation
-    # stated as one dense run-on sentence with no heading at all isn't
-    # found - safe under-extraction, not a fabrication risk.
+def test_contact_section_found_in_dense_prose_sorg():
+    # v1 limitation fixed (contact-info follow-up pass, 2026-08-30): a
+    # contact invitation stated as one dense run-on sentence with no
+    # heading at all is now found via the email-address signal.
     section, found = extract_contact_section(SORG_MECHATRONIKER)
-    assert found is False
-    assert section == ""
+    assert found is True
+    assert "CAREER@SORG.DE" in section
 
 
 def test_contact_section_not_found_when_absent_pfizer():
@@ -234,6 +248,25 @@ def test_contact_section_excludes_requirements_content_pfizer_style():
     # requirements/career-prospects content as if it were a contact match.
     section, found = extract_contact_section(HARTUNG_BAU_KAUFMANN)
     assert found is False
+
+
+def test_contact_section_found_in_dense_prose_casisoft_no_colon():
+    # The real motivating case: the email/name line has no colon at all
+    # ("bewerbung@casisoft.de, Ansprechpartnerin ist Frau Hubbes"), so the
+    # existing after-colon capture logic alone wouldn't have been enough -
+    # this confirms the whole-line capture path for an email-bearing line.
+    section, found = extract_contact_section(CASISOFT_EINZELHANDEL)
+    assert found is True
+    assert "bewerbung@casisoft.de" in section
+    assert "Frau Hubbes" in section
+
+
+def test_contact_section_ignores_unrelated_ansprechpartner_mention_casisoft():
+    # The duties-section sentence mentioning "Ansprechpartner" (unrelated
+    # to applications) must not itself open a section - only the
+    # email-bearing line should.
+    section, found = extract_contact_section(CASISOFT_EINZELHANDEL)
+    assert "Kunden" not in section
 
 
 def test_empty_description_finds_no_contact_section():

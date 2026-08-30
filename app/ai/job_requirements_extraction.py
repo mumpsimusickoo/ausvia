@@ -77,6 +77,22 @@ MAX_LANGUAGES = 5
 # not full RFC 5322 validation, which isn't the point here.
 EMAIL_SHAPE_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+
+def _normalize_whitespace(s):
+    """Collapses any run of whitespace (regular spaces, tabs, newlines, and
+    non-breaking space U+00A0 - common in scraped HTML, \\s does not match
+    it) to a single space. Contact-info follow-up pass (2026-08-30): same
+    fix, same reasoning, as app/ai/manual_import_extraction.py's own
+    _normalize_whitespace() - a real contact name split across two lines
+    in the source ("...Ansprechpartnerin\\nist Frau Julia\\nWeber...") or
+    reformatted with a non-breaking space genuinely is present in the
+    text, but fails a strict literal substring check purely because of
+    whitespace, not because anything was fabricated. Purely cosmetic
+    normalization, not a loosening of the grounding guarantee: still a
+    literal, character-for-character containment test, just against a
+    normalized haystack."""
+    return re.sub(r"[\s\xa0]+", " ", s).strip()
+
 # Extraction retry pass (2026-08-29): a transient failure (rate limit,
 # timeout) used to be permanent - nothing re-triggered extraction after
 # enrich_job_detail()'s one-time enrichment fired, so job.skills stayed
@@ -137,18 +153,24 @@ def should_retry_requirements_extraction(job):
 
 
 def _grounded_contact_value(value, contact_text_lower):
-    """Returns the stripped value if it's a non-empty string that appears
-    (case-insensitively) as a literal substring of the contact-section
-    text the AI was actually shown for this purpose - None otherwise.
-    Unlike skills/languages, contact_person/contact_email are OPTIONAL
-    keys in the response schema (see _validate_and_ground): a missing key,
-    or a value that fails to ground, is simply treated as "not found",
-    never as making the whole response malformed - most postings won't
-    state a specific contact person, and that's the correct, expected
-    result, not a failure."""
+    """Returns the whitespace-normalized value if it's a non-empty string
+    that appears (case-insensitively) as a literal substring of the
+    contact-section text the AI was actually shown for this purpose - None
+    otherwise. Unlike skills/languages, contact_person/contact_email are
+    OPTIONAL keys in the response schema (see _validate_and_ground): a
+    missing key, or a value that fails to ground, is simply treated as
+    "not found", never as making the whole response malformed - most
+    postings won't state a specific contact person, and that's the
+    correct, expected result, not a failure.
+
+    Whitespace-normalized (contact-info follow-up pass, 2026-08-30) rather
+    than a strict literal check - see _normalize_whitespace()'s own
+    comment for why: a genuinely grounded name split across lines or
+    carrying a non-breaking space was being silently rejected here, same
+    failure shape as the manual-import bug this mirrors."""
     if not isinstance(value, str):
         return None
-    value = value.strip()
+    value = _normalize_whitespace(value)
     if not value:
         return None
     if value.lower() not in contact_text_lower:
@@ -203,7 +225,11 @@ def _validate_and_ground(raw_text, source_text, contact_text):
         if language and language.lower() in source_lower and language not in grounded_languages:
             grounded_languages.append(language)
 
-    contact_text_lower = contact_text.lower()
+    # Normalized on this side too (contact-info follow-up pass,
+    # 2026-08-30) - normalizing only the candidate value while leaving
+    # real newlines/non-breaking-spaces in the haystack would still fail
+    # to match a multi-line name the AI correctly joined with a space.
+    contact_text_lower = _normalize_whitespace(contact_text.lower())
 
     contact_person = _grounded_contact_value(data.get("contact_person"), contact_text_lower)
 

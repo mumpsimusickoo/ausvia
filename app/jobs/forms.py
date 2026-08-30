@@ -82,6 +82,16 @@ class ManualImportReviewForm(FlaskForm):
     # year table, gross vs. net, etc.) that a numeric field couldn't hold
     # without lossy normalization.
     salary = StringField(_l("Salary"), validators=[Optional(), Length(max=255, message=_max_length_message(255))])
+    # Contact-info follow-up pass (2026-08-30): same field names/labels/
+    # validators as app/applications/forms.py's own contact_person/
+    # contact_email (an application's own contact fields, not a candidate
+    # profile's) - reusing those exact label strings means the existing
+    # German translations already apply, no new .po entries needed. No
+    # Email() validator here either, matching that precedent: this is
+    # free text grounded against the source, not a form a user fills in
+    # from scratch.
+    contact_person = StringField(_l("Contact person"), validators=[Optional(), Length(max=255, message=_max_length_message(255))])
+    contact_email = StringField(_l("Contact email"), validators=[Optional(), Length(max=255, message=_max_length_message(255))])
     application_url = URLField(_l("Application URL"), validators=[Optional(), URL(require_tld=True, message=_l("Please enter a valid URL."))])
     description = TextAreaField(_l("Description / pasted job text"), validators=[Optional(), Length(max=20000, message=_max_length_message(20000))])
     # Which batch item (by index) this save belongs to, if any - empty for a

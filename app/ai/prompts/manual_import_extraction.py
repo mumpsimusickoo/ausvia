@@ -51,6 +51,18 @@ fixed collective-bargaining pay scales rather than stating an individual \
 figure - genuinely never mention pay at all; null is the normal, \
 expected, correct answer far more often than not, never a failure to \
 avoid.
+- Extract a named contact person, ONLY if the text explicitly names a \
+specific individual for applications/questions (e.g. "Ansprechpartner: \
+Herr Schmidt", "Ihre Ansprechpartnerin Frau Julia Weber", "Kontakt: \
+Julia Weber"). Copy the name exactly as stated, including a "Herr"/"Frau" \
+title if the text gives one - never add a title the text doesn't state, \
+and never guess one from the name. A company name, department, or team \
+(e.g. "Ausbildungsabteilung", "Zoth GmbH & Co. KG", "das Recruiting-Team") \
+is NOT a contact person - report null in that case, even if that's the \
+only application-contact information given.
+- Extract a contact email address, ONLY if the text explicitly states one \
+for applications or questions. A website/application-portal URL is not an \
+email - report null, do not report a URL as if it were one.
 - Identify which LINES of the text (shown below, one per line, each \
 prefixed "N: ") are page chrome, not real posting content: navigation \
 menus, cookie/privacy banners, "Jetzt bewerben"/"Apply now"-style \
@@ -61,9 +73,9 @@ tasks, benefits, application instructions).
 
 Rules, no exceptions:
 - NEVER invent, infer, guess, or compute a company name, location, start \
-date, or salary that is not explicitly, literally present in the text. \
-Report null instead - a wrong guess sitting silently in a form field is \
-worse than an honestly empty one.
+date, salary, contact person, or contact email that is not explicitly, \
+literally present in the text. Report null instead - a wrong guess \
+sitting silently in a form field is worse than an honestly empty one.
 - Report chrome lines as "exclude_line_numbers": a JSON array of the \
 integer N prefixes of the chrome lines - never the line text itself. A \
 long cookie banner or nav menu can span dozens of lines; numbers keep the \
@@ -83,7 +95,7 @@ exclude_line_numbers) - that is a correct, expected answer, not a failure.
 
 Respond with ONLY a JSON object, no other text before or after it, in \
 exactly this shape:
-{"title": "..." or null, "company_name": "..." or null, "location": "..." or null, "start_date": "..." or null, "salary": "..." or null, "exclude_line_numbers": [1, 5, 12]}
+{"title": "..." or null, "company_name": "..." or null, "location": "..." or null, "start_date": "..." or null, "salary": "..." or null, "contact_person": "..." or null, "contact_email": "..." or null, "exclude_line_numbers": [1, 5, 12]}
 """
 
 

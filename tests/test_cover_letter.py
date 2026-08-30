@@ -17,9 +17,20 @@ def test_salutation_uses_stored_title_when_present():
     assert build_salutation("Herr Schmidt") == "Sehr geehrter Herr Schmidt"
 
 
-def test_salutation_falls_back_when_no_gendered_title():
-    assert build_salutation("Alex Müller") == "Sehr geehrte Damen und Herren"
+def test_salutation_uses_genuine_neutral_opener_when_no_title():
+    # Contact-info follow-up pass (2026-08-30): a title-less name is a
+    # real, correctly-extracted result (the extraction prompts explicitly
+    # forbid adding a title the source doesn't state), not a rarity - it
+    # must not collapse to the fully generic fallback, and must never
+    # guess a "Frau"/"Herr" title from the name either.
+    assert build_salutation("Alex Müller") == "Guten Tag Alex Müller"
+    assert build_salutation("Julia Weber") == "Guten Tag Julia Weber"
+
+
+def test_salutation_falls_back_only_when_no_name_at_all():
     assert build_salutation(None) == "Sehr geehrte Damen und Herren"
+    assert build_salutation("") == "Sehr geehrte Damen und Herren"
+    assert build_salutation("   ") == "Sehr geehrte Damen und Herren"
 
 
 def test_template_cover_letter_includes_only_real_profile_facts(app, db, make_user):

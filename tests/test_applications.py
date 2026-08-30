@@ -37,6 +37,23 @@ def test_start_application_creates_preparing_status(client, db, make_user):
     assert len(application.events) == 1
 
 
+def test_starting_application_seeds_contact_info_from_job(client, db, make_user):
+    # Contact-info follow-up pass (2026-08-30): confirms the secondary
+    # consequence of the manual-import/Arbeitsagentur contact-extraction
+    # fixes is actually resolved too, not just the generated-content
+    # salutation - Application.contact_email is the real address the
+    # Gmail draft/reply flow uses (app/applications/routes.py), seeded
+    # once at Application creation from whatever the Job row already has.
+    make_user(email="a-contact-seed@example.com", password="Password123!")
+    login(client, "a-contact-seed@example.com", "Password123!")
+    job = make_job(db, contact_person="Frau Julia Weber", contact_email="bewerbung@example.de")
+
+    resp, application = start_application(client, db, job)
+    assert resp.status_code == 200
+    assert application.contact_person == "Frau Julia Weber"
+    assert application.contact_email == "bewerbung@example.de"
+
+
 def test_starting_twice_does_not_duplicate(client, db, make_user):
     make_user(email="a2@example.com", password="Password123!")
     login(client, "a2@example.com", "Password123!")

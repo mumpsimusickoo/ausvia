@@ -6,6 +6,159 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Contact info: four independent causes fixed, from the same-day investigation
+
+Follow-up implementation pass to the same-day investigation (report kept
+in the conversation record, not duplicated here) that found four
+distinct, independently-confirmed reasons AI-generated content
+(cover letter, application email, follow-up email) was falling back to
+the generic "Sehr geehrte Damen und Herren" salutation even when a real
+job posting named a real contact. Each is a separate file, separate
+mechanism, separate fix - deliberately not bundled into one change, same
+discipline as the salary investigation before it.
+
+**1. Manual import never extracted contact_person/contact_email at
+all - exact mirror of the salary gap, same fix shape.**
+`app/ai/manual_import_extraction.py` gained the two fields the same
+grounded way as salary (prompt bullets in
+`app/ai/prompts/manual_import_extraction.py`, required-keys +
+grounding in `_validate_and_ground()`, an `EMAIL_SHAPE_RE` sanity net
+matching `job_requirements_extraction.py`'s own), and
+`ManualImportReviewForm` gained `contact_person`/`contact_email`
+fields - reusing `app/applications/forms.py`'s own exact field labels
+("Contact person"/"Contact email") and validator shape (`Optional()` +
+`Length(max=255)`, no `Email()` validator) rather than inventing new
+ones, which also meant reusing its already-translated German strings
+("Ansprechperson"/"Kontakt-E-Mail") with zero new `.po` entries needed
+for the labels themselves (two transparency-notice sentences did still
+need re-translating - see below).
+
+**2a. `extract_contact_section()`'s own documented "known v1
+limitation" - a contact block stated as a dense run-on sentence with no
+heading - fixed via an email-address signal.** Real motivating case:
+Arbeitsagentur job id 119 (CASISOFT MindWare GmbH), whose only contact
+line is `"bewerbung@casisoft.de, Ansprechpartnerin ist Frau Hubbes"`
+with no heading anywhere nearby. `app/jobs/requirements_section.py`
+gained `EMAIL_RE`: a literal email address anywhere in a line now opens
+a contact section on its own, regardless of heading shape, and the
+line's own full text (not just an after-colon fragment) is kept when it
+contains one - the previous "same-line capture" logic only ever kept
+text after a colon, which would have produced an empty section for
+CASISOFT's actual line (no colon in it at all). Deliberately NOT a
+broader "ansprechpartner anywhere in the line" rule: this exact
+CASISOFT posting has a real false-positive trap for that shape too
+("Du bist der erste Ansprechpartner für die Kunden" in its unrelated
+duties section) - an email address doesn't have that problem, since a
+job posting's body essentially never contains one for any purpose other
+than application/contact instructions. Verified directly against job
+119: `extract_contact_section()` now returns `found=True` with
+`"bewerbung@casisoft.de, Ansprechpartnerin ist Frau Hubbes"`, and a
+matching synthetic fixture (`CASISOFT_EINZELHANDEL`) was added to
+`tests/test_requirements_section.py` alongside flipping the existing
+`test_contact_section_not_found_when_only_dense_prose_sorg` test (the
+SORG_MECHATRONIKER fixture is the exact "Bitte sende deine Bewerbung
+per E-Mail an: CAREER@SORG.DE" example the module's own docstring
+already cited) to its new, correct `found=True` outcome.
+
+**2b. `_grounded_contact_value()` in
+`app/ai/job_requirements_extraction.py` lacked the whitespace-
+normalization fix `app/ai/manual_import_extraction.py`'s own
+`_grounded()` already got during the salary pass - same bug shape,
+same fix.** A genuinely-grounded contact name split across two lines in
+the source, or reformatted with a non-breaking space (U+00A0, common in
+scraped HTML - `\s` doesn't match it), was being silently rejected as
+"not found" purely because of whitespace, not because anything was
+fabricated. Added a local `_normalize_whitespace()` (same regex,
+duplicated rather than imported cross-module - each extraction pass
+documents and owns its own grounding discipline independently, same as
+before) and applied it to both the candidate value AND the contact-text
+haystack (the haystack side was the one easy to miss - normalizing only
+the value while the haystack still has real newlines would still fail
+to match). Re-verified against the exact two cases found during
+investigation: a non-breaking-space title+name, and a name split across
+lines - both now ground correctly. New tests:
+`test_multiline_contact_name_still_grounds` (full extraction path) and
+`test_grounded_contact_value_tolerates_non_breaking_space` (unit-level).
+
+**3. `build_salutation()` required a literal "Frau "/"Herr " prefix,
+capping the other three fixes regardless of how well extraction
+works - the highest-impact fix.** Both extraction prompts
+(`job_requirements_extraction.py`'s and `manual_import_extraction.py`'s)
+deliberately instruct "never add a title the text doesn't state," so a
+posting naming a contact without the German title convention -
+increasingly common in informal, du-form postings, real examples from
+this same session (ALDI Nord, CASISOFT) - correctly produces a
+title-less `contact_person`, which then fell all the way through to the
+fully generic fallback with no personalization at all. Guessing "Frau"
+or "Herr" from the name was considered and explicitly rejected (the
+user's own instruction, matching the reasoning already applied to the
+extraction rule itself): that reintroduces the exact fabrication risk
+"never add a title the text doesn't state" exists to prevent, just from
+the other direction, and is unreliable for non-German or ambiguous
+names. Fixed with a third salutation form: a title-less name gets
+`"Guten Tag [Name]"` - a genuine, standard, gender-neutral formal German
+opener, real personalization without fabricating anything. `FALLBACK`
+("Sehr geehrte Damen und Herren") is now reserved for the actual absence
+of any contact_person at all, not for "we have a name but don't know how
+to address them." Directly tested (not just read) against all three
+consumers - `render_template_cover_letter()`, `render_template_email()`,
+`render_template_followup_email()` - with both `"Frau Julia Weber"` and
+`"Julia Weber"`, confirming the salutation line actually changes as
+expected in each; the AI-generation path is fed the same computed
+salutation and instructed to use it exactly ("Use the exact salutation
+given to you" / "Salutation to use exactly:"), so it inherits this fix
+without a separate prompt change. Live-verified end-to-end through the
+real app: manually imported the real CASISOFT text (run-on-sentence
+contact info, cause 2a's exact case) through the browser, confirmed the
+review form showed "Ansprechperson: Frau Hubbes" /
+"Kontakt-E-Mail: bewerbung@casisoft.de", saved it, started a real
+application, and generated a real AI cover letter that opened
+"Sehr geehrte Frau Hubbes," - the full chain, not a mocked shortcut.
+`tests/test_cover_letter.py`'s `test_salutation_falls_back_when_no_
+gendered_title` was replaced with `test_salutation_uses_genuine_
+neutral_opener_when_no_title` (asserts the new `"Guten Tag ..."` form)
+and `test_salutation_falls_back_only_when_no_name_at_all` (the true
+fallback cases: `None`, `""`, whitespace-only).
+
+**Reply suggestions (`app/ai/reply_ai.py`) deliberately left
+unchanged.** Confirmed during investigation it never references
+`contact_person`/`contact_email`/`build_salutation()` at all - a reply
+is drafted in-thread to an existing inbound Gmail message (real sender
+already established by the thread itself), not a cold first contact, so
+the same salutation need doesn't obviously apply the way it does for a
+first letter/email. Left as an open design question for the user rather
+than changed on this pass's own judgment; re-confirmed unchanged after
+this pass's edits (no file in `app/ai/reply_ai.py` or
+`app/ai/prompts/reply_suggestion.py` touched).
+
+**Secondary consequence confirmed resolved, not just the generated
+text.** `Application.contact_person`/`contact_email` are seeded once,
+unconditionally, from `Job.contact_person`/`contact_email` at
+Application-creation time (`app/applications/routes.py`'s `start()`) -
+this seeding logic itself needed no change, since it was already
+correct; it was only ever as good as the upstream `Job` fields it read,
+which the four fixes above make populated far more often now. Verified
+directly, both via a new automated test
+(`test_starting_application_seeds_contact_info_from_job`, `tests/
+test_applications.py`) and live in the browser: starting a real
+application against the CASISOFT job showed `Kontakt-E-Mail` already
+pre-filled with `bewerbung@casisoft.de` - the real address the Gmail
+draft/reply flow (`app/applications/routes.py`'s `send_email()`/
+`check_replies()`) actually uses.
+
+**i18n**: reused `app/applications/forms.py`'s existing German
+translations for the two new field labels (zero new `.po` entries for
+those). Two transparency-notice sentences in `app/templates/jobs/
+import.html` (and the identical-text flash message in
+`app/jobs/routes.py`'s pasted-text path, which happens to share the
+exact same English string as the template's paste-path notice - one
+new German translation covers both call sites) were extended to mention
+contact info alongside salary; extracted/updated/translated/compiled
+via the exact documented `pybabel` workflow, verified via `gettext()`
+exact-match checks, 0 fuzzy entries remaining.
+
+---
+
 ## 2026-08-30 — Manual import salary extraction + API-sourced salary investigated, not fixed
 
 **The gap (manual import).** `app/ai/manual_import_extraction.py` never

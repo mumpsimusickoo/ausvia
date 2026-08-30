@@ -22,9 +22,9 @@ never treated as a sufficient guarantee, same discipline as
 job_requirements_extraction.py.
 
 Grounding is structurally different here than a plain substring check for
-one field: company_name/location/start_date/salary/title are grounded the
-usual way (must be a literal, case-insensitive substring of the source
-text),
+one field: company_name/location/start_date/salary/contact_person/
+contact_email/title are grounded the usual way (must be a literal,
+case-insensitive substring of the source text),
 but the "cleaned description" is grounded by CONSTRUCTION instead - the
 AI never composes or copies out new description text at all, it only
 names which 1-based LINE NUMBERS (against the same numbered listing shown
@@ -71,6 +71,12 @@ from app.utils.logging import log_event
 # the raw-text fallback.
 _CODE_FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
 
+# Cheap extra safety net for contact_email, alongside (not instead of) the
+# grounding check below - same reasoning and same shape as
+# job_requirements_extraction.py's own EMAIL_SHAPE_RE: deliberately simple
+# ("looks roughly like an email"), not full RFC 5322 validation.
+EMAIL_SHAPE_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
 # This is a floor against near-total wipeout (a malfunctioning response
 # that excludes almost the entire page, leaving nothing usable), not an
 # estimate of how much chrome a normal page has - live-verified against a
@@ -99,6 +105,8 @@ def _raw_fallback(page_title, text):
         "location": None,
         "start_date": None,
         "salary": None,
+        "contact_person": None,
+        "contact_email": None,
         "description": text,
     }
 
@@ -162,7 +170,10 @@ def _validate_and_ground(raw_text, page_title, source_text):
     if not isinstance(data, dict):
         return None
     if not all(
-        k in data for k in ("title", "company_name", "location", "start_date", "salary", "exclude_line_numbers")
+        k in data for k in (
+            "title", "company_name", "location", "start_date", "salary",
+            "contact_person", "contact_email", "exclude_line_numbers",
+        )
     ):
         return None
     exclude_line_numbers = data["exclude_line_numbers"]
@@ -176,12 +187,17 @@ def _validate_and_ground(raw_text, page_title, source_text):
     # of asking for a *cleaner* title than that tag usually gives) - ground
     # against the combined title+body text, not the title tag alone.
     haystack_lower = _normalize_whitespace(f"{page_title}\n{source_text}".lower())
+    contact_email = _grounded(data.get("contact_email"), haystack_lower)
+    if contact_email and not EMAIL_SHAPE_RE.match(contact_email):
+        contact_email = None  # grounded, but doesn't look like an email - discard anyway
     return {
         "title": _grounded(data.get("title"), haystack_lower),
         "company_name": _grounded(data.get("company_name"), haystack_lower),
         "location": _grounded(data.get("location"), haystack_lower),
         "start_date": _grounded(data.get("start_date"), haystack_lower),
         "salary": _grounded(data.get("salary"), haystack_lower),
+        "contact_person": _grounded(data.get("contact_person"), haystack_lower),
+        "contact_email": contact_email,
         "exclude_line_numbers": exclude_line_numbers,
     }
 
@@ -299,5 +315,7 @@ def extract_manual_import_fields(page_title, text, user_id):
         "location": validated["location"],
         "start_date": validated["start_date"],
         "salary": validated["salary"],
+        "contact_person": validated["contact_person"],
+        "contact_email": validated["contact_email"],
         "description": _clean_description(text, validated["exclude_line_numbers"]),
     }

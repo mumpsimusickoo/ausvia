@@ -66,9 +66,9 @@
     accurate - "the page" is simply wrong when nothing was ever fetched.
   #}
   {% if auto_filled == "page" %}
-  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the page - please double-check every field, especially company, location, start date, and salary, before saving.") }}</p>
+  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the page - please double-check every field, especially company, location, start date, salary, and contact info, before saving.") }}</p>
   {% elif auto_filled == "paste" %}
-  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the text you pasted - please double-check every field, especially company, location, start date, and salary, before saving.") }}</p>
+  <p class="text-xs text-t2 -mt-2 mb-4">{{ _("Filled in automatically from the text you pasted - please double-check every field, especially company, location, start date, salary, and contact info, before saving.") }}</p>
   {% endif %}
   <form method="post" action="{{ url_for('jobs.import_save') }}">
     {{ review_form.hidden_tag() }}
@@ -79,6 +79,8 @@
       {{ render_field(review_form.location) }}
       {{ render_field(review_form.start_date) }}
       {{ render_field(review_form.salary) }}
+      {{ render_field(review_form.contact_person) }}
+      {{ render_field(review_form.contact_email) }}
       {{ render_field(review_form.application_url) }}
     </div>
     {{ render_field(review_form.description) }}

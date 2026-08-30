@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-30 09:32+0100\n"
+"POT-Creation-Date: 2026-08-30 18:05+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -394,11 +394,11 @@ msgstr "Vorgeschlagene Antwort"
 msgid "Status"
 msgstr "Status"
 
-#: app/applications/forms.py:67
+#: app/applications/forms.py:67 app/jobs/forms.py:93
 msgid "Contact person"
 msgstr "Ansprechperson"
 
-#: app/applications/forms.py:68 app/models/profile.py:93
+#: app/applications/forms.py:68 app/jobs/forms.py:94 app/models/profile.py:93
 #: app/profile/forms.py:31
 msgid "Contact email"
 msgstr "Kontakt-E-Mail"
@@ -962,15 +962,15 @@ msgstr "Unternehmen"
 msgid "Salary"
 msgstr "Vergütung"
 
-#: app/jobs/forms.py:85
+#: app/jobs/forms.py:95
 msgid "Application URL"
 msgstr "Bewerbungs-URL"
 
-#: app/jobs/forms.py:85
+#: app/jobs/forms.py:95
 msgid "Please enter a valid URL."
 msgstr "Bitte gib eine gültige URL ein."
 
-#: app/jobs/forms.py:86
+#: app/jobs/forms.py:96
 msgid "Description / pasted job text"
 msgstr "Beschreibung / eingefügter Anzeigentext"
 
@@ -1139,7 +1139,7 @@ msgstr "Gespeichert."
 msgid "Removed from saved jobs."
 msgstr "Aus gespeicherten Stellen entfernt."
 
-#: app/jobs/routes.py:613
+#: app/jobs/routes.py:619
 #, python-format
 msgid ""
 "Couldn't fetch %(url)s: %(error)s Paste the text yourself below, or skip "
@@ -1148,68 +1148,69 @@ msgstr ""
 "Konnte %(url)s nicht abrufen: %(error)s Füge den Text unten selbst ein "
 "oder überspringe diesen Eintrag."
 
-#: app/jobs/routes.py:641 app/jobs/routes.py:646
+#: app/jobs/routes.py:647 app/jobs/routes.py:652
 msgid "Please paste at least one URL."
 msgstr "Bitte füge mindestens eine URL ein."
 
-#: app/jobs/routes.py:679
+#: app/jobs/routes.py:685
 #, python-format
 msgid "Only the first %(max)d URLs were used - that's the limit per batch."
 msgstr ""
 "Nur die ersten %(max)d URLs wurden verwendet - das ist das Limit pro "
 "Stapel."
 
-#: app/jobs/routes.py:681
+#: app/jobs/routes.py:687
 #, python-format
 msgid "Fetched %(succeeded)d of %(total)d page successfully."
 msgid_plural "Fetched %(succeeded)d of %(total)d pages successfully."
 msgstr[0] "%(succeeded)d von %(total)d Seite erfolgreich abgerufen."
 msgstr[1] "%(succeeded)d von %(total)d Seiten erfolgreich abgerufen."
 
-#: app/jobs/routes.py:688
+#: app/jobs/routes.py:694
 #, python-format
 msgid "%(num)d failed - you'll get a chance to paste those in manually."
 msgid_plural "%(num)d failed - you'll get a chance to paste those in manually."
 msgstr[0] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
 msgstr[1] "%(num)d fehlgeschlagen - du kannst diese anschließend manuell einfügen."
 
-#: app/jobs/routes.py:776
+#: app/jobs/routes.py:790 app/templates/jobs/import.html:71
 msgid ""
 "Filled in automatically from the text you pasted - please double-check "
-"every field, especially company, location, and start date, before saving."
+"every field, especially company, location, start date, salary, and "
+"contact info, before saving."
 msgstr ""
 "Automatisch aus dem eingefügten Text ausgefüllt – bitte prüfe jedes Feld "
-"sorgfältig, besonders Unternehmen, Ort und Startdatum, bevor du "
-"speicherst."
+"sorgfältig, besonders Unternehmen, Ort, Startdatum, Vergütung und "
+"Kontaktinformationen, bevor du speicherst."
 
-#: app/jobs/routes.py:786
+#: app/jobs/routes.py:801
 msgid "Please fill in at least the job title and company."
 msgstr "Bitte gib mindestens Berufsbezeichnung und Unternehmen an."
 
-#: app/jobs/routes.py:809 app/jobs/routes.py:819
+#: app/jobs/routes.py:826 app/jobs/routes.py:836
 msgid "Job imported."
 msgstr "Anzeige importiert."
 
-#: app/jobs/routes.py:809
+#: app/jobs/routes.py:826
 msgid "This matched an already-known opportunity - merged."
 msgstr "Das entspricht einer bereits bekannten Anzeige - zusammengeführt."
 
-#: app/jobs/routes.py:819
+#: app/jobs/routes.py:836
 msgid "Matched an already-known opportunity - merged."
 msgstr "Entspricht einer bereits bekannten Anzeige - zusammengeführt."
 
-#: app/jobs/routes.py:850
+#: app/jobs/routes.py:867
 msgid "Import batch cancelled."
 msgstr "Import-Stapel abgebrochen."
 
-#: app/jobs/routes.py:862
+#: app/jobs/routes.py:879
 #, python-format
 msgid "Batch complete: %(saved)d imported, %(not_imported)d not imported."
 msgstr ""
 "Stapel abgeschlossen: %(saved)d importiert, %(not_imported)d nicht "
 "importiert."
 
-#: app/jobs/routes.py:866
+#: app/jobs/routes.py:883
 #, python-format
 msgid "Batch complete: %(saved)d imported."
 msgstr "Stapel abgeschlossen: %(saved)d importiert."
@@ -3405,32 +3406,23 @@ msgstr "2. Überprüfen und speichern"
 #: app/templates/jobs/import.html:69
 msgid ""
 "Filled in automatically from the page - please double-check every field, "
-"especially company, location, start date, and salary, before saving."
+"especially company, location, start date, salary, and contact info, "
+"before saving."
 msgstr ""
-"Automatisch aus der Seite ausgefüllt – bitte prüfe jedes Feld sorgfältig, "
-"besonders Unternehmen, Ort, Startdatum und Vergütung, bevor du "
-"speicherst."
+"Automatisch aus der Seite ausgefüllt – bitte prüfe jedes Feld sorgfältig,"
+" besonders Unternehmen, Ort, Startdatum, Vergütung und "
+"Kontaktinformationen, bevor du speicherst."
 
-#: app/templates/jobs/import.html:71
-msgid ""
-"Filled in automatically from the text you pasted - please double-check "
-"every field, especially company, location, start date, and salary, before"
-" saving."
-msgstr ""
-"Automatisch aus dem eingefügten Text ausgefüllt – bitte prüfe jedes Feld "
-"sorgfältig, besonders Unternehmen, Ort, Startdatum und Vergütung, bevor "
-"du speicherst."
-
-#: app/templates/jobs/import.html:100
-#: app/templates/jobs/import_bookmarklet.html:22
+#: app/templates/jobs/import.html:102
+#: app/templates/jobs/import_bookmarklet.html:24
 msgid "Save opportunity"
 msgstr "Anzeige speichern"
 
-#: app/templates/jobs/import.html:102
+#: app/templates/jobs/import.html:104
 msgid "Skip this one"
 msgstr "Diese überspringen"
 
-#: app/templates/jobs/import.html:107
+#: app/templates/jobs/import.html:109
 msgid ""
 "Fetch a URL above, or use the bookmarklet below - either will fill in "
 "this form for you to review."
@@ -3438,11 +3430,11 @@ msgstr ""
 "Rufe oben eine URL ab oder nutze das Lesezeichen-Tool unten - beides "
 "füllt dieses Formular zur Überprüfung für dich aus."
 
-#: app/templates/jobs/import.html:112
+#: app/templates/jobs/import.html:114
 msgid "Browser bookmarklet"
 msgstr "Browser-Lesezeichen-Tool"
 
-#: app/templates/jobs/import.html:114
+#: app/templates/jobs/import.html:116
 msgid ""
 "Drag this to your bookmarks bar. While viewing any job posting in your "
 "own browser, click it to send that page's title, URL, and visible text "
@@ -3459,11 +3451,11 @@ msgstr ""
 "Nichts wird gespeichert, bevor du es hier prüfst und auf \"Anzeige "
 "speichern\" klickst."
 
-#: app/templates/jobs/import.html:118
+#: app/templates/jobs/import.html:120
 msgid "Import to AUSVIA"
 msgstr "Zu AUSVIA importieren"
 
-#: app/templates/jobs/import.html:132
+#: app/templates/jobs/import.html:134
 msgid ""
 "Drag this link to your bookmarks bar, then click it later while viewing a"
 " job posting."
@@ -4090,4 +4082,15 @@ msgstr "Wünsche speichern"
 
 #~ msgid "Valid for 1 hour."
 #~ msgstr "Gültig für 1 Stunde."
+
+#~ msgid ""
+#~ "Filled in automatically from the text"
+#~ " you pasted - please double-check "
+#~ "every field, especially company, location, "
+#~ "and start date, before saving."
+#~ msgstr ""
+#~ "Automatisch aus dem eingefügten Text "
+#~ "ausgefüllt – bitte prüfe jedes Feld "
+#~ "sorgfältig, besonders Unternehmen, Ort und "
+#~ "Startdatum, bevor du speicherst."
 

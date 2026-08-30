@@ -33,6 +33,22 @@ the underlying algorithm needed to change.
 """
 import re
 
+# v2 fix (contact-info follow-up pass, 2026-08-30): a line containing a
+# literal email address is an almost-zero-false-positive signal that it's
+# application/contact content, even with no heading at all - the exact
+# "dense run-on sentence" shape the module docstring used to document as a
+# known v1 limitation (e.g. "Bitte sende deine Bewerbung per E-Mail an:
+# CAREER@SORG.DE", or a real Arbeitsagentur posting - job id 119, CASISOFT
+# MindWare GmbH - whose entire contact info is one line: "bewerbung@
+# casisoft.de, Ansprechpartnerin ist Frau Hubbes"). Deliberately NOT a
+# broader "ansprechpartner anywhere in the line" rule: that collided with a
+# real false positive in this same CASISOFT posting, whose duties section
+# separately says "Du bist der erste Ansprechpartner für die Kunden" -
+# unrelated to applications. An email address doesn't have that problem;
+# a job posting's body essentially never contains one for any purpose
+# other than application/contact instructions.
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
 REQUIREMENTS_HEADERS = [
     "das bringst du mit",
     "das bringen sie mit",
@@ -147,17 +163,20 @@ def _matches_requirements_header(raw_line, normalized):
 
 
 def _matches_contact_header(raw_line, normalized):
-    """Opens a contact/application section on either an explicit stem
-    match, or - since real postings phrase this so variably ("Postalische
-    Bewerbungen an:", "Digitale Bewerbungen entweder unter:") - any
-    heading-shaped line that simply mentions "bewerbung". The
-    heading-shape requirement (short/colon-ending/bold/# line, via the
-    same _looks_like_a_heading already proven for the requirements
-    isolator) is what keeps this from firing on a random sentence deep in
-    running prose that happens to mention the word."""
+    """Opens a contact/application section on any of: an explicit stem
+    match; any heading-shaped line that simply mentions "bewerbung" (real
+    postings phrase this so variably - "Postalische Bewerbungen an:",
+    "Digitale Bewerbungen entweder unter:" - the heading-shape requirement,
+    via the same _looks_like_a_heading already proven for the requirements
+    isolator, is what keeps this from firing on a random sentence deep in
+    running prose that happens to mention the word); or a literal email
+    address anywhere in the line, heading-shaped or not - see EMAIL_RE's
+    own comment for why that one signal is safe to trust unconditionally."""
     if not normalized:
         return False
     if any(normalized.startswith(stem) for stem in CONTACT_HEADER_STEMS):
+        return True
+    if EMAIL_RE.search(raw_line):
         return True
     return "bewerbung" in normalized and _looks_like_a_heading(raw_line, normalized)
 
@@ -197,10 +216,19 @@ def _scan_sections(description, is_section_start, is_section_boundary):
             continue
 
         collected = []
-        # Some real headers carry the requirement inline on the same line
-        # (e.g. "**Schulische Voraussetzung:** mindestens guter
-        # Realschulabschluss") rather than only in the lines below it.
-        if ":" in stripped_line:
+        if EMAIL_RE.search(stripped_line):
+            # A triggering line that itself contains an email address is
+            # very often the whole payload, not a "Label: content" heading
+            # (e.g. job id 119's "bewerbung@casisoft.de, Ansprechpartnerin
+            # ist Frau Hubbes" carries no colon at all) - keep the entire
+            # line rather than the after-colon-only logic below, which
+            # would otherwise silently drop it whenever there's no colon
+            # to split on.
+            collected.append(stripped_line)
+        elif ":" in stripped_line:
+            # Some real headers carry the requirement inline on the same
+            # line (e.g. "**Schulische Voraussetzung:** mindestens guter
+            # Realschulabschluss") rather than only in the lines below it.
             after_colon = stripped_line.split(":", 1)[1]
             after_colon = re.sub(r"\*+", "", after_colon).strip()
             if after_colon:
@@ -249,10 +277,19 @@ def extract_contact_section(description):
     rule (any short "Label:" line ends the section) would incorrectly cut
     off before reaching the actual email. See _is_topic_boundary above.
 
-    Known v1 limitation, same character as the requirements isolator's own
-    (documented there): a posting that states contact info as a single
-    dense run-on sentence with no heading at all (observed live, e.g. a
-    SORG-Gruppe posting: "Bitte sende deine Bewerbung per E-Mail an:
-    CAREER@SORG.DE") won't be found - found=False, safe under-extraction,
-    not a fabrication risk."""
+    v1 limitation fixed (contact-info follow-up pass, 2026-08-30): a
+    posting that states contact info as a single dense run-on sentence
+    with no heading at all (observed live, e.g. a SORG-Gruppe posting:
+    "Bitte sende deine Bewerbung per E-Mail an: CAREER@SORG.DE", and a
+    real Arbeitsagentur job - id 119, CASISOFT MindWare GmbH - whose only
+    contact line is "bewerbung@casisoft.de, Ansprechpartnerin ist Frau
+    Hubbes") used to return found=False - safe under-extraction, not a
+    fabrication risk, but a real, confirmed cause of contact_person/
+    contact_email silently staying empty for jobs that state it this way.
+    Fixed via EMAIL_RE: a literal email address anywhere in a line is
+    treated as a section-start signal on its own, regardless of heading
+    shape - see EMAIL_RE's own comment for why that one signal doesn't
+    carry the false-positive risk a bare "ansprechpartner"-anywhere rule
+    would (this same CASISOFT posting's unrelated duties section says "Du
+    bist der erste Ansprechpartner für die Kunden")."""
     return _scan_sections(description, _matches_contact_header, _is_topic_boundary)

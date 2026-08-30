@@ -515,6 +515,8 @@ def _store_extraction_result(batch, item, result):
         "extracted_location": result["location"],
         "extracted_start_date": result["start_date"],
         "extracted_salary": result["salary"],
+        "extracted_contact_person": result["contact_person"],
+        "extracted_contact_email": result["contact_email"],
         "extracted_description": result["description"],
     }
     batch.items = items
@@ -587,6 +589,8 @@ def _render_batch_review(batch):
         review_form.location.data = item["extracted_location"]
         review_form.start_date.data = item["extracted_start_date"]
         review_form.salary.data = item["extracted_salary"]
+        review_form.contact_person.data = item["extracted_contact_person"]
+        review_form.contact_email.data = item["extracted_contact_email"]
         review_form.description.data = item["extracted_description"]
         review_form.application_url.data = item["url"]
         auto_filled = "page"
@@ -603,6 +607,8 @@ def _render_batch_review(batch):
         review_form.location.data = item["extracted_location"]
         review_form.start_date.data = item["extracted_start_date"]
         review_form.salary.data = item["extracted_salary"]
+        review_form.contact_person.data = item["extracted_contact_person"]
+        review_form.contact_email.data = item["extracted_contact_email"]
         review_form.description.data = item["extracted_description"]
         review_form.application_url.data = item["url"]
         auto_filled = "paste"
@@ -736,6 +742,8 @@ def import_save():
             submitted_location = (review_form.location.data or "").strip()
             submitted_start_date = (review_form.start_date.data or "").strip()
             submitted_salary = (review_form.salary.data or "").strip()
+            submitted_contact_person = (review_form.contact_person.data or "").strip()
+            submitted_contact_email = (review_form.contact_email.data or "").strip()
 
             # Only fill fields the user left blank - anything they
             # actually typed themselves is real, human-provided data and
@@ -745,6 +753,8 @@ def import_save():
             filled_location = submitted_location or extracted_item["extracted_location"]
             filled_start_date = submitted_start_date or extracted_item["extracted_start_date"]
             filled_salary = submitted_salary or extracted_item["extracted_salary"]
+            filled_contact_person = submitted_contact_person or extracted_item["extracted_contact_person"]
+            filled_contact_email = submitted_contact_email or extracted_item["extracted_contact_email"]
 
             # Whether extraction actually added anything worth a second
             # look - if the user had already typed everything themselves
@@ -762,6 +772,8 @@ def import_save():
                 or (not submitted_location and filled_location)
                 or (not submitted_start_date and filled_start_date)
                 or (not submitted_salary and filled_salary)
+                or (not submitted_contact_person and filled_contact_person)
+                or (not submitted_contact_email and filled_contact_email)
                 or extracted_item["extracted_description"] != raw_description
             )
             if added_new_value:
@@ -770,11 +782,14 @@ def import_save():
                 review_form.location.data = filled_location
                 review_form.start_date.data = filled_start_date
                 review_form.salary.data = filled_salary
+                review_form.contact_person.data = filled_contact_person
+                review_form.contact_email.data = filled_contact_email
                 review_form.description.data = extracted_item["extracted_description"]
                 flash(
                     _(
                         "Filled in automatically from the text you pasted - please double-check every "
-                        "field, especially company, location, and start date, before saving."
+                        "field, especially company, location, start date, salary, and contact info, before "
+                        "saving."
                     ),
                     "info",
                 )
@@ -793,6 +808,8 @@ def import_save():
         location=review_form.location.data or None,
         start_date=review_form.start_date.data or None,
         salary=review_form.salary.data or None,
+        contact_person=review_form.contact_person.data or None,
+        contact_email=review_form.contact_email.data or None,
         application_url=review_form.application_url.data or None,
         source_url=review_form.application_url.data or None,
         description=review_form.description.data or None,

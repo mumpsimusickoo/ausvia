@@ -1161,6 +1161,49 @@ for a redesign pass, started 2026-08-24.
       finding and reasoning.
 - [x] Full suite: 718 passed, 3 skipped.
 
+## Contact info: four independent causes fixed (complete)
+
+Implementation pass following the same-day investigation that found
+four distinct, confirmed reasons cover letter/application email/
+follow-up email generation kept falling back to a fully generic
+salutation even when a job posting named a real contact.
+
+- [x] **Manual import** - `contact_person`/`contact_email` added to
+      extraction (`app/ai/manual_import_extraction.py`) and
+      `ManualImportReviewForm`, exact mirror of the salary fix, reusing
+      `app/applications/forms.py`'s existing field labels/translations.
+- [x] **`extract_contact_section()`'s documented "known v1
+      limitation"** (a contact block stated as a dense run-on sentence
+      with no heading) fixed via an email-address detection signal -
+      re-verified directly against the real motivating case,
+      Arbeitsagentur job id 119 (CASISOFT MindWare GmbH):
+      `extract_contact_section()` now returns `found=True` with the real
+      name/email instead of the placeholder.
+- [x] **`_grounded_contact_value()` whitespace-normalization gap** -
+      same bug shape, same fix, as manual import's own `_grounded()`
+      fixed during the salary pass. Re-verified against the exact two
+      synthetic cases found in investigation (non-breaking space, a name
+      split across lines) - both now ground correctly.
+- [x] **`build_salutation()` required a literal "Frau "/"Herr "
+      prefix** - the highest-impact fix, since it silently capped the
+      other three regardless of extraction quality. A title-less name
+      (increasingly common in informal postings - real examples this
+      session: ALDI Nord, CASISOFT) now gets a genuine, standard,
+      gender-neutral opener ("Guten Tag [Name]") instead of either
+      fabricating a title or falling back to the fully generic greeting.
+      Directly tested against all three consumers, and live-verified
+      end-to-end through the real app: a real manually-imported CASISOFT
+      posting -> saved job -> started application -> real AI-generated
+      cover letter opening "Sehr geehrte Frau Hubbes,".
+- [x] Reply suggestions confirmed unchanged (deliberately doesn't use
+      `contact_person`/`contact_email`/`build_salutation()` - left as an
+      open design question, not fixed on this pass's own judgment).
+- [x] Secondary consequence confirmed resolved too:
+      `Application.contact_email` (the real address the Gmail draft/
+      reply flow uses) is seeded from `Job.contact_email` at Application
+      creation - verified via a new test and live in the browser.
+- [x] Full suite: see `DECISIONS.md` for the final count.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

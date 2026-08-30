@@ -61,6 +61,18 @@ Interessiert?
 Wende dich an unser Team unter office-berlin (interner Kürzel, keine Email).
 """
 
+# Contact-info follow-up pass (2026-08-30): the contact name genuinely
+# spans two lines in the source, same real shape as job id 119 (CASISOFT
+# MindWare GmbH) - motivates the _normalize_whitespace() fix in
+# _grounded_contact_value(), same bug shape as manual import's own
+# earlier-fixed _grounded().
+PFIZER_WITH_MULTILINE_CONTACT_NAME = PFIZER_DESCRIPTION + """
+Interessiert?
+
+Deine Ansprechpartnerin ist Frau Julia
+Weber, erreichbar unter bewerbung@pfizer-beispiel.de.
+"""
+
 
 class FakeProvider(AIProvider):
     provider_name = "fake"
@@ -467,6 +479,36 @@ def test_no_contact_section_found_contact_fields_stay_none(app, db, make_user, m
     db.session.refresh(job)
     assert job.contact_person is None
     assert job.contact_email is None
+
+
+def test_multiline_contact_name_still_grounds(app, db, make_user, monkeypatch):
+    # Contact-info follow-up pass (2026-08-30): the source states the name
+    # across two lines ("Ansprechpartnerin ist Frau Julia\nWeber") - the
+    # AI (correctly) reports it joined with a single space, which used to
+    # be silently rejected as ungrounded before _grounded_contact_value()
+    # gained the same _normalize_whitespace() fix manual import's own
+    # _grounded() already had.
+    user = make_user(email="ex-multiline-contact@example.com")
+    job = make_job(db, PFIZER_WITH_MULTILINE_CONTACT_NAME)
+
+    fake = FakeProvider(
+        text='{"skills": [], "languages": [], '
+        '"contact_person": "Frau Julia Weber", "contact_email": "bewerbung@pfizer-beispiel.de"}'
+    )
+    monkeypatch.setattr(extraction_module, "get_provider", lambda: fake)
+
+    extract_job_requirements(job.id, user.id)
+
+    db.session.refresh(job)
+    assert job.contact_person == "Frau Julia Weber"
+    assert job.contact_email == "bewerbung@pfizer-beispiel.de"
+
+
+def test_grounded_contact_value_tolerates_non_breaking_space():
+    from app.ai.job_requirements_extraction import _grounded_contact_value, _normalize_whitespace
+
+    contact_text_lower = _normalize_whitespace("Ansprechpartner:\nHerr Max\xa0Mustermann".lower())
+    assert _grounded_contact_value("Herr Max Mustermann", contact_text_lower) == "Herr Max Mustermann"
 
 
 # --- Extraction retry pass (2026-08-29): attempt-count / last-attempted-at tracking ---
