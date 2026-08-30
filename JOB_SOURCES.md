@@ -116,11 +116,18 @@ ongoing work or research" without written consent, and continued use past
 the trial requires "a licence agreement" directly with Adzuna. **This
 adapter being built and working is not the same thing as being cleared for
 ongoing production use** - that's a real business decision, not a code
-merge. No trial has been started as part of this implementation pass (no
-Adzuna account was created - see "What wasn't done" below); **the 14-day
-window starts whenever real `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` credentials
-are actually obtained and first used**, not from this document's date.
-Track that start date here once it happens.
+merge. **Update, 2026-08-30: real `ADZUNA_APP_ID`/`ADZUNA_APP_KEY`
+credentials now exist in `.env`** (not added as part of any implementation
+pass in this repo's history - found already present, exact trial-start
+date unconfirmed). **The off-by-default fix this same date** (see
+`DECISIONS.md`) means real credentials existing no longer activates
+Adzuna for real users on their own - `JobSourceSetting.is_enabled` for
+"adzuna" defaults to `False` and must be deliberately flipped on via
+`/admin/job-sources`, so the 14-day trial clock isn't silently spent on
+general traffic before anyone's decided to. Track the actual trial start
+date here once confirmed - the window starts from whenever the
+credentials were first *used* against Adzuna's API, not from this
+document's date.
 
 **Attribution requirement** (ToS, read directly): displaying Adzuna
 listings must show a "Jobs by Adzuna" credit, at least 116×23px, with
@@ -147,16 +154,17 @@ Arbeitsagentur's is - Adzuna's `contract_type` field is generic
 Adzuna keyword search doesn't guarantee apprenticeship-only results.
 Forcing that label would fabricate a fact Adzuna doesn't actually confirm.
 
-**Result-quality question - not answered by this pass.** The task this
-adapter was built under explicitly asked whether Adzuna's real result set
-for German Ausbildung-style keywords returns meaningful apprenticeship
-volume, or mostly general/unrelated listings. **This could not be tested
-live** - no real Adzuna credentials exist in this environment (creating a
-trial account wasn't done as part of this pass; see "What wasn't done"
-below). `tests/test_live_providers.py::test_adzuna_live_search_ausbildung_result_quality`
-is built and ready to answer this precisely (prints each result's title
-with an apprenticeship-keyword heuristic flag) - run it once real
-credentials exist:
+**Result-quality question - answered, 2026-08-30.** The task this adapter
+was built under explicitly asked whether Adzuna's real result set for
+German Ausbildung-style keywords returns meaningful apprenticeship
+volume, or mostly general/unrelated listings. Now tested live against the
+real API: `test_adzuna_live_search_ausbildung_result_quality` for
+"Ausbildung Elektroniker" returned **25/25 results genuinely
+apprenticeship-related** by title (SCHOTT AG, TransnetBW, Rheinmetall,
+Westnetz, and other real German employers' real Ausbildung postings, not
+general/unrelated listings). Real result quality is good - the earlier
+open question is resolved, though this remains a single keyword/single
+run, not a comprehensive quality audit across every Ausbildung field.
 
 ```
 RUN_LIVE_PROVIDER_TESTS=1 ADZUNA_APP_ID=... ADZUNA_APP_KEY=... \
@@ -263,15 +271,17 @@ RUN_LIVE_PROVIDER_TESTS=1 JOOBLE_API_KEY=... \
 
 ### What wasn't done, and why
 
-No Adzuna trial account was created as part of this implementation pass -
-it requires a real named human (Adzuna's trial terms bind whoever signs up
-to the 14-day restriction) - creating one on your behalf without your
-knowledge would start a real, consequential clock. The adapter is fully
-built, fully unit-tested against realistic mocked responses, and ready to
-use the moment real credentials are set in `.env`/your host's environment
-variables - see `DEPLOYMENT.md`'s env var table. (Jooble's own key has
-since been obtained and is live - see above; it just isn't available to
-general users by design.)
+No Adzuna trial account was created as part of the original implementation
+pass - it requires a real named human (Adzuna's trial terms bind whoever
+signs up to the 14-day restriction) - creating one on someone's behalf
+without their knowledge would start a real, consequential clock. **Update,
+2026-08-30: real credentials now exist in `.env`** (found already present,
+not added by any pass in this repo's history - exact trial-start date
+unconfirmed) - see the off-by-default fix above: their presence alone no
+longer activates Adzuna for real users, an admin still has to deliberately
+enable it via `/admin/job-sources`. (Jooble's own key has since been
+obtained and is live - see above; it just isn't available to general
+users by design, same as Adzuna now defaults to.)
 
 ### Manual import — universal fallback, not a "source" in the adapter sense
 

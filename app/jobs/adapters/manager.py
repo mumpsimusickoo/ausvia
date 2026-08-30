@@ -90,22 +90,53 @@ def all_adapters():
     return {**ADAPTERS, **_configured_adapters()}
 
 
+# Adzuna off-by-default pass (2026-08-30): unlike every other source here,
+# Adzuna must never go live just because ADZUNA_APP_ID/ADZUNA_APP_KEY exist
+# in config - real credentials are necessary but not sufficient, an admin
+# also has to deliberately flip JobSourceSetting.is_enabled on via
+# /admin/job-sources first. Found live: this row was seeded is_enabled=True
+# (same blanket default every other source gets) back when no Adzuna
+# credentials existed yet, so the moment real credentials were added to
+# .env this session, Adzuna would have started appearing in real user
+# search results with no deliberate admin action at all - the exact
+# opposite of Jooble's already-careful ADMIN_ONLY_SOURCES gating above.
+# This doesn't need Jooble's admin-only *scoping* (Adzuna's limits reset
+# daily/weekly/monthly, not a lifetime cap) - just an off-by-default
+# toggle, reusing the same is_enabled infrastructure every source already
+# has. See migrations/versions/ for the one-time fix to any row seeded
+# True before this pass, in this DB or an already-deployed one.
+SEED_DISABLED_SOURCES = {"adzuna"}
+
+
 def ensure_source_settings_seeded():
     existing = {s.source_name for s in JobSourceSetting.query.all()}
     for name, display_name in KNOWN_SOURCES.items():
         if name not in existing:
             # str(): display_name may be a LazyString (KNOWN_SOURCES["manual"]) -
             # SQLite/SQLAlchemy can't bind that type directly to a column.
-            db.session.add(JobSourceSetting(source_name=name, display_name=str(display_name), is_enabled=True))
+            db.session.add(JobSourceSetting(
+                source_name=name, display_name=str(display_name),
+                is_enabled=name not in SEED_DISABLED_SOURCES,
+            ))
     db.session.commit()
 
 
 def get_enabled_adapter_names():
+    # ensure_source_settings_seeded() is only ever called from the admin
+    # job-sources page itself (app/admin/routes.py) - a fresh deployment
+    # can genuinely run real search traffic before any admin has ever
+    # visited it, meaning no JobSourceSetting row exists for ANY source
+    # yet. The old fallback (no row -> treat as enabled) is intentional
+    # and correct for Arbeitsagentur (needs no credentials, should just
+    # work) but was ALSO silently applying to Adzuna - the exact
+    # "credentials alone are enough" gap this pass closes. A source in
+    # SEED_DISABLED_SOURCES defaults to NOT enabled when no row exists
+    # yet, same as its seed default above, so the two can never disagree.
     settings = {s.source_name: s for s in JobSourceSetting.query.all()}
     return [
         name
         for name in all_adapters()
-        if name not in settings or settings[name].is_enabled
+        if (settings[name].is_enabled if name in settings else name not in SEED_DISABLED_SOURCES)
     ]
 
 

@@ -60,12 +60,80 @@ def test_jooble_present_once_configured(app):
     assert adapters["jooble"].api_key == "test-jooble-key"
 
 
-def test_configured_adzuna_appears_in_enabled_adapters(app, db):
+# --- Adzuna off-by-default pass (2026-08-30): real credentials must never
+# be sufficient on their own to go live in real search - see
+# app/jobs/adapters/manager.py's SEED_DISABLED_SOURCES docstring. Found
+# live: real credentials existing in .env would have made Adzuna appear
+# in real user search results immediately, with no deliberate admin
+# action, because (a) ensure_source_settings_seeded()'s old blanket
+# default seeded every source is_enabled=True, and (b) even without a
+# seeded row at all, get_enabled_adapter_names()'s old fallback treated
+# an absent row as enabled. Both are fixed below; this replaces the old
+# test_configured_adzuna_appears_in_enabled_adapters, which was asserting
+# the buggy fail-open behavior as if it were correct - same shape as an
+# earlier session's password-reset test rewrite. ---
+
+def test_configured_adzuna_is_not_enabled_with_no_settings_row_at_all(app, db):
+    # ensure_source_settings_seeded() is only ever called from the admin
+    # job-sources page - a fresh deployment can run real search traffic
+    # before any admin has ever visited it, so no JobSourceSetting row
+    # exists for any source yet. Real credentials alone must still not be
+    # enough for Adzuna in that state.
     app.config["ADZUNA_APP_ID"] = "test-id"
     app.config["ADZUNA_APP_KEY"] = "test-key"
     with app.app_context():
+        assert JobSourceSetting.query.count() == 0
+        names = adapter_manager.get_enabled_adapter_names()
+    assert "adzuna" not in names
+    # Arbeitsagentur's fail-open default is unaffected - it needs no
+    # credentials and should keep working with zero admin setup.
+    assert "arbeitsagentur" in names
+
+
+def test_configured_adzuna_defaults_disabled_when_freshly_seeded(app, db):
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+    with app.app_context():
+        adapter_manager.ensure_source_settings_seeded()
+        setting = JobSourceSetting.query.filter_by(source_name="adzuna").first()
+        assert setting.is_enabled is False
+        names = adapter_manager.get_enabled_adapter_names()
+    assert "adzuna" not in names
+
+
+def test_configured_adzuna_appears_once_explicitly_enabled(app, db):
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+    with app.app_context():
+        db.session.add(JobSourceSetting(source_name="adzuna", display_name="Adzuna", is_enabled=True))
+        db.session.commit()
         names = adapter_manager.get_enabled_adapter_names()
     assert "adzuna" in names
+
+
+def test_configured_adzuna_disappears_once_explicitly_disabled_again(app, db):
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+    with app.app_context():
+        setting = JobSourceSetting(source_name="adzuna", display_name="Adzuna", is_enabled=True)
+        db.session.add(setting)
+        db.session.commit()
+        assert "adzuna" in adapter_manager.get_enabled_adapter_names()
+
+        setting.is_enabled = False
+        db.session.commit()
+        assert "adzuna" not in adapter_manager.get_enabled_adapter_names()
+
+
+def test_other_sources_still_default_enabled_with_no_settings_row(app, db):
+    # Only Adzuna's default changed - Jooble (once configured) and
+    # Arbeitsagentur must keep their existing fail-open-enabled behavior
+    # with zero admin setup.
+    app.config["JOOBLE_API_KEY"] = "test-jooble-key"
+    with app.app_context():
+        assert JobSourceSetting.query.count() == 0
+        names = adapter_manager.get_enabled_adapter_names()
+    assert "jooble" in names
     assert "arbeitsagentur" in names
 
 
@@ -137,3 +205,50 @@ def test_job_sources_page_prefers_live_translation_over_stored_snapshot(client, 
     # KNOWN_SOURCES, not s.display_name.
     assert "Manueller Import" in body
     assert "Manual import" not in body
+
+
+# --- Route-level verification, Adzuna off-by-default pass (2026-08-30):
+# a non-admin user's actual search page must not offer Adzuna as a source
+# while disabled, even with real credentials configured, and must offer
+# it immediately after an admin toggles it on via the real admin route -
+# no code change, no restart, matching how every other source's toggle
+# already works. ---
+
+def test_search_page_does_not_offer_adzuna_while_disabled(client, app, db, make_user):
+    from tests.conftest import login
+
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+
+    make_user(email="searcher@example.com", password="Password123!")
+    login(client, "searcher@example.com", "Password123!")
+
+    resp = client.get("/jobs/")
+    body = resp.data.decode("utf-8")
+    assert "Adzuna" not in body
+
+
+def test_search_page_offers_adzuna_immediately_after_admin_enables_it(client, app, db, make_user):
+    from tests.conftest import login
+
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+
+    make_user(email="searcher2@example.com", password="Password123!")
+    admin = make_user(email="admin-adzuna@example.com", password="Password123!", role="admin")
+
+    login(client, "admin-adzuna@example.com", "Password123!")
+    # ensure_source_settings_seeded() runs as a side effect of visiting
+    # the admin page - matches how a real admin would actually enable it.
+    client.get("/admin/job-sources")
+    setting = JobSourceSetting.query.filter_by(source_name="adzuna").first()
+    assert setting.is_enabled is False  # confirms the off-by-default fix seeded it correctly
+    client.post(f"/admin/job-sources/{setting.id}/toggle")
+    db.session.refresh(setting)
+    assert setting.is_enabled is True
+
+    client.get("/auth/logout")
+    login(client, "searcher2@example.com", "Password123!")
+    resp = client.get("/jobs/")
+    body = resp.data.decode("utf-8")
+    assert "Adzuna" in body

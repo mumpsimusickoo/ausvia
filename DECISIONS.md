@@ -6,6 +6,56 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Adzuna: credentials alone must never activate it for real users
+
+**A real, pre-existing gap - not a false alarm.** Investigated whether
+`app/jobs/adapters/manager.py`'s real search paths
+(`get_enabled_adapter_names()`/`get_enabled_adapters()`) actually respect
+`JobSourceSetting.is_enabled` for Adzuna the way every other source's
+admin toggle already implies. They do check it correctly when a settings
+row exists and has the intended value - that part was fine. The actual
+gap was two layers up: `ensure_source_settings_seeded()` seeded every
+source, Adzuna included, with a blanket `is_enabled=True` default, and
+this dev DB's `adzuna` row was seeded that way back before any Adzuna
+credentials existed. The moment real `ADZUNA_APP_ID`/`ADZUNA_APP_KEY`
+landed in `.env` this session, Adzuna would have started appearing in
+real, non-admin user search results with zero deliberate admin action -
+confirmed live (`JobSourceSetting.query.all()` showed `adzuna
+is_enabled=True` before this pass touched anything).
+
+**A second, more fundamental layer of the same gap:**
+`ensure_source_settings_seeded()` is only ever called from the admin
+job-sources page itself (`app/admin/routes.py`) - a fresh deployment can
+run real search traffic before any admin has ever visited that page,
+meaning no `JobSourceSetting` row exists for *any* source yet. The old
+`get_enabled_adapter_names()` fallback (`name not in settings` -> treat
+as enabled) is correct and intentional for Arbeitsagentur (needs no
+credentials, should just work with zero setup) but was silently applying
+the same treatment to Adzuna. Fixing only the seed default would have
+left this fail-open path as a second, later way to reintroduce the exact
+same bug.
+
+**Fix, both layers, reusing existing infrastructure only** (no new
+admin-only scoping needed - Adzuna's limits reset daily/weekly/monthly,
+not Jooble's lifetime cap): a new `SEED_DISABLED_SOURCES = {"adzuna"}`
+set drives both (1) `ensure_source_settings_seeded()`'s per-source
+default and (2) `get_enabled_adapter_names()`'s no-row fallback, so the
+two can never disagree. A new data-only Alembic migration
+(`df88254c4f2c`) flips any already-seeded `adzuna` row back to
+`is_enabled=False` once - the same correction this dev DB needed, now
+portable to any already-deployed database too. `/admin/job-sources`'s
+existing generic toggle route needed no changes at all - an admin can
+still turn Adzuna on exactly as before, deliberately.
+
+**Live-verified, non-admin user, real credentials, both directions:**
+with `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` real and configured but
+`is_enabled=False`, neither the public landing footer nor a logged-in
+non-admin's `/jobs/` search page mentioned Adzuna at all. An admin
+toggling it on via the real `/admin/job-sources` UI made it appear on
+both immediately after, no restart - then toggled back off to leave the
+dev environment in the correct, safe default state. Full suite: 707
+passed, 3 skipped (was 700 before this pass).
+
 ## 2026-08-30 — Password reset: real email delivery via Resend
 
 **What this completes.** The earlier security fix (this file's password-

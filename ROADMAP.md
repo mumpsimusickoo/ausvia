@@ -1061,6 +1061,42 @@ for a redesign pass, started 2026-08-24.
       change, then logging in with the new password to confirm it was
       genuinely active. Full suite: 700 passed, 3 skipped.
 
+## Adzuna off-by-default fix (complete)
+
+- [x] **A real, pre-existing gap, confirmed not a false alarm** - real
+      `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` credentials found already present
+      in `.env` would have activated Adzuna for real, non-admin user
+      search traffic with zero deliberate admin action. The `is_enabled`
+      *check* was already correct wherever it ran; the actual gap was two
+      layers up: `ensure_source_settings_seeded()` seeded every source,
+      Adzuna included, `is_enabled=True` by default, and this dev DB's
+      row had been seeded that way before any Adzuna credentials existed.
+      A second, more fundamental layer of the same gap:
+      `ensure_source_settings_seeded()` only runs when an admin visits
+      `/admin/job-sources` - a fresh deployment with real credentials
+      could run real search traffic before that ever happens, with no
+      settings row for any source at all, and the old fallback (no row ->
+      treat as enabled, correct and intentional for Arbeitsagentur) was
+      silently applying to Adzuna too.
+- [x] **Fixed, both layers, reusing existing infrastructure only** - no
+      new admin-only scoping needed (Adzuna's limits reset daily/weekly/
+      monthly, not Jooble's lifetime cap). A new
+      `SEED_DISABLED_SOURCES = {"adzuna"}` drives both the seed default
+      and the no-row fallback so they can't disagree. A new data-only
+      migration (`df88254c4f2c`) flips any already-seeded `adzuna` row
+      back to disabled once - portable to any already-deployed database,
+      not just this dev DB. `/admin/job-sources`'s existing generic
+      toggle needed no changes - an admin can still enable it exactly as
+      before, deliberately.
+- [x] **Live-verified, non-admin user, real credentials, both
+      directions** - with real credentials configured but disabled,
+      neither the public landing footer nor a logged-in non-admin's
+      `/jobs/` search page mentioned Adzuna. An admin toggling it on via
+      the real `/admin/job-sources` UI made it appear on both
+      immediately, no restart - then toggled back off to leave the dev
+      environment in the correct default state. See `DECISIONS.md` for
+      full detail. Full suite: 707 passed, 3 skipped.
+
 ## Before any public launch (not yet scheduled)
 
 - [ ] **Real Impressum + privacy policy** - no privacy or Impressum

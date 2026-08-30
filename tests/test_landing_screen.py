@@ -66,17 +66,37 @@ def test_footer_excludes_manual_import_as_a_source(client):
     assert b"Manual import" not in resp.data
 
 
-def test_footer_source_list_updates_once_adzuna_is_configured(app, db):
+def test_footer_source_list_updates_once_adzuna_is_configured_and_enabled(app, db):
     # Proves the list is genuinely generated from get_enabled_adapter_names(),
-    # not hardcoded - configuring a second adapter changes the rendered
-    # output without touching the template.
+    # not hardcoded - configuring a second adapter AND enabling it changes
+    # the rendered output without touching the template. Adzuna off-by-
+    # default pass (2026-08-30): credentials alone are deliberately not
+    # enough any more (see app/jobs/adapters/manager.py's
+    # SEED_DISABLED_SOURCES) - this test used to configure credentials
+    # only and rely on the old fail-open default, which was exactly the
+    # bug that pass fixed. See the companion test right below for that
+    # credentials-alone case.
+    from app.models.job import JobSourceSetting
+
     app.config["ADZUNA_APP_ID"] = "test-id"
     app.config["ADZUNA_APP_KEY"] = "test-key"
+    with app.app_context():
+        db.session.add(JobSourceSetting(source_name="adzuna", display_name="Adzuna", is_enabled=True))
+        db.session.commit()
     client = app.test_client()
     resp = client.get("/")
     body = resp.data.decode("utf-8")
     assert "Adzuna" in body
     assert "Sources:" in body  # plural - two sources now enabled
+
+
+def test_footer_source_list_does_not_show_adzuna_from_credentials_alone(app, db):
+    app.config["ADZUNA_APP_ID"] = "test-id"
+    app.config["ADZUNA_APP_KEY"] = "test-key"
+    client = app.test_client()
+    resp = client.get("/")
+    body = resp.data.decode("utf-8")
+    assert "Adzuna" not in body
 
 
 def test_footer_has_no_privacy_or_imprint_links(client):
