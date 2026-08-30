@@ -4,6 +4,7 @@ enabled/disabled independently by an admin via JobSourceSetting without
 touching code - see app/admin/routes.py.
 """
 from flask import current_app
+from flask_babel import lazy_gettext as _l
 
 from app.extensions import db
 from app.models.job import JobSourceSetting
@@ -24,11 +25,25 @@ ADAPTERS = {
 # see app/jobs/manual_import.py) but still gets a settings row so admins can
 # see/toggle it alongside real adapters for consistency. Adzuna/Jooble get a
 # row too even before their credentials are configured, same reasoning.
+#
+# i18n sweep (2026-08-30): "manual" is the only value here that's a real
+# functional label, not a proper name - "Bundesagentur für Arbeit
+# (Jobsuche)" is the agency's actual name, "Adzuna"/"Jooble" are company
+# names, none of the three vary by locale on purpose. "manual" now does,
+# via _l() - callers that persist this to JobSourceSetting.display_name
+# (ensure_source_settings_seeded()/record_run() below) must str() it at
+# the point of assignment, the same LazyString-can't-bind-to-SQLite
+# pattern this app has hit repeatedly elsewhere. Also note: a value
+# resolved and stored that way is frozen at whichever locale was active
+# the moment that row was first created, not re-evaluated per later
+# admin page view - see app/admin/routes.py's job_sources() route, which
+# renders straight from this dict instead of the stored column for
+# exactly that reason.
 KNOWN_SOURCES = {
     "arbeitsagentur": "Bundesagentur für Arbeit (Jobsuche)",
     "adzuna": "Adzuna",
     "jooble": "Jooble",
-    "manual": "Manual import",
+    "manual": _l("Manual import"),
 }
 
 # Jooble admin-only scoping pass (2026-08-29): Jooble's free tier is a
@@ -79,7 +94,9 @@ def ensure_source_settings_seeded():
     existing = {s.source_name for s in JobSourceSetting.query.all()}
     for name, display_name in KNOWN_SOURCES.items():
         if name not in existing:
-            db.session.add(JobSourceSetting(source_name=name, display_name=display_name, is_enabled=True))
+            # str(): display_name may be a LazyString (KNOWN_SOURCES["manual"]) -
+            # SQLite/SQLAlchemy can't bind that type directly to a column.
+            db.session.add(JobSourceSetting(source_name=name, display_name=str(display_name), is_enabled=True))
     db.session.commit()
 
 
@@ -107,8 +124,10 @@ def record_run(source_name, status, message=None):
 
     setting = JobSourceSetting.query.filter_by(source_name=source_name).first()
     if setting is None:
+        # str(): same LazyString-can't-bind-to-SQLite reasoning as
+        # ensure_source_settings_seeded() above.
         setting = JobSourceSetting(
-            source_name=source_name, display_name=KNOWN_SOURCES.get(source_name, source_name)
+            source_name=source_name, display_name=str(KNOWN_SOURCES.get(source_name, source_name))
         )
         db.session.add(setting)
     setting.last_run_at = utcnow()

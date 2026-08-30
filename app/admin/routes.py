@@ -10,7 +10,7 @@ from app.models import User, InvitationCode, SystemLog, Document, Job, JobSource
 from app.models.access_code import generate_code
 from app.utils.logging import log_event
 from app.admin.forms import CreateCodeForm
-from app.jobs.adapters.manager import ensure_source_settings_seeded
+from app.jobs.adapters.manager import KNOWN_SOURCES, ensure_source_settings_seeded
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -113,7 +113,15 @@ def revoke_code(code_id):
 def job_sources():
     ensure_source_settings_seeded()
     settings = JobSourceSetting.query.order_by(JobSourceSetting.source_name).all()
-    return render_template("admin/job_sources.html", settings=settings)
+    # i18n sweep (2026-08-30): render each row's name from the live
+    # KNOWN_SOURCES dict, not the stored display_name column - that
+    # column is resolved once, at whichever locale was active the
+    # moment the row was first seeded/first ran, and never re-evaluated
+    # after. KNOWN_SOURCES is re-read fresh on every request instead, so
+    # "manual" (the one entry that's locale-aware, via _l()) actually
+    # follows the current viewing admin's locale here, not whichever
+    # locale happened to be active at seed time.
+    return render_template("admin/job_sources.html", settings=settings, known_sources=KNOWN_SOURCES)
 
 
 @bp.route("/job-sources/<int:setting_id>/toggle", methods=["POST"])

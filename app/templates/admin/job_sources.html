@@ -17,7 +17,11 @@
     <tbody>
       {% for s in settings %}
       <tr class="border-b border-line last:border-0">
-        <td class="px-5 py-3 font-medium text-t1">{{ s.display_name }}</td>
+        {# i18n sweep (2026-08-30): known_sources (live, current-locale)
+           preferred over s.display_name (a stored snapshot, frozen at
+           whichever locale was active the moment this row was first
+           created) - see app/admin/routes.py's job_sources() route. #}
+        <td class="px-5 py-3 font-medium text-t1">{{ known_sources.get(s.source_name, s.display_name) }}</td>
         <td class="px-5 py-3">
           {% if s.is_enabled %}<span class="rounded-full bg-ok-tint px-2 py-0.5 text-xs text-ok">{{ _("Enabled") }}</span>
           {% else %}<span class="rounded-full bg-line px-2 py-0.5 text-xs text-t2">{{ _("Disabled") }}</span>{% endif %}

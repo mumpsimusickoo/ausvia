@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-30 04:15+0100\n"
+"POT-Creation-Date: 2026-08-30 05:14+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -78,24 +78,24 @@ msgstr[1] "Seit %(num)d Tagen keine Aktivität"
 msgid "Strong match (%(score)d/100) - no application started yet"
 msgstr "Starke Übereinstimmung (%(score)d/100) – noch keine Bewerbung gestartet"
 
-#: app/admin/forms.py:10 app/templates/admin/codes.html:66
+#: app/admin/forms.py:14 app/templates/admin/codes.html:66
 #: app/templates/documents/list.html:24
 msgid "Type"
 msgstr "Typ"
 
-#: app/admin/forms.py:11
+#: app/admin/forms.py:15
 msgid "Max uses"
 msgstr "Maximale Nutzungen"
 
-#: app/admin/forms.py:12
+#: app/admin/forms.py:16
 msgid "Expires on (optional)"
 msgstr "Läuft ab am (optional)"
 
-#: app/admin/forms.py:20
+#: app/admin/forms.py:24
 msgid "Access duration in months (optional)"
 msgstr "Zugangsdauer in Monaten (optional)"
 
-#: app/admin/forms.py:22
+#: app/admin/forms.py:26
 msgid "Notes (optional)"
 msgstr "Notizen (optional)"
 
@@ -120,12 +120,12 @@ msgstr "Code erstellt: %(code)s"
 msgid "Code revoked."
 msgstr "Code widerrufen."
 
-#: app/admin/routes.py:130
+#: app/admin/routes.py:138
 #, python-format
 msgid "%(source)s enabled."
 msgstr "%(source)s aktiviert."
 
-#: app/admin/routes.py:132
+#: app/admin/routes.py:140
 #, python-format
 msgid "%(source)s disabled."
 msgstr "%(source)s deaktiviert."
@@ -1167,6 +1167,10 @@ msgstr ""
 msgid "Batch complete: %(saved)d imported."
 msgstr "Stapel abgeschlossen: %(saved)d importiert."
 
+#: app/jobs/adapters/manager.py:46
+msgid "Manual import"
+msgstr "Manueller Import"
+
 #: app/main/routes.py:36
 msgid "Good morning"
 msgstr "Guten Morgen"
@@ -1218,15 +1222,34 @@ msgid_plural "unchanged for %(num)d days"
 msgstr[0] "seit %(num)d Tag unverändert"
 msgstr[1] "seit %(num)d Tagen unverändert"
 
-#: app/models/access_code.py:71
+#: app/models/access_code.py:21
+msgid "Trial"
+msgstr "Testversion"
+
+#: app/models/access_code.py:22
+msgid "Standard"
+msgstr "Standard"
+
+#: app/models/access_code.py:23
+msgid "Premium"
+msgstr "Premium"
+
+#: app/models/access_code.py:24 app/templates/admin/ai_usage.html:2
+#: app/templates/admin/codes.html:3 app/templates/admin/job_sources.html:2
+#: app/templates/admin/overview.html:2 app/templates/admin/users.html:2
+#: app/templates/base.html:114
+msgid "Admin"
+msgstr "Admin"
+
+#: app/models/access_code.py:87
 msgid "This access code has been deactivated."
 msgstr "Dieser Zugangscode wurde deaktiviert."
 
-#: app/models/access_code.py:73
+#: app/models/access_code.py:89
 msgid "This access code has expired."
 msgstr "Dieser Zugangscode ist abgelaufen."
 
-#: app/models/access_code.py:75
+#: app/models/access_code.py:91
 msgid "This access code has already been used the maximum number of times."
 msgstr "Dieser Zugangscode wurde bereits die maximale Anzahl an Malen verwendet."
 
@@ -1807,12 +1830,6 @@ msgstr "Dokumente"
 msgid "Gmail"
 msgstr "Gmail"
 
-#: app/templates/admin/ai_usage.html:2 app/templates/admin/codes.html:3
-#: app/templates/admin/job_sources.html:2 app/templates/admin/overview.html:2
-#: app/templates/admin/users.html:2 app/templates/base.html:114
-msgid "Admin"
-msgstr "Admin"
-
 #: app/templates/admin/overview.html:4 app/templates/base.html:115
 msgid "Admin Dashboard"
 msgstr "Admin-Dashboard"
@@ -2228,23 +2245,23 @@ msgstr ""
 msgid "Last run"
 msgstr "Letzter Lauf"
 
-#: app/templates/admin/job_sources.html:22
+#: app/templates/admin/job_sources.html:26
 msgid "Enabled"
 msgstr "Aktiviert"
 
-#: app/templates/admin/job_sources.html:23
+#: app/templates/admin/job_sources.html:27
 msgid "Disabled"
 msgstr "Deaktiviert"
 
-#: app/templates/admin/job_sources.html:30
+#: app/templates/admin/job_sources.html:34
 msgid "Never run"
 msgstr "Noch nie gelaufen"
 
-#: app/templates/admin/job_sources.html:36
+#: app/templates/admin/job_sources.html:40
 msgid "Disable"
 msgstr "Deaktivieren"
 
-#: app/templates/admin/job_sources.html:36
+#: app/templates/admin/job_sources.html:40
 msgid "Enable"
 msgstr "Aktivieren"
 

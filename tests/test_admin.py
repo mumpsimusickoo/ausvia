@@ -1,8 +1,10 @@
 import re
 
 import pytest
+from flask_babel import force_locale
 
 from app.models import InvitationCode
+from app.models.access_code import CODE_TYPE_LABELS, CODE_TYPES
 from tests.conftest import login
 
 # The six real option values app/templates/admin/codes.html's Plan
@@ -138,3 +140,34 @@ def test_admin_can_toggle_user_active_but_not_self(client, make_user):
 
     resp = client.post(f"/admin/users/{admin.id}/toggle-active", follow_redirects=True)
     assert b"deactivate your own account" in resp.data
+
+
+# --- i18n sweep (2026-08-30): CreateCodeForm's "Type" dropdown used to
+# build choice labels with a bare t.capitalize() on the raw CODE_TYPES
+# enum - always English, and structurally invisible to pybabel extract
+# (no _()/_l() call site existed at all). CODE_TYPE_LABELS replaces it. ---
+
+def test_code_type_labels_covers_every_code_type():
+    assert set(CODE_TYPE_LABELS) == set(CODE_TYPES)
+
+
+def test_code_type_labels_are_locale_aware(app):
+    with app.test_request_context("/"):
+        with force_locale("en"):
+            en = {k: str(v) for k, v in CODE_TYPE_LABELS.items()}
+        with force_locale("de"):
+            de = {k: str(v) for k, v in CODE_TYPE_LABELS.items()}
+    assert en == {"trial": "Trial", "standard": "Standard", "premium": "Premium", "admin": "Admin"}
+    assert de == {"trial": "Testversion", "standard": "Standard", "premium": "Premium", "admin": "Admin"}
+
+
+def test_admin_codes_page_type_dropdown_is_translated_in_german(client, make_user):
+    make_user(email="admin-typelabel@example.com", password="Password123!", role="admin")
+    login(client, "admin-typelabel@example.com", "Password123!")
+    client.post("/set-locale", data={"lang": "de", "next": "/admin/codes"})
+
+    resp = client.get("/admin/codes")
+    body = resp.data.decode("utf-8")
+    assert "Testversion" in body
+    # The old bare .capitalize() output must not leak through anywhere.
+    assert ">Trial<" not in body

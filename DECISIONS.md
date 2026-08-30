@@ -6,6 +6,69 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — i18n sweep: two confirmed-live gaps outside pass 2's original 8 screens
+
+**Context: an investigation pass first, this the fix pass.** A prior sweep walked every surface pass
+2's own live verification never actually covered (outgoing email, the admin panel beyond the
+activity log, a few other pages incidentally checked along the way) and reported findings before
+touching anything. Two real, confirmed-live gaps came out of it; everything else checked (all
+outgoing email - there isn't any real one; auth pages; error pages; the rest of the admin panel) was
+already correct.
+
+**Gap 1: `CreateCodeForm`'s "Type" dropdown (`app/admin/forms.py`).** The field label was translated
+but its choice *labels* were built with a bare `t.capitalize()` on the raw `CODE_TYPES` enum -
+always English regardless of locale, confirmed live showing "Trial"/"Standard"/"Premium"/"Admin" even
+under German UI. This needed a structural fix, not an extraction re-run: `.capitalize()` on a raw
+string produces no `_()`/`_l()` call site for `pybabel extract` to ever find, so re-running extraction
+alone could never have caught or fixed this. Added `CODE_TYPE_LABELS` (`app/models/access_code.py`),
+same pattern as `APPLICATION_STATUS_LABELS`/`DOCUMENT_TYPE_LABELS` elsewhere in this app: a module-
+level dict, `_l()` (lazy, not `_()`) since it's built once at import time outside any request context,
+keyed by the untranslated code (`"trial"` etc., so every `code_type == "trial"` comparison elsewhere
+stays unaffected) with a translated label as the value. Live-verified in German: dropdown now shows
+"Testversion"/"Standard"/"Premium"/"Admin".
+
+**Gap 2: `KNOWN_SOURCES["manual"] = "Manual import"` (`app/jobs/adapters/manager.py`).** Unlike its
+siblings - `"Bundesagentur für Arbeit (Jobsuche)"` (the agency's real name), `"Adzuna"`/`"Jooble"`
+(company names) - "manual" is a real functional label, not a proper noun, and was a hardcoded English
+literal. Wrapped with `_l()` as instructed - but this one had a wrinkle two prior sessions have hit
+repeatedly: `KNOWN_SOURCES["manual"]` is written directly to `JobSourceSetting.display_name`, a real
+DB column, in two places (`ensure_source_settings_seeded()`, `record_run()`) - a bare LazyString can't
+bind to SQLite. Both write sites now `str()` the value at the point of assignment, same fix pattern as
+every other recurrence of this bug this session.
+
+**A second wrinkle, found while implementing, not in the original report:** even with both `_l()` and
+`str()` correct, `/admin/job-sources` would still have shown the wrong thing - `JobSourceSetting.
+display_name` is written *once*, at whichever locale was active the moment that row was first seeded
+or first ran, and never re-evaluated after. Reading `s.display_name` straight from the stored row (as
+the template already did) would freeze "Manual import" in whatever locale first created it, not follow
+the current viewing admin's locale on each later page load - invisible before this fix only because
+the string was locale-invariant, so freezing it changed nothing. Fixed by having `app/admin/routes.py`'s
+`job_sources()` route pass the live `KNOWN_SOURCES` dict alongside the stored settings, and the
+template prefer it (`known_sources.get(s.source_name, s.display_name)`) - re-read fresh every request,
+correctly following the current locale, with the stored column only as a fallback. Live-verified this
+specific behavior against the *already-seeded* dev-DB row (created before this fix, still holding the
+literal old string) to confirm the fix genuinely reads live rather than happening to match by
+coincidence: German showed "Manueller Import," English reverted to "Manual import," same underlying
+row, same session, no reseed.
+
+**Not fixed, left alone:** `JobSourceSetting.last_run_message` (raw diagnostic text like "50 results,
+47 new") - flagged in the original report as a borderline case matching the existing SystemLog/
+activity-log exclusion from pass 2's scope; no instruction was given to fix it this pass, so it stays
+as-is.
+
+**Verification:** live-verified both fixes in German via Playwright (Type dropdown showing
+"Testversion" etc.; job-sources table showing "Manueller Import" against the pre-existing seeded row),
+then round-tripped back to English to confirm both still render correctly there too. New regression
+tests: `test_code_type_labels_are_locale_aware`, `test_admin_codes_page_type_dropdown_is_translated_
+in_german` (`tests/test_admin.py`); `test_manual_source_label_is_locale_aware`, `test_ensure_source_
+settings_seeded_does_not_crash_on_lazystring`, `test_record_run_does_not_crash_on_lazystring_for_new_
+source`, `test_job_sources_page_prefers_live_translation_over_stored_snapshot` (`tests/test_adapter_
+manager.py`) - the last one seeds a row in English, switches locale, and asserts the page shows German
+without a reseed, directly proving the live-vs-stored-snapshot fix rather than just the end symptom.
+Full pytest suite: 657 passed, 3 skipped, 0 failed (up from 650).
+
+---
+
 ## 2026-08-30 — Plans page + real access expiry, no payment gateway
 
 **What shipped:** a public `/plans` pricing page (three plans by max

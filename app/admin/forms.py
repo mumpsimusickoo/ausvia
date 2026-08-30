@@ -3,11 +3,15 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField, IntegerField, DateField, TextAreaField
 from wtforms.validators import Optional, NumberRange, Length
 
-from app.models.access_code import CODE_TYPES
+from app.models.access_code import CODE_TYPE_LABELS, CODE_TYPES
 
 
 class CreateCodeForm(FlaskForm):
-    code_type = SelectField(_l("Type"), choices=lambda: [(t, t.capitalize()) for t in CODE_TYPES])
+    # i18n sweep (2026-08-30): choice labels come from CODE_TYPE_LABELS
+    # (app/models/access_code.py), not a bare t.capitalize() on the raw
+    # enum - that produced English-only labels ("Trial", "Standard", ...)
+    # regardless of locale, and wasn't extractable by pybabel at all.
+    code_type = SelectField(_l("Type"), choices=lambda: [(t, CODE_TYPE_LABELS[t]) for t in CODE_TYPES])
     max_uses = IntegerField(_l("Max uses"), default=1, validators=[NumberRange(min=1, max=100000)])
     expires_at = DateField(_l("Expires on (optional)"), validators=[Optional()])
     # Plans page + access expiry pass (2026-08-30): None = no auto-expiry,

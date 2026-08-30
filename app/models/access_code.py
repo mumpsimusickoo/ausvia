@@ -2,11 +2,27 @@ import secrets
 import string
 
 from flask_babel import gettext as _
+from flask_babel import lazy_gettext as _l
 
 from app.extensions import db
 from app.models.user import utcnow
 
 CODE_TYPES = ("trial", "standard", "premium", "admin")
+
+# i18n sweep (2026-08-30): CreateCodeForm's "Type" dropdown used to build
+# its choice labels with a bare `t.capitalize()` on these raw strings -
+# always English regardless of locale, and invisible to `pybabel extract`
+# since there's no `_()`/`_l()` call site for it to find at all (a
+# structural gap, not a missed-wrap one - re-running extraction alone
+# could never have caught this). `_l()`, not `_()`: this dict is built
+# once at module-import time, outside any request context, same reasoning
+# as APPLICATION_STATUS_LABELS/DOCUMENT_TYPE_LABELS elsewhere in this app.
+CODE_TYPE_LABELS = {
+    "trial": _l("Trial"),
+    "standard": _l("Standard"),
+    "premium": _l("Premium"),
+    "admin": _l("Admin"),
+}
 
 # Generation limits by plan, applied at redemption time (Phase 3+ AI usage tracking
 # enforces these; stored here so the limit travels with the code/plan).
