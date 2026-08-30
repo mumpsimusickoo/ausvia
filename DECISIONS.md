@@ -135,6 +135,39 @@ target fields and a real code created end-to-end showing the correct
 "12 months" access length, and both access-expiry checkpoints as
 described above.
 
+**Follow-up (same day): tightened two pieces of verification that were
+plausible but not yet provably correct, on review.** The original
+WhatsApp-link tests checked that a substring like `"1-user"` appeared
+*somewhere* on the page - true, but also true if every card linked to
+the same wrong message, since "1 USER" also appears in unrelated card
+copy. Replaced with `test_whatsapp_plan_url_all_six_combinations_are_
+distinct` (unit-level: all 6 of `whatsapp_plan_url()`'s user-count x
+period combinations produce distinct URLs, and each contains its own
+period word but never the other one) and `test_plans_page_renders_all_
+six_exact_whatsapp_urls`/`test_plans_page_no_two_rendered_whatsapp_urls_
+are_identical` (page-level: each exact expected URL string is verbatim
+in the response, and exactly 6 distinct `wa.me` hrefs render, not
+fewer). Directly re-inspected `whatsapp_plan_url()`'s output for all 6
+combinations first, before touching any test, to confirm what "correct"
+actually looks like rather than writing assertions against assumption.
+
+The admin Plan selector had only been live-verified for one of its six
+options (`premium|2|12`) and had no dedicated automated coverage at all
+- `test_admin_can_create_code_with_access_duration` posted duration=12
+directly, exercising the backend but not the selector's option-to-field
+mapping for any of the six real combinations. Added
+`test_plan_selector_renders_exactly_the_six_expected_option_values`
+(guards the six `<option value="premium|N|M">` strings in `admin/
+codes.html` against silent drift) and a parametrized
+`test_plan_selector_option_produces_correct_code` covering all six
+`(users, months)` pairs end-to-end through the real route. Also
+re-verified the actual client-side JS mapping live (not just the
+backend it posts to) by iterating every `<option>` in a real browser,
+dispatching `change`, and reading back all three target fields for each
+- confirmed all six produce exactly the right `code_type`/`max_uses`/
+`access_duration_months` triple. Full pytest suite after these
+additions: 650 passed, 3 skipped, 0 failed (up from 642).
+
 ---
 
 ## 2026-08-29 — Jooble fixed and re-enabled: admin-only, with a lifetime-budget counter
