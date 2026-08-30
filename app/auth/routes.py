@@ -166,23 +166,46 @@ def logout():
 @bp.route("/reset-password", methods=["GET", "POST"])
 @limiter.limit("10 per hour")
 def request_reset():
+    """Security fix, 2026-08-30 (see DECISIONS.md): this route used to
+    render the real reset link directly on the page, gated behind
+    `current_app.config.get("MAIL_PROVIDER_CONFIGURED")` - a key that was
+    never actually defined anywhere in config.py, so that check was always
+    False and the "no email provider configured, here's the link" fallback
+    was permanently active, including in production. Anyone who submitted
+    a registered user's email got a valid, working reset link handed
+    straight to their own browser - a full account-takeover path requiring
+    no access to the victim's inbox at all.
+
+    Fixed by never rendering the link/token anywhere in the response,
+    unconditionally - not just "unless a mail provider is configured" (that
+    condition never actually worked, and shouldn't be trusted again even if
+    it did: the token must never appear in an HTTP response body under any
+    config state, only ever in a real, separately-sent email). The route
+    still generates the token and logs the request - that plumbing is
+    exactly what a real mail-sending integration will need to call
+    (send the email with `reset_link` here) once that's built as its own
+    pass; until then, the reset flow has no delivery path and is correctly
+    unusable, rather than usable-and-exploitable. Same generic response
+    whether or not the account exists, unconditionally too - the
+    email-enumeration side channel was the other half of this same bug
+    (a real account produced a link in the page; a fake one produced
+    nothing distinguishable in the old flash-only path, but the *link's
+    presence itself* was already the tell).
+    """
     form = RequestResetForm()
-    reset_link = None
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
         if user:
             token = _serializer().dumps(user.email, salt=RESET_SALT)
-            reset_link = url_for("auth.reset_password", token=token, _external=True)
+            reset_link = url_for("auth.reset_password", token=token, _external=True)  # noqa: F841
             log_event("auth", "Password reset requested.", user_id=user.id)
-        # Always show the same message whether or not the account exists, so this
-        # endpoint can't be used to enumerate registered emails.
+            # TODO(real email sending, separate pass): send `reset_link` to
+            # user.email via the real mail provider here. Never render it.
         flash(
-            _("If an account with that email exists, a reset link has been generated."),
+            _("If an account with that email exists, a password reset link has been sent."),
             "info",
         )
-        if current_app.config.get("MAIL_PROVIDER_CONFIGURED"):
-            reset_link = None  # a real provider would have emailed it instead
-    return render_template("auth/request_reset.html", form=form, reset_link=reset_link)
+    return render_template("auth/request_reset.html", form=form)
 
 
 @bp.route("/reset-password/<token>", methods=["GET", "POST"])

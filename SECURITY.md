@@ -10,6 +10,20 @@ review" list with reasoning; this file is the security-specific summary.
   sessions, rate limiting on login/register/password-reset endpoints,
   secure cookie flags (`HttpOnly`, `SameSite=Lax`, `Secure` in production
   config).
+- **Password reset never exposes the reset token/link in an HTTP
+  response** (fixed 2026-08-30, was a real production vulnerability - see
+  `DECISIONS.md`'s "Urgent security fix" entry): the request-reset route
+  used to render the real, working reset link directly on the page,
+  gated behind a config key (`MAIL_PROVIDER_CONFIGURED`) that was never
+  actually defined anywhere, so that gate was always open - anyone who
+  submitted a registered user's email got a valid reset link handed to
+  their own browser, no access to the victim's inbox required. Now
+  returns one identical generic message regardless of whether the
+  account exists (closing the email-enumeration side channel too), and
+  never renders the token anywhere under any config state. Real email
+  delivery (so the reset flow is actually usable again) is separate,
+  larger, not-yet-built work - a reset flow with no delivery path is the
+  correct, safe interim state, not a regression to fix urgently.
 - **CSRF:** Flask-WTF CSRF protection app-wide, on every state-changing
   route (both WTForms-rendered and manual forms include the token).
 - **Authorization / data isolation:** every user-owned resource
@@ -66,6 +80,14 @@ review" list with reasoning; this file is the security-specific summary.
    request cycle. Availability concern more than a security one, but worth
    tracking here since it affects how much load the auth/session layer needs
    to tolerate per request.
+5. **No real email delivery mechanism exists anywhere in this app**
+   (confirmed by a full-codebase search, 2026-08-30 - no `smtplib`,
+   `Flask-Mail`, SMTP config, or third-party mail SDK). Password reset is
+   the one place this is user-visible: the flow generates a real token
+   and responds with an honest, non-revealing message, but has no way to
+   actually deliver that token to the user right now - see the
+   "Password reset never exposes..." entry above. Building real email
+   sending is separate, not-yet-scoped work.
 
 ## What's explicitly out of scope for now
 

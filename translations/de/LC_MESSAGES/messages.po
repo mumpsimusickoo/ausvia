@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-30 05:14+0100\n"
+"POT-Creation-Date: 2026-08-30 05:35+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -742,21 +742,21 @@ msgstr "E-Mail-Adresse oder Passwort ungültig."
 msgid "You have been logged out."
 msgstr "Du wurdest abgemeldet."
 
-#: app/auth/routes.py:180
-msgid "If an account with that email exists, a reset link has been generated."
+#: app/auth/routes.py:205
+msgid "If an account with that email exists, a password reset link has been sent."
 msgstr ""
 "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum "
-"Zurücksetzen erstellt."
+"Zurücksetzen des Passworts gesendet."
 
-#: app/auth/routes.py:193
+#: app/auth/routes.py:216
 msgid "This reset link has expired. Please request a new one."
 msgstr "Dieser Link zum Zurücksetzen ist abgelaufen. Bitte fordere einen neuen an."
 
-#: app/auth/routes.py:196 app/auth/routes.py:201
+#: app/auth/routes.py:219 app/auth/routes.py:224
 msgid "This reset link is invalid."
 msgstr "Dieser Link zum Zurücksetzen ist ungültig."
 
-#: app/auth/routes.py:209
+#: app/auth/routes.py:232
 msgid "Your password has been reset. Please log in."
 msgstr "Dein Passwort wurde zurückgesetzt. Bitte melde dich an."
 
@@ -2706,23 +2706,9 @@ msgstr "Setze dein Passwort zurück"
 msgid "We'll generate a one-time reset link."
 msgstr "Wir erstellen einen einmaligen Link zum Zurücksetzen."
 
-#: app/templates/auth/request_reset.html:12
+#: app/templates/auth/request_reset.html:21
 msgid "Generate reset link"
 msgstr "Link zum Zurücksetzen erstellen"
-
-#: app/templates/auth/request_reset.html:17
-msgid "Development mode — no email provider is configured"
-msgstr "Entwicklungsmodus — es ist kein E-Mail-Anbieter konfiguriert"
-
-#: app/templates/auth/request_reset.html:18
-msgid "Normally this link would be emailed to you. For now, here it is directly:"
-msgstr ""
-"Normalerweise würde dir dieser Link per E-Mail zugeschickt. Hier ist er "
-"vorerst direkt:"
-
-#: app/templates/auth/request_reset.html:20
-msgid "Valid for 1 hour."
-msgstr "Gültig für 1 Stunde."
 
 #: app/templates/auth/reset_password.html:3
 msgid "Set new password"
@@ -4027,4 +4013,19 @@ msgstr "Wünsche speichern"
 
 #~ msgid "See README.md."
 #~ msgstr ""
+
+#~ msgid "Development mode — no email provider is configured"
+#~ msgstr "Entwicklungsmodus — es ist kein E-Mail-Anbieter konfiguriert"
+
+#~ msgid ""
+#~ "Normally this link would be emailed "
+#~ "to you. For now, here it is "
+#~ "directly:"
+#~ msgstr ""
+#~ "Normalerweise würde dir dieser Link per"
+#~ " E-Mail zugeschickt. Hier ist er "
+#~ "vorerst direkt:"
+
+#~ msgid "Valid for 1 hour."
+#~ msgstr "Gültig für 1 Stunde."
 

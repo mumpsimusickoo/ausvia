@@ -845,6 +845,38 @@ for a redesign pass. Status:
   have caught it proactively). Full pytest suite: 642 passed / 3 skipped
   (618 + 24). Full detail: `DECISIONS.md`'s 2026-08-30 entry,
   `DEPLOYMENT.md`'s Translations section for the fuzzy-flag gotcha.
+- **i18n sweep done, 2026-08-30** - a follow-up investigation walked every
+  surface pass 2's own live verification never actually covered
+  (outgoing email, the admin panel beyond the activity log, a few other
+  incidentally-checked pages) before touching anything. Found and fixed
+  two real, confirmed-live gaps: `CreateCodeForm`'s "Type" dropdown
+  (`.capitalize()` on a raw enum, structurally invisible to `pybabel
+  extract` - needed `CODE_TYPE_LABELS`, not a re-extraction) and
+  `KNOWN_SOURCES["manual"]` (a hardcoded English literal, unlike its
+  correctly-untranslated proper-noun siblings). The second fix surfaced
+  a real security-relevant finding along the way: no real email-sending
+  mechanism exists anywhere in this app - see the entry directly below.
+  Full pytest suite: 657 passed / 3 skipped (650 + 7). Full detail:
+  `DECISIONS.md`'s 2026-08-30 "i18n sweep" entry.
+- **Urgent security fix, 2026-08-30 - password reset link exposure
+  (production, account takeover).** The i18n sweep's "no real email
+  exists" finding led directly to this: `request_reset()`'s dev-mode
+  "show the link on the page" fallback was gated behind a config key
+  (`MAIL_PROVIDER_CONFIGURED`) that was never defined anywhere, so the
+  gate was always open, in every environment including production.
+  Anyone who submitted a registered user's email got a valid reset link
+  handed to their own browser - full account takeover, no inbox access
+  needed. Fixed: the link/token is now never rendered in any response,
+  under any config state; one identical message is shown whether or not
+  the account exists. Consequence, left as the correct interim state:
+  the reset flow is now honestly unusable (no real email-sending
+  mechanism exists to actually deliver a link) rather than usable-and-
+  exploitable - real email delivery is separate, not-yet-scoped work.
+  Live-verified via Playwright against the full raw HTML (not just the
+  accessibility tree), both a real and a fake email, both English and
+  German. Full pytest suite: 660 passed / 3 skipped (657 + 3). Full
+  detail: `DECISIONS.md`'s 2026-08-30 "Urgent security fix" entry,
+  `SECURITY.md`'s updated Auth/Known-gaps entries.
 - **Next actual step:** screens pass 8+ - migrating the remaining ~110
   existing card/badge/button/empty-state occurrences on every other
   screen onto the component-layer macros - **the only named item left

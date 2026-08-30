@@ -6,6 +6,78 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-30 — Urgent security fix: password reset link exposure (account takeover, live in production)
+
+**The vulnerability.** `request_reset()`'s (`app/auth/routes.py`) "show
+the link directly on the page instead of emailing it" dev-mode fallback
+was gated behind `if current_app.config.get("MAIL_PROVIDER_CONFIGURED")`
+- a key that was never actually defined anywhere in `config.py` (found
+during the i18n sweep two entries below, but its *security* implication
+wasn't recognized until flagged explicitly). `.get()` with no default on
+an undefined key always returns `None` (falsy), so that condition was
+never true in any environment - the fallback was permanently active,
+including in production. Real, live impact: anyone who submitted any
+registered user's email into the forgot-password form was shown that
+account's valid, working password reset link directly in their own
+browser - full account takeover, no access to the victim's inbox
+required. The same bug's other half was a real email-enumeration side
+channel: a real email produced a link on the page, a fake one didn't,
+which is itself a distinguishing signal even setting the link exposure
+aside.
+
+**The fix.** The link/token is never rendered in any HTTP response,
+under any config state - not "unless a mail provider is configured"
+(that condition never worked, and isn't trustworthy to gate this on even
+if it did: a token belongs in a real, separately-sent email, never in a
+response body, full stop). The route still generates the token and logs
+the request (`log_event("auth", "Password reset requested.", ...)`) -
+that's exactly the plumbing a real mail-sending integration will need
+once built (send `reset_link` there instead of discarding it) - but
+nothing currently consumes or exposes it. One identical flash message is
+shown whether or not the account exists: *"If an account with that email
+exists, a password reset link has been sent."* - translated
+(`translations/de/LC_MESSAGES/messages.po`), same as everything else in
+this app.
+
+**Consequence, stated plainly and left as the correct state, not a
+regression to chase down further today:** the password reset flow is
+now not actually usable - a user who requests one gets the honest
+message and nothing else, since no real email-sending mechanism exists
+in this codebase at all (confirmed by the i18n sweep two entries below:
+no `smtplib`, no `Flask-Mail`, no SMTP config, no third-party mail SDK
+anywhere). That's the safer state on purpose: no working reset flow is
+strictly better than a reset flow that hands the link to whoever asks
+for it. Building real email delivery is separate, larger, not-yet-
+scoped work - tracked in `SECURITY.md`'s "Known gaps," not attempted as
+part of this fix.
+
+**Test file note:** the pre-existing test for this route
+(`test_password_reset_flow_dev_fallback_shows_link`,
+`tests/test_auth.py`) was itself exercising the vulnerability as if it
+were correct behavior - it extracted the token straight out of the HTTP
+response body via regex and used it to prove the reset flow "worked."
+Replaced with four tests: the link/token never appears in the response
+for a real registered email (using the exact same extraction regex the
+old test used, now asserting it finds nothing); an unregistered email
+produces the byte-identical message; a real vs. fake email produce
+identical responses side by side; and the underlying `/reset-password/
+<token>` set-new-password endpoint still works end to end when given a
+token built the same way the route builds one internally (never
+extracted from a response - simulating how a real emailed link would
+actually reach a user).
+
+**Verification:** live-verified via Playwright, not just pytest - a real
+registered email (`admin@example.com`) produced only the generic
+message, confirmed against the full raw HTML (`document.documentElement.
+outerHTML`), not just the accessibility tree, with zero occurrences of
+`/auth/reset-password/` followed by a token anywhere in the document. An
+unregistered email produced the byte-identical message. Both re-checked
+in German too, confirming the corrected translation
+(`translations/de/LC_MESSAGES/messages.po`) renders correctly. Full
+pytest suite: 660 passed, 3 skipped, 0 failed (up from 657).
+
+---
+
 ## 2026-08-30 — i18n sweep: two confirmed-live gaps outside pass 2's original 8 screens
 
 **Context: an investigation pass first, this the fix pass.** A prior sweep walked every surface pass
