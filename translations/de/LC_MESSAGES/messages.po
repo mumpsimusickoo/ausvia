@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-31 01:18+0100\n"
+"POT-Creation-Date: 2026-08-31 06:01+0100\n"
 "PO-Revision-Date: 2026-08-28 07:28+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -699,7 +699,7 @@ msgstr "Format: XXXX-XXXX-XXXX"
 
 #: app/auth/forms.py:27 app/auth/forms.py:78 app/auth/forms.py:87
 #: app/templates/admin/users.html:9 app/templates/applications/detail.html:125
-#: app/templates/impressum.html:55
+#: app/templates/impressum.html:47
 msgid "Email"
 msgstr "E-Mail"
 
@@ -1580,7 +1580,7 @@ msgstr "Kontakt-E-Mail fehlt"
 msgid "Education entries added"
 msgstr "Ausbildungseinträge hinzugefügt"
 
-#: app/profile/routes.py:55 app/templates/profile/view.html:72
+#: app/profile/routes.py:55 app/templates/profile/view.html:100
 msgid "No education entries yet"
 msgstr "Noch keine Ausbildungseinträge"
 
@@ -1665,72 +1665,88 @@ msgstr "Min. Deutschniveau"
 msgid "Desired start"
 msgstr "Gewünschter Start"
 
-#: app/profile/routes.py:202
+#: app/profile/routes.py:216
 msgid "Profile review generated."
 msgstr "Profil-Feedback erstellt."
 
-#: app/profile/routes.py:219
+#: app/profile/routes.py:233
 msgid "Answer generated."
 msgstr "Antwort erstellt."
 
-#: app/profile/routes.py:234
+#: app/profile/routes.py:248
 msgid "Personal information updated."
 msgstr "Persönliche Daten aktualisiert."
 
-#: app/profile/routes.py:236
+#: app/profile/routes.py:250
 msgid "Please correct the errors in the personal information form."
 msgstr "Bitte korrigiere die Fehler im Formular für persönliche Daten."
 
-#: app/profile/routes.py:257
+#: app/profile/routes.py:271
 msgid "Preferences updated."
 msgstr "Wünsche aktualisiert."
 
-#: app/profile/routes.py:259
+#: app/profile/routes.py:273
 msgid "Please correct the errors in the preferences form."
 msgstr "Bitte korrigiere die Fehler im Wünsche-Formular."
 
-#: app/profile/routes.py:273
+#: app/profile/routes.py:287
 msgid "Education entry added."
 msgstr "Ausbildungseintrag hinzugefügt."
 
-#: app/profile/routes.py:275
+#: app/profile/routes.py:289 app/profile/routes.py:310
 msgid "Please correct the errors in the education form."
 msgstr "Bitte korrigiere die Fehler im Ausbildungsformular."
 
-#: app/profile/routes.py:286
+#: app/profile/routes.py:308
+msgid "Education entry updated."
+msgstr "Ausbildungseintrag aktualisiert."
+
+#: app/profile/routes.py:321
 msgid "Education entry removed."
 msgstr "Ausbildungseintrag entfernt."
 
-#: app/profile/routes.py:300
+#: app/profile/routes.py:335
 msgid "Experience entry added."
 msgstr "Erfahrungseintrag hinzugefügt."
 
-#: app/profile/routes.py:302
+#: app/profile/routes.py:337 app/profile/routes.py:352
 msgid "Please correct the errors in the experience form."
 msgstr "Bitte korrigiere die Fehler im Erfahrungsformular."
 
-#: app/profile/routes.py:313
+#: app/profile/routes.py:350
+msgid "Experience entry updated."
+msgstr "Erfahrungseintrag aktualisiert."
+
+#: app/profile/routes.py:363
 msgid "Experience entry removed."
 msgstr "Erfahrungseintrag entfernt."
 
-#: app/profile/routes.py:326
+#: app/profile/routes.py:376
 msgid "Skill added."
 msgstr "Fähigkeit hinzugefügt."
 
-#: app/profile/routes.py:328
+#: app/profile/routes.py:378 app/profile/routes.py:394
 msgid "Please correct the errors in the skill form."
 msgstr "Bitte korrigiere die Fehler im Formular für Fähigkeiten."
 
-#: app/profile/routes.py:351
+#: app/profile/routes.py:392
+msgid "Skill updated."
+msgstr "Fähigkeit aktualisiert."
+
+#: app/profile/routes.py:417
 msgid "Language added."
 msgstr "Sprache hinzugefügt."
 
-#: app/profile/routes.py:353
+#: app/profile/routes.py:419 app/profile/routes.py:435
 msgid "Please correct the errors in the language form."
 msgstr "Bitte korrigiere die Fehler im Sprachformular."
 
+#: app/profile/routes.py:433
+msgid "Language updated."
+msgstr "Sprache aktualisiert."
+
 #: app/templates/_components.html:172 app/templates/jobs/saved.html:15
-#: app/templates/profile/view.html:66 app/templates/profile/view.html:104
+#: app/templates/profile/view.html:67 app/templates/profile/view.html:133
 msgid "Remove"
 msgstr "Entfernen"
 
@@ -1815,7 +1831,7 @@ msgstr "ZUVERLÄSSIGKEIT %(level)s"
 #: app/templates/applications/detail.html:298
 #: app/templates/applications/detail.html:324
 #: app/templates/applications/detail.html:359 app/templates/jobs/detail.html:183
-#: app/templates/profile/view.html:189
+#: app/templates/profile/view.html:262
 msgid "Regenerate"
 msgstr "Neu erzeugen"
 
@@ -1926,50 +1942,50 @@ msgstr "Zu hellem Modus wechseln"
 msgid "Legal Notice"
 msgstr "Impressum"
 
-#: app/templates/impressum.html:25 app/templates/plans.html:19
-#: app/templates/privacy.html:24
+#: app/templates/impressum.html:31 app/templates/privacy.html:23
+msgid "LEGAL"
+msgstr "RECHTLICHES"
+
+#: app/templates/impressum.html:33 app/templates/landing.html:249
+msgid "Impressum"
+msgstr "Impressum"
+
+#: app/templates/impressum.html:35
+msgid "Information pursuant to § 5 DDG (German Digital Services Act)"
+msgstr "Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)"
+
+#: app/templates/impressum.html:42 app/templates/privacy.html:38
+msgid "Morocco"
+msgstr "Marokko"
+
+#: app/templates/impressum.html:46 app/templates/jobs/detail.html:218
+#: app/templates/privacy.html:40
+msgid "Contact"
+msgstr "Kontakt"
+
+#: app/templates/impressum.html:52
+msgid "Responsible for content pursuant to § 18 (2) MStV"
+msgstr "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV"
+
+#: app/templates/impressum.html:53
+msgid "address as above"
+msgstr "Anschrift wie oben"
+
+#: app/templates/impressum.html:57
+msgid "Freelancer, not registered in the commercial register, no VAT ID."
+msgstr "Freiberufler ohne Handelsregistereintrag, ohne USt-IdNr."
+
+#: app/templates/impressum.html:75 app/templates/plans.html:19
+#: app/templates/privacy.html:144
 msgid "Home"
 msgstr "Startseite"
 
 #: app/templates/auth/login.html:3 app/templates/auth/login.html:6
 #: app/templates/auth/login.html:14 app/templates/auth/register.html:34
-#: app/templates/impressum.html:31 app/templates/landing.html:49
-#: app/templates/plans.html:24 app/templates/privacy.html:30
+#: app/templates/impressum.html:80 app/templates/landing.html:49
+#: app/templates/plans.html:24 app/templates/privacy.html:149
 msgid "Log in"
 msgstr "Anmelden"
-
-#: app/templates/impressum.html:39 app/templates/privacy.html:38
-msgid "LEGAL"
-msgstr "RECHTLICHES"
-
-#: app/templates/impressum.html:41 app/templates/landing.html:249
-msgid "Impressum"
-msgstr "Impressum"
-
-#: app/templates/impressum.html:43
-msgid "Information pursuant to § 5 DDG (German Digital Services Act)"
-msgstr "Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)"
-
-#: app/templates/impressum.html:50 app/templates/privacy.html:53
-msgid "Morocco"
-msgstr "Marokko"
-
-#: app/templates/impressum.html:54 app/templates/jobs/detail.html:218
-#: app/templates/privacy.html:55
-msgid "Contact"
-msgstr "Kontakt"
-
-#: app/templates/impressum.html:60
-msgid "Responsible for content pursuant to § 18 (2) MStV"
-msgstr "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV"
-
-#: app/templates/impressum.html:61
-msgid "address as above"
-msgstr "Anschrift wie oben"
-
-#: app/templates/impressum.html:65
-msgid "Freelancer, not registered in the commercial register, no VAT ID."
-msgstr "Freiberufler ohne Handelsregistereintrag, ohne USt-IdNr."
 
 #: app/templates/landing.html:42
 msgid "Access code only"
@@ -2116,7 +2132,7 @@ msgid "Source"
 msgstr "Quelle"
 
 #: app/templates/auth/register.html:26 app/templates/landing.html:248
-#: app/templates/privacy.html:4 app/templates/privacy.html:40
+#: app/templates/privacy.html:4 app/templates/privacy.html:25
 msgid "Privacy Policy"
 msgstr "Datenschutzerklärung"
 
@@ -2192,16 +2208,16 @@ msgstr "Hast du schon einen Code?"
 msgid "Enter it here"
 msgstr "Hier eingeben"
 
-#: app/templates/privacy.html:42
+#: app/templates/privacy.html:27
 #, python-format
 msgid "Last updated: %(date)s"
 msgstr "Zuletzt aktualisiert: %(date)s"
 
-#: app/templates/privacy.html:47
+#: app/templates/privacy.html:32
 msgid "1. Who operates AUSVIA"
 msgstr "1. Wer betreibt AUSVIA"
 
-#: app/templates/privacy.html:48
+#: app/templates/privacy.html:33
 msgid ""
 "AUSVIA is operated by Ilias Jabbour, a freelancer based in Marrakech, "
 "Morocco:"
@@ -2209,11 +2225,11 @@ msgstr ""
 "AUSVIA wird von Ilias Jabbour betrieben, einem Freiberufler mit Sitz in "
 "Marrakesch, Marokko:"
 
-#: app/templates/privacy.html:59
+#: app/templates/privacy.html:44
 msgid "2. What this policy covers"
 msgstr "2. Was diese Erklärung abdeckt"
 
-#: app/templates/privacy.html:60
+#: app/templates/privacy.html:45
 msgid ""
 "This policy explains what personal data AUSVIA collects when you use the "
 "platform, why, how it's stored, who it's shared with, and what rights you "
@@ -2224,11 +2240,11 @@ msgstr ""
 " geteilt werden und welche Rechte du in Bezug auf diese Daten hast. Sie gilt"
 " für alle mit einem AUSVIA-Konto."
 
-#: app/templates/privacy.html:64
+#: app/templates/privacy.html:49
 msgid "3. Who can use AUSVIA"
 msgstr "3. Wer AUSVIA nutzen darf"
 
-#: app/templates/privacy.html:65
+#: app/templates/privacy.html:50
 msgid ""
 "AUSVIA is intended for users 16 years of age or older. You confirm this when"
 " creating your account. We rely on your own confirmation rather than formal "
@@ -2239,15 +2255,15 @@ msgstr ""
 "eine förmliche Identitätsprüfung – so handhaben es die meisten Online-"
 "Dienste."
 
-#: app/templates/privacy.html:69
+#: app/templates/privacy.html:54
 msgid "4. What data we collect"
 msgstr "4. Welche Daten wir erheben"
 
-#: app/templates/privacy.html:71
+#: app/templates/privacy.html:56
 msgid "Account data:"
 msgstr "Kontodaten:"
 
-#: app/templates/privacy.html:71
+#: app/templates/privacy.html:56
 msgid ""
 "your name, email address, and password (stored as a secure hash — we never "
 "store or can see your actual password)."
@@ -2256,11 +2272,11 @@ msgstr ""
 "Hash – wir speichern dein tatsächliches Passwort nie und können es auch "
 "nicht einsehen)."
 
-#: app/templates/privacy.html:72
+#: app/templates/privacy.html:57
 msgid "Profile data:"
 msgstr "Profildaten:"
 
-#: app/templates/privacy.html:72
+#: app/templates/privacy.html:57
 msgid ""
 "whatever you add to your candidate profile — skills, education, location, "
 "language level, and similar information you provide to help match you with "
@@ -2270,21 +2286,21 @@ msgstr ""
 "Standort, Sprachniveau und ähnliche Angaben, die dabei helfen, dich mit "
 "passenden Ausbildungsplätzen zusammenzubringen."
 
-#: app/templates/privacy.html:73
+#: app/templates/privacy.html:58
 msgid "Documents you upload:"
 msgstr "Von dir hochgeladene Dokumente:"
 
-#: app/templates/privacy.html:73
+#: app/templates/privacy.html:58
 msgid "CVs, certificates, and other files you add to your profile or applications."
 msgstr ""
 "Lebensläufe, Zeugnisse und andere Dateien, die du deinem Profil oder deinen "
 "Bewerbungen hinzufügst."
 
-#: app/templates/privacy.html:74
+#: app/templates/privacy.html:59
 msgid "Application data:"
 msgstr "Bewerbungsdaten:"
 
-#: app/templates/privacy.html:74
+#: app/templates/privacy.html:59
 msgid ""
 "which jobs you've applied to, the status of each application, and any "
 "documents AUSVIA generates for you (cover letters, application emails), "
@@ -2295,11 +2311,11 @@ msgstr ""
 "Bewerbungs-E-Mails) – gespeichert, damit du sie prüfen und bearbeiten "
 "kannst."
 
-#: app/templates/privacy.html:75
+#: app/templates/privacy.html:60
 msgid "Gmail data — only if you choose to connect your Gmail account:"
 msgstr "Gmail-Daten – nur wenn du dein Gmail-Konto verbindest:"
 
-#: app/templates/privacy.html:75
+#: app/templates/privacy.html:60
 msgid ""
 "if you connect Gmail, AUSVIA requests two specific permissions from Google: "
 "permission to read your messages (used only to detect replies to "
@@ -2323,11 +2339,11 @@ msgstr ""
 "jederzeit in deinen Kontoeinstellungen trennen, wodurch diese Token sofort "
 "gelöscht werden."
 
-#: app/templates/privacy.html:76
+#: app/templates/privacy.html:61
 msgid "Technical data:"
 msgstr "Technische Daten:"
 
-#: app/templates/privacy.html:76
+#: app/templates/privacy.html:61
 msgid ""
 "a session cookie (to keep you logged in), a language preference cookie if "
 "you're not logged in yet, and standard server logs (including IP address) "
@@ -2338,11 +2354,11 @@ msgstr ""
 "Logs (inklusive IP-Adresse) zur Sicherheit und Missbrauchsprävention (z. B. "
 "Rate-Limiting)."
 
-#: app/templates/privacy.html:81
+#: app/templates/privacy.html:66
 msgid "5. Marketing emails (only if you opt in)"
 msgstr "5. Marketing-E-Mails (nur bei Einwilligung)"
 
-#: app/templates/privacy.html:82
+#: app/templates/privacy.html:67
 msgid ""
 "At registration, you can separately choose (a genuinely optional, unticked "
 "checkbox — not required to create an account) to receive occasional emails "
@@ -2360,7 +2376,7 @@ msgstr ""
 "einem Klick, und du kannst diese Einstellung auch in deinen "
 "Kontoeinstellungen ändern."
 
-#: app/templates/privacy.html:83
+#: app/templates/privacy.html:68
 msgid ""
 "This is separate from account-related emails (like password resets), which "
 "aren't optional — they're necessary for the service to function."
@@ -2369,11 +2385,11 @@ msgstr ""
 "Passworts), die nicht optional sind – sie sind für die Funktion des Dienstes"
 " notwendig."
 
-#: app/templates/privacy.html:87
+#: app/templates/privacy.html:72
 msgid "6. Job posting data"
 msgstr "6. Daten zu Stellenanzeigen"
 
-#: app/templates/privacy.html:88
+#: app/templates/privacy.html:73
 msgid ""
 "AUSVIA displays job listings sourced from Germany's Federal Employment "
 "Agency (Arbeitsagentur), and, where enabled, Adzuna and Jooble. This data "
@@ -2385,11 +2401,11 @@ msgstr ""
 "Arbeitgeber und offene Stellen, nicht dich – sie werden dir als Teil des "
 "Dienstes angezeigt, nicht über dich erhoben."
 
-#: app/templates/privacy.html:92
+#: app/templates/privacy.html:77
 msgid "7. AI-assisted features"
 msgstr "7. KI-gestützte Funktionen"
 
-#: app/templates/privacy.html:93
+#: app/templates/privacy.html:78
 msgid ""
 "AUSVIA uses AI (currently Google's Gemini; Anthropic's Claude planned) to "
 "help generate cover letters, application emails, job-match explanations, and"
@@ -2406,11 +2422,11 @@ msgstr ""
 "zu trainieren – sie werden ausschließlich verwendet, um genau den von dir "
 "angeforderten Inhalt in diesem Moment zu erzeugen."
 
-#: app/templates/privacy.html:97
+#: app/templates/privacy.html:82
 msgid "8. Why we process your data (legal basis)"
 msgstr "8. Warum wir deine Daten verarbeiten (Rechtsgrundlage)"
 
-#: app/templates/privacy.html:99
+#: app/templates/privacy.html:84
 msgid ""
 "To provide the service you signed up for (matching, applications, document "
 "generation) — necessary to perform our agreement with you."
@@ -2419,7 +2435,7 @@ msgstr ""
 "Bewerbungen, Dokumentenerstellung) – notwendig zur Erfüllung unserer "
 "Vereinbarung mit dir."
 
-#: app/templates/privacy.html:100
+#: app/templates/privacy.html:85
 msgid ""
 "Marketing emails — only with your explicit, separate, opt-in consent, given "
 "at registration or later in account settings."
@@ -2427,7 +2443,7 @@ msgstr ""
 "Marketing-E-Mails – nur mit deiner ausdrücklichen, gesonderten Einwilligung,"
 " die du bei der Registrierung oder später in den Kontoeinstellungen gibst."
 
-#: app/templates/privacy.html:101
+#: app/templates/privacy.html:86
 msgid ""
 "Gmail access — only with your explicit, separate consent, given when you "
 "choose to connect your account."
@@ -2435,7 +2451,7 @@ msgstr ""
 "Gmail-Zugriff – nur mit deiner ausdrücklichen, gesonderten Einwilligung, die"
 " du gibst, wenn du dein Konto verbindest."
 
-#: app/templates/privacy.html:102
+#: app/templates/privacy.html:87
 msgid ""
 "Security and abuse prevention (rate limiting, fraud prevention) — our "
 "legitimate interest in keeping the platform safe and reliable."
@@ -2444,11 +2460,11 @@ msgstr ""
 "unser berechtigtes Interesse daran, die Plattform sicher und zuverlässig zu "
 "halten."
 
-#: app/templates/privacy.html:107
+#: app/templates/privacy.html:92
 msgid "9. Who we share data with"
 msgstr "9. Mit wem wir Daten teilen"
 
-#: app/templates/privacy.html:108
+#: app/templates/privacy.html:93
 msgid ""
 "We don't sell your data. It's shared only with the services that make AUSVIA"
 " work:"
@@ -2456,11 +2472,11 @@ msgstr ""
 "Wir verkaufen deine Daten nicht. Sie werden nur mit den Diensten geteilt, "
 "die AUSVIA zum Laufen bringen:"
 
-#: app/templates/privacy.html:110
+#: app/templates/privacy.html:95
 msgid "Railway — hosting and database"
 msgstr "Railway – Hosting und Datenbank"
 
-#: app/templates/privacy.html:111
+#: app/templates/privacy.html:96
 msgid ""
 "Google (Gemini) — AI content generation; Google (Gmail API) — only if you "
 "connect your Gmail account"
@@ -2468,11 +2484,11 @@ msgstr ""
 "Google (Gemini) – KI-Inhaltserstellung; Google (Gmail API) – nur wenn du "
 "dein Gmail-Konto verbindest"
 
-#: app/templates/privacy.html:112
+#: app/templates/privacy.html:97
 msgid "Anthropic — planned, once the migration from Gemini happens"
 msgstr "Anthropic – geplant, sobald die Migration von Gemini erfolgt"
 
-#: app/templates/privacy.html:113
+#: app/templates/privacy.html:98
 msgid ""
 "Resend (hosted in the EU — Ireland) — sending transactional and (only if "
 "you've opted in) marketing emails"
@@ -2480,7 +2496,7 @@ msgstr ""
 "Resend (gehostet in der EU – Irland) – Versand von transaktionalen und (nur "
 "bei Einwilligung) Marketing-E-Mails"
 
-#: app/templates/privacy.html:114
+#: app/templates/privacy.html:99
 msgid ""
 "Bundesagentur für Arbeit / Adzuna / Jooble — the job-listing sources "
 "themselves don't receive your personal data; listings flow to AUSVIA, not "
@@ -2490,11 +2506,11 @@ msgstr ""
 " selbst erhalten keine deiner personenbezogenen Daten; Anzeigen fließen zu "
 "AUSVIA, nicht umgekehrt"
 
-#: app/templates/privacy.html:119
+#: app/templates/privacy.html:104
 msgid "10. How long we keep your data, and deletion"
 msgstr "10. Wie lange wir deine Daten speichern, und Löschung"
 
-#: app/templates/privacy.html:120
+#: app/templates/privacy.html:105
 msgid ""
 "Your data is kept for as long as your account is active. AUSVIA does not yet"
 " have a self-serve way to export or delete your account data — if you'd like"
@@ -2510,11 +2526,11 @@ msgstr ""
 "vorenthalten – eine Selbstbedienungsfunktion für Export/Löschung ist für die"
 " Zukunft geplant.)"
 
-#: app/templates/privacy.html:124
+#: app/templates/privacy.html:109
 msgid "11. Your rights"
 msgstr "11. Deine Rechte"
 
-#: app/templates/privacy.html:125
+#: app/templates/privacy.html:110
 msgid ""
 "Depending on where you're located, you may have rights to access, correct, "
 "delete, restrict, or receive a copy of your personal data. To exercise any "
@@ -2525,11 +2541,11 @@ msgstr ""
 "deiner personenbezogenen Daten. Um eines dieser Rechte auszuüben, "
 "kontaktiere contact@ausvia.org."
 
-#: app/templates/privacy.html:129
+#: app/templates/privacy.html:114
 msgid "12. International data transfers"
 msgstr "12. Internationale Datenübermittlungen"
 
-#: app/templates/privacy.html:130
+#: app/templates/privacy.html:115
 msgid ""
 "AUSVIA is operated from Morocco. Our hosting and service providers may "
 "process data in other countries, including the EU (our email provider is "
@@ -2544,11 +2560,11 @@ msgstr ""
 "wir uns auf die Garantien, die diese Anbieter selbst bieten (etwa "
 "Standardvertragsklauseln)."
 
-#: app/templates/privacy.html:134
+#: app/templates/privacy.html:119
 msgid "13. Changes to this policy"
 msgstr "13. Änderungen dieser Erklärung"
 
-#: app/templates/privacy.html:135
+#: app/templates/privacy.html:120
 msgid ""
 "If this policy changes in a meaningful way, we'll update the date at the top"
 " and, where appropriate, let you know directly."
@@ -2556,11 +2572,11 @@ msgstr ""
 "Wenn sich diese Erklärung wesentlich ändert, aktualisieren wir das Datum "
 "oben und informieren dich gegebenenfalls direkt."
 
-#: app/templates/privacy.html:139
+#: app/templates/privacy.html:124
 msgid "14. Contact"
 msgstr "14. Kontakt"
 
-#: app/templates/privacy.html:140
+#: app/templates/privacy.html:125
 msgid "Questions about this policy or your data:"
 msgstr "Fragen zu dieser Erklärung oder deinen Daten:"
 
@@ -3543,6 +3559,8 @@ msgstr "Gespeichert"
 
 #: app/templates/jobs/_search_result_card.html:70
 #: app/templates/jobs/detail.html:295 app/templates/profile/view.html:49
+#: app/templates/profile/view.html:93 app/templates/profile/view.html:148
+#: app/templates/profile/view.html:194 app/templates/profile/view.html:232
 msgid "Save"
 msgstr "Speichern"
 
@@ -3649,7 +3667,7 @@ msgstr "Wie kann ich besser zu dieser Stelle passen?"
 msgid "Plain-language summary"
 msgstr "Verständliche Zusammenfassung"
 
-#: app/templates/jobs/detail.html:180 app/templates/profile/view.html:186
+#: app/templates/jobs/detail.html:180 app/templates/profile/view.html:259
 #, python-format
 msgid "Generated by %(provider)s."
 msgstr "Erstellt von %(provider)s."
@@ -4178,7 +4196,7 @@ msgstr[1] ""
 msgid "View saved jobs"
 msgstr "Gespeicherte Stellen ansehen"
 
-#: app/templates/main/dashboard.html:169 app/templates/profile/view.html:209
+#: app/templates/main/dashboard.html:169 app/templates/profile/view.html:282
 msgid "PROFILE COMPLETENESS"
 msgstr "PROFIL VOLLSTÄNDIGKEIT"
 
@@ -4342,11 +4360,16 @@ msgstr "Füge unten deine persönlichen Daten hinzu"
 msgid "Edit personal information"
 msgstr "Persönliche Daten bearbeiten"
 
-#: app/templates/profile/view.html:63 app/templates/profile/view.html:101
+#: app/templates/profile/view.html:64 app/templates/profile/view.html:130
 msgid "present"
 msgstr "heute"
 
-#: app/templates/profile/view.html:72
+#: app/templates/profile/view.html:81 app/templates/profile/view.html:137
+#: app/templates/profile/view.html:189 app/templates/profile/view.html:227
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: app/templates/profile/view.html:100
 msgid ""
 "Add your school, vocational training, or language course history - it feeds "
 "your match score and cover letters."
@@ -4354,24 +4377,24 @@ msgstr ""
 "Füge deine Schul-, Ausbildungs- oder Sprachkurshistorie hinzu - sie fließt "
 "in deinen Match-Wert und deine Anschreiben ein."
 
-#: app/templates/profile/view.html:75
+#: app/templates/profile/view.html:103
 msgid "Add education entry"
 msgstr "Ausbildungseintrag hinzufügen"
 
-#: app/templates/profile/view.html:87 app/templates/profile/view.html:124
-#: app/templates/profile/view.html:142 app/templates/profile/view.html:172
+#: app/templates/profile/view.html:115 app/templates/profile/view.html:169
+#: app/templates/profile/view.html:206 app/templates/profile/view.html:245
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: app/templates/profile/view.html:92
+#: app/templates/profile/view.html:120
 msgid "Experience"
 msgstr "Erfahrung"
 
-#: app/templates/profile/view.html:110
+#: app/templates/profile/view.html:155
 msgid "No experience entries yet"
 msgstr "Noch keine Erfahrungseinträge"
 
-#: app/templates/profile/view.html:110
+#: app/templates/profile/view.html:155
 msgid ""
 "Add internships, part-time work, or apprenticeships - concrete tasks and "
 "responsibilities strengthen your cover letters far more than a bare job "
@@ -4381,31 +4404,31 @@ msgstr ""
 " und Verantwortlichkeiten stärken dein Anschreiben weit mehr als eine bloße "
 "Berufsbezeichnung."
 
-#: app/templates/profile/view.html:113
+#: app/templates/profile/view.html:158
 msgid "Add experience entry"
 msgstr "Erfahrungseintrag hinzufügen"
 
-#: app/templates/profile/view.html:129
+#: app/templates/profile/view.html:174
 msgid "Skills & languages"
 msgstr "Fähigkeiten & Sprachen"
 
-#: app/templates/profile/view.html:135
+#: app/templates/profile/view.html:199
 msgid "No skills added yet."
 msgstr "Noch keine Fähigkeiten hinzugefügt."
 
-#: app/templates/profile/view.html:154
+#: app/templates/profile/view.html:218
 msgid "Remove language"
 msgstr "Sprache entfernen"
 
-#: app/templates/profile/view.html:166
+#: app/templates/profile/view.html:239
 msgid "No languages added yet."
 msgstr "Noch keine Sprachen hinzugefügt."
 
-#: app/templates/profile/view.html:177
+#: app/templates/profile/view.html:250
 msgid "Common questions"
 msgstr "Häufige Fragen"
 
-#: app/templates/profile/view.html:178
+#: app/templates/profile/view.html:251
 msgid ""
 "Grounded answers to common Ausbildung process questions - pick one, no free-"
 "text chat."
@@ -4413,19 +4436,19 @@ msgstr ""
 "Fundierte Antworten auf häufige Fragen zum Ausbildungsprozess - wähle eine "
 "aus, kein Freitext-Chat."
 
-#: app/templates/profile/view.html:194
+#: app/templates/profile/view.html:267
 msgid "Show answer"
 msgstr "Antwort anzeigen"
 
-#: app/templates/profile/view.html:229
+#: app/templates/profile/view.html:302
 msgid "Based only on what's in your profile - never invents achievements."
 msgstr "Basierend nur auf dem, was in deinem Profil steht - erfindet nie Erfolge."
 
-#: app/templates/profile/view.html:234
+#: app/templates/profile/view.html:307
 msgid "Profile coaching"
 msgstr "Profil-Coaching"
 
-#: app/templates/profile/view.html:235
+#: app/templates/profile/view.html:308
 msgid ""
 "An AI review of your whole profile - never invents achievements, only "
 "suggests presenting what's real more effectively."
@@ -4433,19 +4456,19 @@ msgstr ""
 "Eine KI-Durchsicht deines gesamten Profils - erfindet nie Erfolge, schlägt "
 "nur vor, wie du Echtes wirkungsvoller darstellst."
 
-#: app/templates/profile/view.html:238
+#: app/templates/profile/view.html:311
 msgid "Get AI feedback"
 msgstr "KI-Feedback erhalten"
 
-#: app/templates/profile/view.html:245
+#: app/templates/profile/view.html:318
 msgid "AUSBILDUNG PREFERENCES"
 msgstr "AUSBILDUNGSWÜNSCHE"
 
-#: app/templates/profile/view.html:253
+#: app/templates/profile/view.html:326
 msgid "Edit preferences"
 msgstr "Wünsche bearbeiten"
 
-#: app/templates/profile/view.html:263
+#: app/templates/profile/view.html:336
 msgid "Save preferences"
 msgstr "Wünsche speichern"
 

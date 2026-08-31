@@ -55,16 +55,44 @@
     {% if profile.education_entries %}
     <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden divide-y divide-line">
       {% for edu in profile.education_entries %}
-      <div class="flex items-baseline gap-4 px-5 py-4">
-        <div class="flex-1 min-w-0">
-          <div class="font-display font-semibold text-[15px] text-t1">{{ edu.degree or "—" }}{% if edu.field %} &middot; {{ edu.field }}{% endif %}</div>
-          <div class="text-[13px] text-t2 mt-0.5">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</div>
+      <div class="px-5 py-4">
+        <div class="flex items-baseline gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="font-display font-semibold text-[15px] text-t1">{{ edu.degree or "—" }}{% if edu.field %} &middot; {{ edu.field }}{% endif %}</div>
+            <div class="text-[13px] text-t2 mt-0.5">{{ edu.institution }}{% if edu.country %}, {{ edu.country }}{% endif %}</div>
+          </div>
+          <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(edu.start_date, format="y") if edu.start_date else "?" }}–{{ format_local_date(edu.end_date, format="y") if edu.end_date else _("present") }}</span>
+          <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}" class="shrink-0">
+            {{ education_form.csrf_token }}
+            <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
+          </form>
         </div>
-        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(edu.start_date, format="y") if edu.start_date else "?" }}–{{ format_local_date(edu.end_date, format="y") if edu.end_date else _("present") }}</span>
-        <form method="post" action="{{ url_for('profile.delete_education', entry_id=edu.id) }}" class="shrink-0">
-          {{ education_form.csrf_token }}
-          <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
-        </form>
+        {#
+          Edit-in-place pass (2026-08-31): a per-entry <details> block below
+          the (unchanged) header row, not nested inside its flex layout -
+          the revealed edit form needs its own full-width block, which a
+          <details> squeezed into a `shrink-0` flex slot can't give it
+          without fighting flex sizing. Same field set as "Add education
+          entry" below, pre-filled via education_edit_forms[edu.id]
+          (app/profile/routes.py) - the exact same EducationForm class,
+          reused for editing, not a second form.
+        #}
+        <details class="mt-2">
+          <summary class="cursor-pointer text-xs font-medium text-brand hover:underline select-none">{{ _("Edit") }}</summary>
+          <form method="post" action="{{ url_for('profile.edit_education', entry_id=edu.id) }}" class="mt-3 rounded-lg border border-line bg-page p-5">
+            {{ education_edit_forms[edu.id].hidden_tag() }}
+            <div class="grid gap-4 sm:grid-cols-2">
+              {{ render_field(education_edit_forms[edu.id].institution) }}
+              {{ render_field(education_edit_forms[edu.id].degree) }}
+              {{ render_field(education_edit_forms[edu.id].field) }}
+              {{ render_field(education_edit_forms[edu.id].country) }}
+              {{ render_field(education_edit_forms[edu.id].start_date) }}
+              {{ render_field(education_edit_forms[edu.id].end_date) }}
+            </div>
+            {{ render_field(education_edit_forms[edu.id].description) }}
+            {{ btn(_("Save"), variant="primary", type="submit") }}
+          </form>
+        </details>
       </div>
       {% endfor %}
     </div>
@@ -93,16 +121,33 @@
     {% if profile.experience_entries %}
     <div class="rounded-xl border border-line bg-card shadow-sm overflow-hidden divide-y divide-line">
       {% for exp in profile.experience_entries %}
-      <div class="flex items-baseline gap-4 px-5 py-4">
-        <div class="flex-1 min-w-0">
-          <div class="font-display font-semibold text-[15px] text-t1">{{ exp.role or "—" }}</div>
-          <div class="text-[13px] text-t2 mt-0.5">{{ exp.company }}</div>
+      <div class="px-5 py-4">
+        <div class="flex items-baseline gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="font-display font-semibold text-[15px] text-t1">{{ exp.role or "—" }}</div>
+            <div class="text-[13px] text-t2 mt-0.5">{{ exp.company }}</div>
+          </div>
+          <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(exp.start_date, format="MM/y") if exp.start_date else "?" }}–{{ format_local_date(exp.end_date, format="MM/y") if exp.end_date else _("present") }}</span>
+          <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}" class="shrink-0">
+            {{ experience_form.csrf_token }}
+            <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
+          </form>
         </div>
-        <span class="font-mono text-[11.5px] text-t3 shrink-0 whitespace-nowrap">{{ format_local_date(exp.start_date, format="MM/y") if exp.start_date else "?" }}–{{ format_local_date(exp.end_date, format="MM/y") if exp.end_date else _("present") }}</span>
-        <form method="post" action="{{ url_for('profile.delete_experience', entry_id=exp.id) }}" class="shrink-0">
-          {{ experience_form.csrf_token }}
-          <button type="submit" class="text-xs font-medium text-err hover:underline">{{ _("Remove") }}</button>
-        </form>
+        <details class="mt-2">
+          <summary class="cursor-pointer text-xs font-medium text-brand hover:underline select-none">{{ _("Edit") }}</summary>
+          <form method="post" action="{{ url_for('profile.edit_experience', entry_id=exp.id) }}" class="mt-3 rounded-lg border border-line bg-page p-5">
+            {{ experience_edit_forms[exp.id].hidden_tag() }}
+            <div class="grid gap-4 sm:grid-cols-2">
+              {{ render_field(experience_edit_forms[exp.id].company) }}
+              {{ render_field(experience_edit_forms[exp.id].role) }}
+              {{ render_field(experience_edit_forms[exp.id].start_date) }}
+              {{ render_field(experience_edit_forms[exp.id].end_date) }}
+            </div>
+            {{ render_field(experience_edit_forms[exp.id].responsibilities) }}
+            {{ render_field(experience_edit_forms[exp.id].achievements) }}
+            {{ btn(_("Save"), variant="primary", type="submit") }}
+          </form>
+        </details>
       </div>
       {% endfor %}
     </div>
@@ -128,9 +173,28 @@
     {# ---------- Skills & Languages ---------- #}
     <h2 class="font-display font-semibold text-[19px] text-t1 mt-9 mb-3">{{ _("Skills & languages") }}</h2>
     <div class="rounded-xl border border-line bg-card shadow-sm p-6">
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2 items-start">
         {% for skill in profile.skills %}
+        {#
+          Edit-in-place pass (2026-08-31): chips are inline-flex spans in a
+          wrapped row, with no room to reveal a multi-field form inside the
+          chip itself - each skill gets its own small block below its chip
+          instead (this outer div is the flex-wrap item; the chip sits on
+          its own line, the <details> block sits right under it and can
+          grow without disturbing sibling chips on the same wrapped row).
+        #}
+        <div>
           {{ chip_attribute(skill.name ~ (" · " ~ skill.proficiency if skill.proficiency else ""), removable=true, remove_action=url_for('profile.delete_skill', entry_id=skill.id)) }}
+          <details class="mt-1">
+            <summary class="cursor-pointer text-[11px] font-medium text-brand hover:underline select-none">{{ _("Edit") }}</summary>
+            <form method="post" action="{{ url_for('profile.edit_skill', entry_id=skill.id) }}" class="mt-2 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-page p-4">
+              {{ skill_edit_forms[skill.id].hidden_tag() }}
+              <div>{{ render_field(skill_edit_forms[skill.id].name) }}</div>
+              <div>{{ render_field(skill_edit_forms[skill.id].proficiency) }}</div>
+              {{ btn(_("Save"), variant="secondary", compact=true, type="submit") }}
+            </form>
+          </details>
+        </div>
         {% else %}
         <p class="text-sm text-t2">{{ _("No skills added yet.") }}</p>
         {% endfor %}
@@ -159,6 +223,15 @@
              translated note text - see that function's docstring. #}
           {% set note_text, note_is_warning = language_notes.get(lang.id, (None, False)) %}
           {% if note_text %}<div class="text-[12.5px] mt-0.5 {{ 'text-warn' if note_is_warning else 'text-t3' }}">{{ note_text }}</div>{% endif %}
+          <details class="mt-1">
+            <summary class="cursor-pointer text-[11px] font-medium text-brand hover:underline select-none">{{ _("Edit") }}</summary>
+            <form method="post" action="{{ url_for('profile.edit_language', entry_id=lang.id) }}" class="mt-2 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-page p-4">
+              {{ language_edit_forms[lang.id].hidden_tag() }}
+              <div>{{ render_field(language_edit_forms[lang.id].name) }}</div>
+              <div>{{ render_field(language_edit_forms[lang.id].level) }}</div>
+              {{ btn(_("Save"), variant="secondary", compact=true, type="submit") }}
+            </form>
+          </details>
         </div>
         {% endfor %}
       </div>

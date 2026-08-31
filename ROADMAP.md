@@ -1238,6 +1238,32 @@ reviewed privacy policy both exist.
       `gettext()` exact-match checks.
 - [x] Full suite: 739 passed, 3 skipped (up from 731).
 
+## Profile entries: edit-in-place for all four list sections (complete)
+
+Investigation confirmed the reported gap (Education/Experience showing
+only "Remove") was actually uniform across all four list-style profile
+sections - Skill and Language had the identical gap, not just the two
+the screenshot showed.
+
+- [x] **Education, Experience, Skill, Language** all gained a real
+      "Edit" action alongside "Remove" - reuses the exact same
+      `EducationForm`/`ExperienceForm`/`SkillForm`/`LanguageForm`
+      classes the add routes already use, pre-filled per entry via
+      WTForms' `prefix` parameter so N simultaneous same-page forms
+      never collide (verified directly, including that the CSRF token
+      field is prefixed too).
+- [x] No migration needed - confirmed, not assumed: every edited field
+      already existed on the four models.
+- [x] Edit-in-place confirmed via direct DB queries (exactly one row
+      per entry, before and after every edit - never two), pre-fill
+      confirmed, persistence after a full page reload confirmed, all
+      live via Playwright for all four sections independently. Both
+      languages, both themes.
+- [x] "Cancel" is native `<details>` disclosure behavior (matching the
+      page's own existing "Edit personal information" precedent) -
+      nothing reaches the server until Save is clicked.
+- [x] Full suite: 746 passed, 3 skipped (up from 739).
+
 ## Before any public launch (not yet scheduled)
 
 Nothing currently listed here - the Impressum/privacy policy blocker

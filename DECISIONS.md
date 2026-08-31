@@ -6,6 +6,78 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-31 — Profile entries gain edit-in-place: a real, uniform gap across all four list sections
+
+**Investigated first, confirmed the gap wasn't limited to the two sections a screenshot showed.**
+Education and Experience were the reported symptom, but grepping `app/profile/routes.py`'s routes
+confirmed all four list-style profile sections - education, experience, skill, AND language - had
+the identical shape: `/add` and `/<id>/delete`, no `/<id>/edit` anywhere. No edit mechanism existed
+anywhere in the codebase, hidden or otherwise - a genuine, uniform gap across the whole profile, not
+two isolated oversights. `Preference` (the fifth list-shaped-looking section) was already excluded
+correctly - it's a singleton (one row per profile), already has `update_preferences()`, not part of
+this gap.
+
+**No new migration - confirmed, not just assumed.** Every field involved already exists on
+`Education`/`Experience`/`Skill`/`Language`; editing reuses the exact same `EducationForm`/
+`ExperienceForm`/`SkillForm`/`LanguageForm` classes the add routes already use, per the task's own
+instruction - not a second set of form classes.
+
+**The one real technical risk: N simultaneous forms of the same class on one page.** Rendering one
+pre-filled edit form per existing entry (so every entry's "Edit" reveals its own form, all
+coexisting in the DOM even while collapsed) means, without care, every entry's "institution" field
+would render with the identical HTML `id`/`name` - broken label associations, and a real risk of a
+submission accidentally binding to the wrong entry's data. Fixed with WTForms' `prefix` parameter
+(`EducationForm(obj=entry, prefix=f"education-{entry.id}")` at render time in `view()`,
+`EducationForm(prefix=f"education-{entry_id}")` at the receiving `edit_education()` route, same
+prefix both times) - verified directly, not assumed, that this produces unique
+`education-{id}-institution` field ids/names and that the CSRF token field is *also* prefixed
+(`education-{id}-csrf_token`), so a real end-to-end round trip (render → submit → verify the DB row)
+was confirmed to work before writing a single line of template markup. A dedicated test
+(`test_edit_forms_for_different_entries_do_not_collide`) proves editing one of two same-page entries
+never touches the other.
+
+**Template structure: a per-entry `<details>` block below the (unchanged) header row, not nested
+inside its flex layout.** First design attempt tried to fit a small "Edit" trigger inline next to
+"Remove" within the existing `flex items-baseline gap-4` header row, with the revealed form living
+inside that same `<details>` - this doesn't work: a `<details>` squeezed into a `shrink-0` flex slot
+can't let its revealed content grow to full width without fighting the flex layout's sizing rules
+(HTML also requires `<summary>` to be `<details>`'s literal first child to get native
+click-to-toggle behavior - burying it in a nested wrapper silently breaks that). Settled on a
+per-entry `<details>` positioned as a plain block-level sibling *below* the existing header row
+(the same shape "Add education entry" already uses, just once per existing entry instead of once
+for the whole section) - "Remove" stays exactly where and how it already was, unaffected. Skills
+specifically (rendered as `chip_attribute()` pills in a `flex flex-wrap` row, not a vertical list)
+get the same treatment at the per-chip level: each skill becomes its own flex item containing the
+unchanged chip, with a small "Edit" `<details>` block underneath it - chips on the same wrapped row
+simply get more vertical space next to a taller, opened one, standard `flex-wrap` behavior.
+
+**"Cancel" is native `<details>` behavior, not a dedicated button - matching the page's own existing
+"Edit personal information" precedent (no cancel button there either).** Nothing is ever submitted
+to the server until "Save" is clicked; collapsing the `<details>` (clicking the summary again, or
+just navigating away) discards only the in-browser form state, never touches the database - so
+"cancelling must not corrupt existing data" holds structurally, by construction, not by any special
+handling that could have a bug.
+
+**A real, unrelated mistake surfaced mid-pass: a quick ad-hoc verification script's
+`db.drop_all()`/`db.create_all()` wiped the actual local dev database**, since `create_app()` with
+no override resolves to the real `instance/app.db`, not an isolated test DB. Confirmed non-
+catastrophic (production is a separate Railway database, `instance/` was never git-tracked so
+nothing else was at risk), but real local dev/demo data accumulated across this whole session was
+lost with no way to recover it. Disclosed to the user immediately rather than silently continuing;
+user chose to recreate a minimal admin account and proceed. See the new feedback memory
+(`feedback_verify_db_uri_before_destructive_scripts`) - this is now a standing rule for any future
+throwaway verification script, not just this pass.
+
+i18n: 5 new/changed strings ("Edit" + four "<X> entry/skill/language updated." flash messages,
+matching the exact existing "added"/"hinzugefügt" terminology and tense already in the catalog),
+0 fuzzy entries, verified via `gettext()` exact-match checks.
+
+Live-verified via Playwright for all four sections independently: pre-fill correctness, update-in-
+place (confirmed via direct DB queries - exactly one row per entry, before and after, never two),
+persistence after a full page reload, both German and English UI, both light and dark themes.
+
+---
+
 ## 2026-08-31 — Real Impressum + privacy policy pages, registration age gate + marketing opt-in
 
 **Two new public pages, no longer deferred.** `/impressum` and `/privacy`

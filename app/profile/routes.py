@@ -171,6 +171,20 @@ def view():
         experience_form=ExperienceForm(),
         skill_form=SkillForm(),
         language_form=LanguageForm(),
+        # Edit-in-place pass (2026-08-31): one pre-filled form instance per
+        # existing entry, each with a unique `prefix` (WTForms renders
+        # field id/name as "prefix-fieldname") so N simultaneous forms for
+        # the same section never collide in the DOM - without this, every
+        # education entry's "institution" field would share the same
+        # id="institution", breaking label associations and (since
+        # multiple <details> can coexist in the DOM even while only one is
+        # visibly open) potentially binding the wrong entry's submitted
+        # data. `obj=entry` pre-fills from the real row, same mechanism
+        # personal_form=PersonalInfoForm(obj=profile) already uses above.
+        education_edit_forms={e.id: EducationForm(obj=e, prefix=f"education-{e.id}") for e in profile.education_entries},
+        experience_edit_forms={e.id: ExperienceForm(obj=e, prefix=f"experience-{e.id}") for e in profile.experience_entries},
+        skill_edit_forms={s.id: SkillForm(obj=s, prefix=f"skill-{s.id}") for s in profile.skills},
+        language_edit_forms={l.id: LanguageForm(obj=l, prefix=f"language-{l.id}") for l in profile.languages},
         coaching=get_profile_coaching(current_user),
         qa_questions=PROCESS_QA_QUESTIONS,
         qa_answers={key: get_process_qa_answer(current_user, key) for key in PROCESS_QA_QUESTIONS},
@@ -276,6 +290,27 @@ def add_education():
     return redirect(url_for("profile.view"))
 
 
+@bp.route("/education/<int:entry_id>/edit", methods=["POST"])
+@login_required
+def edit_education(entry_id):
+    # Edit-in-place pass (2026-08-31): same EducationForm class as
+    # add_education() above, reused rather than a second form - the
+    # prefix must match what view() rendered this entry's form with
+    # (f"education-{entry_id}") so WTForms binds the right submitted
+    # fields; updates the existing row via populate_obj(), never creates
+    # a new one.
+    profile = _get_or_create_profile()
+    entry = _owned_or_404(Education, entry_id, profile.id)
+    form = EducationForm(prefix=f"education-{entry_id}")
+    if form.validate_on_submit():
+        form.populate_obj(entry)
+        db.session.commit()
+        flash(_("Education entry updated."), "success")
+    else:
+        flash(_("Please correct the errors in the education form."), "error")
+    return redirect(url_for("profile.view"))
+
+
 @bp.route("/education/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def delete_education(entry_id):
@@ -298,6 +333,21 @@ def add_experience():
         db.session.add(entry)
         db.session.commit()
         flash(_("Experience entry added."), "success")
+    else:
+        flash(_("Please correct the errors in the experience form."), "error")
+    return redirect(url_for("profile.view"))
+
+
+@bp.route("/experience/<int:entry_id>/edit", methods=["POST"])
+@login_required
+def edit_experience(entry_id):
+    profile = _get_or_create_profile()
+    entry = _owned_or_404(Experience, entry_id, profile.id)
+    form = ExperienceForm(prefix=f"experience-{entry_id}")
+    if form.validate_on_submit():
+        form.populate_obj(entry)
+        db.session.commit()
+        flash(_("Experience entry updated."), "success")
     else:
         flash(_("Please correct the errors in the experience form."), "error")
     return redirect(url_for("profile.view"))
@@ -329,6 +379,22 @@ def add_skill():
     return redirect(url_for("profile.view"))
 
 
+@bp.route("/skill/<int:entry_id>/edit", methods=["POST"])
+@login_required
+def edit_skill(entry_id):
+    profile = _get_or_create_profile()
+    entry = _owned_or_404(Skill, entry_id, profile.id)
+    form = SkillForm(prefix=f"skill-{entry_id}")
+    if form.validate_on_submit():
+        entry.name = form.name.data
+        entry.proficiency = form.proficiency.data or None
+        db.session.commit()
+        flash(_("Skill updated."), "success")
+    else:
+        flash(_("Please correct the errors in the skill form."), "error")
+    return redirect(url_for("profile.view"))
+
+
 @bp.route("/skill/<int:entry_id>/delete", methods=["POST"])
 @login_required
 def delete_skill(entry_id):
@@ -349,6 +415,22 @@ def add_language():
         db.session.add(entry)
         db.session.commit()
         flash(_("Language added."), "success")
+    else:
+        flash(_("Please correct the errors in the language form."), "error")
+    return redirect(url_for("profile.view"))
+
+
+@bp.route("/language/<int:entry_id>/edit", methods=["POST"])
+@login_required
+def edit_language(entry_id):
+    profile = _get_or_create_profile()
+    entry = _owned_or_404(Language, entry_id, profile.id)
+    form = LanguageForm(prefix=f"language-{entry_id}")
+    if form.validate_on_submit():
+        entry.name = form.name.data
+        entry.level = form.level.data or None
+        db.session.commit()
+        flash(_("Language updated."), "success")
     else:
         flash(_("Please correct the errors in the language form."), "error")
     return redirect(url_for("profile.view"))

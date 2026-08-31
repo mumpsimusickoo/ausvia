@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.models.document import Document
-from app.models.profile import Education, Skill, Language
+from app.models.profile import Education, Experience, Skill, Language
 from app.profile.routes import _age, _completeness_lines, _language_proof_note
 from tests.conftest import login
 
@@ -51,6 +51,194 @@ def test_cannot_delete_another_users_education_entry(client, db, make_user):
 
     remaining = db.session.get(Education, entry.id)
     assert remaining is not None  # was not deleted
+
+
+# --- Edit-in-place pass (2026-08-31): every list-style profile section
+# (education, experience, skill, language) had add/remove but no edit -
+# investigation confirmed this was a real, uniform gap across all four,
+# not just education/experience. Same EducationForm/ExperienceForm/
+# SkillForm/LanguageForm classes are reused for editing, prefixed
+# per-entry so N simultaneous forms on one page never collide
+# (app/profile/routes.py's view()) - CSRF included, since the prefix
+# extends to csrf_token too (verified directly - see DECISIONS.md). ---
+
+
+def test_edit_education_updates_in_place_not_duplicate(client, db, make_user):
+    make_user(email="edu-edit@example.com", password="Password123!")
+    login(client, "edu-edit@example.com", "Password123!")
+
+    client.post(
+        "/profile/education/add",
+        data={"institution": "TU Berlin", "degree": "Bachelor", "field": "Electronics"},
+        follow_redirects=True,
+    )
+    entry = Education.query.filter_by(institution="TU Berlin").first()
+
+    # Pre-fill check: the rendered profile page's edit form for this entry
+    # carries its existing values.
+    body = client.get("/profile/").data.decode("utf-8")
+    assert f'id="education-{entry.id}-institution"' in body
+    assert 'value="TU Berlin"' in body
+
+    p = f"education-{entry.id}"
+    resp = client.post(
+        f"/profile/education/{entry.id}/edit",
+        data={f"{p}-institution": "RWTH Aachen", f"{p}-degree": "Master", f"{p}-field": "Robotics"},
+        follow_redirects=True,
+    )
+    assert b"Education entry updated" in resp.data
+    assert b"RWTH Aachen" in resp.data
+    assert b"TU Berlin" not in resp.data
+
+    assert Education.query.count() == 1  # updated in place, not duplicated
+    updated = db.session.get(Education, entry.id)
+    assert updated.institution == "RWTH Aachen"
+    assert updated.degree == "Master"
+
+
+def test_edit_education_invalid_submission_does_not_corrupt_existing_data(client, db, make_user):
+    make_user(email="edu-edit-invalid@example.com", password="Password123!")
+    login(client, "edu-edit-invalid@example.com", "Password123!")
+
+    client.post("/profile/education/add", data={"institution": "TU Berlin"}, follow_redirects=True)
+    entry = Education.query.filter_by(institution="TU Berlin").first()
+
+    # institution has a min length of 1 - submitting blank must fail
+    # validation, not silently blank out the existing row.
+    resp = client.post(
+        f"/profile/education/{entry.id}/edit",
+        data={f"education-{entry.id}-institution": ""},
+        follow_redirects=True,
+    )
+    assert b"Please correct the errors" in resp.data
+
+    unchanged = db.session.get(Education, entry.id)
+    assert unchanged.institution == "TU Berlin"
+
+
+def test_cannot_edit_another_users_education_entry(client, db, make_user):
+    owner = make_user(email="edu-owner@example.com", password="Password123!")
+    make_user(email="edu-intruder@example.com", password="Password123!")
+
+    entry = Education(profile_id=owner.profile.id, institution="Secret University")
+    db.session.add(entry)
+    db.session.commit()
+
+    login(client, "edu-intruder@example.com", "Password123!")
+    resp = client.post(f"/profile/education/{entry.id}/edit", data={f"education-{entry.id}-institution": "Hacked"})
+    assert resp.status_code == 404
+
+    unchanged = db.session.get(Education, entry.id)
+    assert unchanged.institution == "Secret University"
+
+
+def test_edit_experience_updates_in_place_not_duplicate(client, db, make_user):
+    make_user(email="exp-edit@example.com", password="Password123!")
+    login(client, "exp-edit@example.com", "Password123!")
+
+    client.post(
+        "/profile/experience/add",
+        data={"company": "Siemens", "role": "Intern"},
+        follow_redirects=True,
+    )
+    entry = Experience.query.filter_by(company="Siemens").first()
+
+    body = client.get("/profile/").data.decode("utf-8")
+    assert f'id="experience-{entry.id}-company"' in body
+    assert 'value="Siemens"' in body
+
+    p = f"experience-{entry.id}"
+    resp = client.post(
+        f"/profile/experience/{entry.id}/edit",
+        data={f"{p}-company": "Bosch", f"{p}-role": "Working student"},
+        follow_redirects=True,
+    )
+    assert b"Experience entry updated" in resp.data
+    assert b"Bosch" in resp.data
+    assert b"Siemens" not in resp.data
+
+    assert Experience.query.count() == 1
+    updated = db.session.get(Experience, entry.id)
+    assert updated.company == "Bosch"
+    assert updated.role == "Working student"
+
+
+def test_edit_skill_updates_in_place_not_duplicate(client, db, make_user):
+    make_user(email="skill-edit@example.com", password="Password123!")
+    login(client, "skill-edit@example.com", "Password123!")
+
+    client.post("/profile/skill/add", data={"name": "PLC", "proficiency": "advanced"}, follow_redirects=True)
+    entry = Skill.query.filter_by(name="PLC").first()
+
+    body = client.get("/profile/").data.decode("utf-8")
+    assert f'id="skill-{entry.id}-name"' in body
+    assert 'value="PLC"' in body
+
+    p = f"skill-{entry.id}"
+    resp = client.post(
+        f"/profile/skill/{entry.id}/edit",
+        data={f"{p}-name": "STEP7", f"{p}-proficiency": "expert"},
+        follow_redirects=True,
+    )
+    assert b"Skill updated" in resp.data
+    assert b"STEP7" in resp.data
+
+    assert Skill.query.count() == 1
+    updated = db.session.get(Skill, entry.id)
+    assert updated.name == "STEP7"
+    assert updated.proficiency == "expert"
+
+
+def test_edit_language_updates_in_place_not_duplicate(client, db, make_user):
+    make_user(email="lang-edit@example.com", password="Password123!")
+    login(client, "lang-edit@example.com", "Password123!")
+
+    client.post("/profile/language/add", data={"name": "German", "level": "B1"}, follow_redirects=True)
+    entry = Language.query.filter_by(name="German").first()
+
+    body = client.get("/profile/").data.decode("utf-8")
+    assert f'id="language-{entry.id}-name"' in body
+    assert 'value="German"' in body
+
+    p = f"language-{entry.id}"
+    resp = client.post(
+        f"/profile/language/{entry.id}/edit",
+        data={f"{p}-name": "German", f"{p}-level": "C1"},
+        follow_redirects=True,
+    )
+    assert b"Language updated" in resp.data
+
+    assert Language.query.count() == 1
+    updated = db.session.get(Language, entry.id)
+    assert updated.level == "C1"
+
+
+def test_edit_forms_for_different_entries_do_not_collide(client, db, make_user):
+    """Two education entries rendered on the same page must have distinct
+    field ids/names (the prefix WTForms bug this pass had to get right) -
+    editing one must never touch the other."""
+    make_user(email="edu-collide@example.com", password="Password123!")
+    login(client, "edu-collide@example.com", "Password123!")
+
+    client.post("/profile/education/add", data={"institution": "School A"}, follow_redirects=True)
+    client.post("/profile/education/add", data={"institution": "School B"}, follow_redirects=True)
+    entry_a = Education.query.filter_by(institution="School A").first()
+    entry_b = Education.query.filter_by(institution="School B").first()
+
+    body = client.get("/profile/").data.decode("utf-8")
+    assert body.count(f'id="education-{entry_a.id}-institution"') == 1
+    assert body.count(f'id="education-{entry_b.id}-institution"') == 1
+
+    client.post(
+        f"/profile/education/{entry_a.id}/edit",
+        data={f"education-{entry_a.id}-institution": "School A Updated"},
+        follow_redirects=True,
+    )
+
+    updated_a = db.session.get(Education, entry_a.id)
+    unchanged_b = db.session.get(Education, entry_b.id)
+    assert updated_a.institution == "School A Updated"
+    assert unchanged_b.institution == "School B"  # untouched by editing the other entry
 
 
 def test_add_skill_and_language(client, db, make_user):
