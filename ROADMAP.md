@@ -1202,20 +1202,47 @@ salutation even when a job posting named a real contact.
       `Application.contact_email` (the real address the Gmail draft/
       reply flow uses) is seeded from `Job.contact_email` at Application
       creation - verified via a new test and live in the browser.
-- [x] Full suite: see `DECISIONS.md` for the final count.
+- [x] Full suite: 731 passed, 3 skipped (up from 718).
+
+## Impressum + privacy policy + registration consent (complete)
+
+The pre-launch blocker flagged in the Landing pass (2026-08-28, see
+below) - resolved now that the operator's real legal identity and a
+reviewed privacy policy both exist.
+
+- [x] **`/impressum` and `/privacy`** - real, finalized content, not
+      stubbed. Reachable regardless of login state (unlike `plans()`'s
+      redirect-authenticated-away convention). A real bug (empty page
+      for a logged-in visitor - `base.html` routes to a different Jinja
+      block depending on auth state, and the first version only defined
+      the anonymous one) found by testing the logged-in path directly,
+      fixed by factoring each page's content into a macro rendered from
+      both blocks. Live-verified via Playwright: both pages, both
+      languages, both themes, both the anonymous and authenticated
+      layouts.
+- [x] **Landing footer's Impressum/privacy links** now point at the
+      real routes instead of being omitted.
+- [x] **Registration: age confirmation (required) + marketing opt-in
+      (optional), genuinely separate** - `User.marketing_consent`
+      (migration `d284078b5462`); age confirmation is a submission gate
+      only, not persisted. Server-side enforcement live-verified via
+      Playwright specifically (not just a test-client POST): bypassed
+      the browser's own HTML5 `required` attribute via `page.evaluate()`
+      to prove the server rejects an unchecked submission independently
+      - no user created, invitation code not burned. Both
+      `marketing_consent` states (checked/unchecked) confirmed by
+      reading the real saved `User` row after a real registration.
+- [x] 63 new/changed strings translated (German is Impressum's
+      authoritative source language, English is the privacy policy's -
+      see `DECISIONS.md` for why), 0 fuzzy entries, verified via
+      `gettext()` exact-match checks.
+- [x] Full suite: 739 passed, 3 skipped (up from 731).
 
 ## Before any public launch (not yet scheduled)
 
-- [ ] **Real Impressum + privacy policy** - no privacy or Impressum
-      route/page exists anywhere in the app today; the Landing pass
-      (2026-08-28) deliberately left the footer's legal links out rather
-      than stub them - see `DECISIONS.md`'s 2026-08-28 entry for exactly
-      what the privacy policy needs to cover (Gmail OAuth scopes/storage,
-      uploaded document retention, what's sent to the AI provider, which
-      job source APIs are queried) and why an Impressum needs the user's
-      real legal identity, not something to improvise mid-pass. Currently
-      low-urgency only because AUSVIA is invite-only with no public
-      signup - this becomes a hard blocker the moment that changes.
+Nothing currently listed here - the Impressum/privacy policy blocker
+above is now resolved. Re-check this section before any move away from
+invite-only.
 
 ## Explicitly not scheduled
 

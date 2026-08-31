@@ -38,9 +38,32 @@
 </div>
 {% endmacro %}
 
+{#
+  Registration-consent pass (2026-08-31): every existing render_checkbox()
+  call site before this (remember_me, open_to_relocation) was genuinely
+  optional with no validator that could ever fail, so error display was
+  never needed. RegisterForm.age_confirmed is this macro's first REQUIRED
+  checkbox - extended to show field.errors the same way render_field()
+  already does (aria-describedby/aria-invalid included, same Phase 7
+  remediation this app already applies everywhere else), rather than
+  writing one-off markup just for that field.
+#}
 {% macro render_checkbox(field) %}
-<div class="mb-4 flex items-center gap-2">
-  {{ field(class_="h-4 w-4 rounded border-line2 text-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand") }}
-  <label for="{{ field.id }}" class="text-sm text-t2">{{ field.label.text }}</label>
+<div class="mb-4">
+  <div class="flex items-center gap-2">
+    {% if field.errors %}
+      {{ field(class_="h-4 w-4 rounded border-line2 text-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand", aria_describedby=field.id ~ "-error", aria_invalid="true") }}
+    {% else %}
+      {{ field(class_="h-4 w-4 rounded border-line2 text-brand focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand") }}
+    {% endif %}
+    <label for="{{ field.id }}" class="text-sm text-t2">{{ field.label.text }}</label>
+  </div>
+  {% if field.errors %}
+  <div id="{{ field.id }}-error">
+    {% for error in field.errors %}
+    <p class="mt-1 text-xs text-err">{{ error }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
 {% endmacro %}

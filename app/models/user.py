@@ -25,6 +25,19 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Impressum/privacy/registration-consent pass (2026-08-31): the actual
+    # opt-in record for marketing emails (app/mail.py's marketing-send path,
+    # once one exists, must check this before sending) - set once at
+    # registration from RegisterForm.marketing_consent, a genuinely separate,
+    # unticked-by-default checkbox (GDPR requires marketing consent to be
+    # freely given, never bundled with a required checkbox like the age
+    # confirmation on the same form). The age confirmation itself is
+    # deliberately NOT a column here - it's a one-time submission gate
+    # (server-side DataRequired on that BooleanField blocks registration
+    # entirely if unchecked), not a fact worth retaining about the account
+    # after the fact.
+    marketing_consent = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+
     # Plans page + access expiry pass (2026-08-30): None = no expiry -
     # unaffected by default (trial/admin accounts, every pre-existing user,
     # and any code redeemed without a duration set - see

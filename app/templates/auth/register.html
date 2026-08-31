@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import render_field %}
+{% from "_macros.html" import render_field, render_checkbox %}
 {% block title %}{{ _("Activate access code") }} — AUSVIA{% endblock %}
 {% block public_content %}
 <section class="mx-auto max-w-sm px-4 py-16 md:px-0">
@@ -11,6 +11,21 @@
     {{ render_field(form.email) }}
     {{ render_field(form.password) }}
     {{ render_field(form.confirm_password) }}
+    {#
+      Registration-consent pass (2026-08-31): two genuinely separate
+      checkboxes, deliberately not grouped in one fieldset - age_confirmed
+      is required to submit (server-side, see app/auth/forms.py),
+      marketing_consent is a fully independent, optional opt-in. GDPR
+      requires marketing consent to be freely given, never bundled with or
+      implied by a required checkbox, so the visual separation here isn't
+      just styling - it mirrors two structurally unrelated form fields.
+    #}
+    {{ render_checkbox(form.age_confirmed) }}
+    <p class="-mt-2 mb-4 text-xs text-t3">
+      {{ _("Read the") }}
+      <a href="{{ url_for('main.privacy') }}" class="text-brand hover:underline">{{ _("Privacy Policy") }}</a>.
+    </p>
+    {{ render_checkbox(form.marketing_consent) }}
     <button type="submit" class="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-fill hover:bg-brand-hover">
       {{ _("Create account") }}
     </button>

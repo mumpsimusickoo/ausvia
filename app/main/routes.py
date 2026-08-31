@@ -27,6 +27,12 @@ bp = Blueprint("main", __name__)
 # rail card's "show a handful, link to the rest" shape.
 DASHBOARD_APPLICATIONS_LIMIT = 8
 
+# Impressum/privacy pass (2026-08-31): fixed publish date for the privacy
+# policy's "Last updated" line - update this constant (and re-verify the
+# page's content still matches it) whenever the policy text itself
+# genuinely changes, not on every deploy.
+PRIVACY_POLICY_LAST_UPDATED = date(2026, 8, 31)
+
 
 def _time_of_day_greeting():
     # Server local time - a reasonable default for now; per-user timezone
@@ -133,6 +139,30 @@ def plans():
         for users, monthly_dh in PLAN_MONTHLY_PRICES_DH
     ]
     return render_template("plans.html", plan_rows=plan_rows)
+
+
+@bp.route("/impressum")
+def impressum():
+    # Impressum/privacy pass (2026-08-31): a real legal-notice page (§ 5
+    # DDG), not stubbed - see DECISIONS.md's 2026-08-28 entry for why this
+    # was deliberately deferred rather than improvised at the time. No
+    # redirect-authenticated-users-away here (unlike plans() above) - an
+    # Impressum is a standing legal disclosure that has to stay reachable
+    # regardless of login state, not a pre-signup marketing page.
+    return render_template("impressum.html")
+
+
+@bp.route("/privacy")
+def privacy():
+    # Same page, same reasoning as impressum() above - a real privacy
+    # policy, reachable regardless of login state. PRIVACY_POLICY_LAST_UPDATED
+    # is a fixed publish date (not datetime.now()) - the "Last updated" line
+    # should reflect when the policy content itself last changed, not
+    # today's date on every page load.
+    return render_template(
+        "privacy.html",
+        last_updated=format_local_date(PRIVACY_POLICY_LAST_UPDATED, format="long"),
+    )
 
 
 @bp.route("/health")

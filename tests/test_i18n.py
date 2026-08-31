@@ -196,6 +196,7 @@ def test_registration_seeds_locale_from_the_anonymous_cookie(client, db, trial_c
             "email": "fresh-german@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -215,6 +216,7 @@ def test_registration_with_no_cookie_keeps_the_english_default(client, db, trial
             "email": "fresh-default@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )

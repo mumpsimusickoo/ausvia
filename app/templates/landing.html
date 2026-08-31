@@ -234,8 +234,10 @@
   Footer - source list generated from get_enabled_adapter_names()
   (app/jobs/adapters/manager.py), excluding "manual" (not a searchable
   source), so it can never claim a source the app can't currently search
-  - today that's Arbeitsagentur only. Privacy/Impressum links are
-  deliberately omitted, not stubbed - see DECISIONS.md's 2026-08-28 entry.
+  - today that's Arbeitsagentur only. Privacy/Impressum links (2026-08-31):
+  real routes now exist (main.privacy/main.impressum, see
+  DECISIONS.md's 2026-08-28 entry for why they were deliberately omitted
+  rather than stubbed until now).
 #}
 <footer class="border-t border-line">
   <div class="max-w-content mx-auto px-4 md:px-10 py-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-t3">
@@ -243,6 +245,8 @@
     {% if source_display_names %}
     <span>{{ _("Source") if source_display_names|length == 1 else _("Sources") }}: {{ source_display_names|join(', ') }}</span>
     {% endif %}
+    <a href="{{ url_for('main.privacy') }}" class="hover:text-t1 hover:underline">{{ _("Privacy Policy") }}</a>
+    <a href="{{ url_for('main.impressum') }}" class="hover:text-t1 hover:underline">{{ _("Impressum") }}</a>
     <a href="{{ url_for('auth.register') }}" class="ml-auto font-medium text-brand hover:underline">{{ _("Enter access code") }} &rarr;</a>
   </div>
 </footer>

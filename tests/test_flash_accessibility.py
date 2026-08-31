@@ -27,6 +27,7 @@ def test_success_flash_has_role_status_and_icon(client, db, trial_code):
             "email": "flashsuccess@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )

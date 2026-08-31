@@ -55,6 +55,7 @@ def test_concurrent_registration_cannot_double_redeem_a_single_use_code(tmp_path
                         "email": f"racer{n}@example.com",
                         "password": "Password123!",
                         "confirm_password": "Password123!",
+                        "age_confirmed": "y",
                     },
                     follow_redirects=True,
                 )

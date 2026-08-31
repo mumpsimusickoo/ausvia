@@ -48,7 +48,10 @@ def register():
         role = "admin" if code.code_type == "admin" else "user"
         plan = code.code_type if code.code_type != "admin" else "premium"
 
-        user = User(email=form.email.data.lower(), role=role, plan=plan)
+        user = User(
+            email=form.email.data.lower(), role=role, plan=plan,
+            marketing_consent=form.marketing_consent.data,
+        )
         user.set_password(form.password.data)
         # Plans page + access expiry pass (2026-08-30): only codes created
         # through the admin "Plan" convenience selector set this - every

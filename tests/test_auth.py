@@ -10,6 +10,7 @@ def test_register_with_valid_code_creates_user_and_profile(client, db, trial_cod
             "email": "new@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -21,6 +22,73 @@ def test_register_with_valid_code_creates_user_and_profile(client, db, trial_cod
 
     code = db.session.get(InvitationCode, trial_code.id)
     assert code.use_count == 1
+    assert user.marketing_consent is False
+
+
+# --- Registration-consent pass (2026-08-31): age gate + marketing opt-in ---
+# Real Playwright browser verification (not just this test-client level) is
+# what actually proves the server rejects an unchecked age box independent
+# of any client-side HTML5 required attribute - see the live-verification
+# note in DECISIONS.md. These test-client checks confirm the same server
+# logic at the unit/integration level, run on every CI pass.
+
+
+def test_register_rejects_submission_without_age_confirmation(client, db, trial_code):
+    resp = client.post(
+        "/auth/register",
+        data={
+            "access_code": trial_code.code,
+            "email": "no-age-confirm@example.com",
+            "password": "Password123!",
+            "confirm_password": "Password123!",
+            # age_confirmed deliberately omitted - unchecked.
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    assert User.query.filter_by(email="no-age-confirm@example.com").first() is None
+    assert b"16 years of age" in resp.data
+
+    code = db.session.get(InvitationCode, trial_code.id)
+    assert code.use_count == 0  # never redeemed - the code isn't burned by a rejected submission
+
+
+def test_register_with_marketing_consent_checked_saves_true(client, db, trial_code):
+    resp = client.post(
+        "/auth/register",
+        data={
+            "access_code": trial_code.code,
+            "email": "marketing-yes@example.com",
+            "password": "Password123!",
+            "confirm_password": "Password123!",
+            "age_confirmed": "y",
+            "marketing_consent": "y",
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    user = User.query.filter_by(email="marketing-yes@example.com").first()
+    assert user is not None
+    assert user.marketing_consent is True
+
+
+def test_register_with_marketing_consent_unchecked_saves_false(client, db, trial_code):
+    resp = client.post(
+        "/auth/register",
+        data={
+            "access_code": trial_code.code,
+            "email": "marketing-no@example.com",
+            "password": "Password123!",
+            "confirm_password": "Password123!",
+            "age_confirmed": "y",
+            # marketing_consent deliberately omitted - unchecked.
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    user = User.query.filter_by(email="marketing-no@example.com").first()
+    assert user is not None
+    assert user.marketing_consent is False
 
 
 def test_register_rejects_invalid_code(client, db):
@@ -31,6 +99,7 @@ def test_register_rejects_invalid_code(client, db):
             "email": "nobody@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -50,6 +119,7 @@ def test_register_rejects_code_past_max_uses(client, db, trial_code):
             "email": "late@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -66,6 +136,7 @@ def test_register_rejects_duplicate_email(client, db, trial_code, make_user):
             "email": "taken@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -80,6 +151,7 @@ def test_admin_code_grants_admin_role(client, db, admin_code):
             "email": "boss@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )

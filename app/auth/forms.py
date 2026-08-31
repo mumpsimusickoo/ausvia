@@ -45,6 +45,32 @@ class RegisterForm(FlaskForm):
             EqualTo("password", message=_l("Passwords must match.")),
         ],
     )
+    # Impressum/privacy/registration-consent pass (2026-08-31): a
+    # BooleanField's data is False (not empty/None) when unchecked, and
+    # DataRequired's own check (`not field.data`) already treats that as
+    # missing - `not False == True` - so this is a real, working "must be
+    # checked to submit" gate, not merely decorative. Server-side is the
+    # actual enforcement (form.validate_on_submit() in
+    # app/auth/routes.py's register() rejects the whole submission if this
+    # fails, same as any other required field) - the browser's own native
+    # `required` attribute (WTForms auto-renders one for any
+    # DataRequired-validated field) is a UX nicety on top, never trusted
+    # alone, same discipline as every other required field in this app.
+    age_confirmed = BooleanField(
+        _l("I confirm I am 16 years of age or older."),
+        validators=[DataRequired(message=_l("You must confirm you are 16 years of age or older to register."))],
+    )
+    # Deliberately NO validators at all, and deliberately a separate field
+    # from age_confirmed above, never rendered inside the same fieldset/
+    # requirement - GDPR requires marketing consent to be freely given on
+    # its own, not bundled with (or implied by) any other required
+    # checkbox. Defaults to unchecked (WTForms' BooleanField default,
+    # matching User.marketing_consent's own False column default) -
+    # persisted as-is onto User.marketing_consent in register(), never
+    # inferred or defaulted to True anywhere.
+    marketing_consent = BooleanField(
+        _l("I'd like to receive occasional emails about new features and updates from AUSVIA.")
+    )
 
 
 class LoginForm(FlaskForm):

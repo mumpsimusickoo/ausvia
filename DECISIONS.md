@@ -6,6 +6,115 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-08-31 — Real Impressum + privacy policy pages, registration age gate + marketing opt-in
+
+**Two new public pages, no longer deferred.** `/impressum` and `/privacy`
+(`app/main/routes.py`) render real, finalized content - see the
+2026-08-28 entry below for why this was deliberately deferred rather
+than stubbed until the operator's real legal identity and a real,
+reviewed privacy policy existed. Both routes are reachable regardless of
+login state (unlike `plans()`'s redirect-authenticated-users-away
+convention) - a legal notice/privacy policy has to stay reachable either
+way, not just pre-signup.
+
+**A real bug only a logged-in-view check caught, not the anonymous
+render alone:** `base.html` routes to one of two Jinja blocks depending
+on `current_user.is_authenticated` - `{% block content %}` (wrapped in
+the authenticated app shell's own sidebar/max-w-5xl main) for a logged-in
+visitor, `{% block public_content %}` (bare, own header) for an
+anonymous one. The first version of both templates only defined
+`public_content`, following `plans.html`'s pattern - but `plans()` never
+needs to handle the authenticated case at all (it redirects those users
+away), which `impressum()`/`privacy()` deliberately don't. The result: a
+logged-in visitor got a fully empty page (sidebar chrome, nothing
+inside) - caught by testing the logged-in path directly, not by eyeballing
+the anonymous render alone. Fixed by factoring each page's real content
+into a Jinja macro (`impressum_body()`/`privacy_body()`) defined once and
+called from both blocks, each wrapped appropriately for its own layout
+context - not duplicated markup, one source of truth for the actual
+copy. Live-verified in both states via Playwright (screenshots of both
+pages, both languages, both themes, plus the authenticated sidebar
+render specifically).
+
+**Translation direction chosen per page, not blanket English-source:**
+this app's i18n convention is English msgid -> German msgstr everywhere
+else, but the Impressum content was handed over already written in
+German (the operator's own authoritative § 5 DDG wording) while the
+privacy policy was handed over in English. Rather than force one
+direction, each page kept its own authoritative source language:
+Impressum's German text is used verbatim as the `.po` msgstr (not
+re-translated by this pass into German from an English gloss), with a
+faithful English translation authored for the msgid/EN-locale side;
+privacy policy's English text is the literal msgid (verbatim, satisfying
+"don't rewrite the content"), with a faithful, hand-authored German
+translation for the msgstr. Facts (operator name/address/email/WhatsApp
+number) are never wrapped in `_()` at all - identical in both languages,
+correctly - only the section labels and body prose are translated. 63
+new/changed strings translated by hand via the established
+`read_po`/`write_po` scratch-script workflow (never a script that
+generates translation content itself, only file I/O for hand-composed
+text - see the i18n entries below for why), 0 fuzzy entries remaining,
+verified via `gettext()` exact-match checks, not terminal display.
+
+**Registration: two new, genuinely separate checkboxes on
+`RegisterForm`.** `age_confirmed` (required, server-side enforced via
+`DataRequired` - a `BooleanField`'s data is `False`, not empty, when
+unchecked, and `DataRequired`'s `not field.data` check already treats
+`False` as missing, so this was already a real, working gate, not
+decorative) and `marketing_consent` (fully optional, no validators,
+persisted as `User.marketing_consent`, migration `d284078b5462`).
+Deliberately never rendered in the same fieldset or implied by one
+another - GDPR requires marketing consent to be freely given on its own,
+never bundled with a required checkbox. `age_confirmed` itself is NOT
+persisted anywhere - it's a one-time submission gate, not a fact worth
+retaining once the account exists (matching the task's own framing:
+data worth keeping vs. a gate worth enforcing are different things).
+
+**Live-verified server-side enforcement specifically, not just a
+test-client POST - the exact discipline the earlier manual-import
+`formnovalidate` bug (see the 2026-08-30 entries below) established is
+worth repeating for any required-field feature.** WTForms auto-renders
+an HTML5 `required` attribute for any `DataRequired`-validated field, so
+a normal Playwright click on a real browser with the age box unchecked
+never even reaches the server - it's blocked client-side, which proves
+nothing about the server's own behavior. Verified directly: confirmed
+the browser blocks it natively first (no navigation, no user created),
+then used `page.evaluate()` to remove the `required` attribute from the
+live DOM before clicking again - simulating a client that skips HTML5
+validation entirely (a non-browser HTTP client, or a manipulated page) -
+and confirmed the server rejects the submission independently: the
+form re-renders with the checkbox marked `aria-invalid`, the exact
+custom error message shown, no `User` row created, and the invitation
+code's `use_count` left untouched (not burned by a rejected
+submission). Also live-verified both success paths: age confirmed with
+marketing left unchecked saves `marketing_consent=False`; both checked
+saves `True` - confirmed by reading the real `User` row after each real
+registration, not just checking for a success page.
+
+**`render_checkbox()` (`app/templates/_macros.html`) extended to show
+field errors** - every checkbox using it before this
+(`remember_me`/`open_to_relocation`) was genuinely optional with no
+validator that could ever fail, so error display was never needed.
+`age_confirmed` is this macro's first required checkbox; extended to
+match `render_field()`'s existing error-display pattern
+(`aria-describedby`/`aria-invalid`, same Phase 7 accessibility
+remediation already applied everywhere else) rather than writing
+one-off markup just for this one field - a future required checkbox
+gets this for free.
+
+**Landing footer's Impressum/privacy links** now point at the real
+routes (`main.impressum`/`main.privacy`) instead of being omitted - see
+the 2026-08-28 entry below for why they were deliberately absent rather
+than a stubbed dead link until now. (Minor correction to how this gap
+was described going into this pass: the footer never actually contained
+a dead `href="#"` - the links were omitted entirely, confirmed by
+re-reading that entry and the current template before starting. Same
+fix either way: real, working links now exist.)
+
+Full suite: 739 passed, 3 skipped (up from 731).
+
+---
+
 ## 2026-08-30 — Contact info: four independent causes fixed, from the same-day investigation
 
 Follow-up implementation pass to the same-day investigation (report kept
@@ -156,6 +265,8 @@ new German translation covers both call sites) were extended to mention
 contact info alongside salary; extracted/updated/translated/compiled
 via the exact documented `pybabel` workflow, verified via `gettext()`
 exact-match checks, 0 fuzzy entries remaining.
+
+Full suite: 731 passed, 3 skipped (up from 718).
 
 ---
 

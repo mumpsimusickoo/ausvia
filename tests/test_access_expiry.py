@@ -75,7 +75,7 @@ def test_redeeming_code_with_duration_sets_access_expires_at(client, db):
         "/auth/register",
         data={
             "email": "duration1@example.com", "password": "Password123!",
-            "confirm_password": "Password123!", "access_code": code.code,
+            "confirm_password": "Password123!", "access_code": code.code, "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -99,7 +99,7 @@ def test_redeeming_code_without_duration_leaves_access_expires_at_none(client, d
         "/auth/register",
         data={
             "email": "noduration@example.com", "password": "Password123!",
-            "confirm_password": "Password123!", "access_code": code.code,
+            "confirm_password": "Password123!", "access_code": code.code, "age_confirmed": "y",
         },
         follow_redirects=True,
     )
@@ -117,7 +117,7 @@ def test_yearly_duration_twelve_months_computed_correctly(client, db):
         "/auth/register",
         data={
             "email": "duration12@example.com", "password": "Password123!",
-            "confirm_password": "Password123!", "access_code": code.code,
+            "confirm_password": "Password123!", "access_code": code.code, "age_confirmed": "y",
         },
         follow_redirects=True,
     )

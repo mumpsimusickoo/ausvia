@@ -99,15 +99,16 @@ def test_footer_source_list_does_not_show_adzuna_from_credentials_alone(app, db)
     assert "Adzuna" not in body
 
 
-def test_footer_has_no_privacy_or_imprint_links(client):
-    # Deliberate: no privacy policy or Impressum route/page exists in the
-    # app today, and a placeholder or dead link would be worse than the
-    # honest gap - see DECISIONS.md's 2026-08-28 entry.
+def test_footer_has_real_privacy_and_impressum_links(client):
+    # Impressum/privacy pass (2026-08-31): real pages now exist (see
+    # DECISIONS.md's 2026-08-28 entry for why they were deliberately
+    # deferred until now, and this pass's own entry for the fix) - the
+    # footer's links must point at the real routes, not a dead "#" or an
+    # absent link.
     resp = client.get("/")
     body = resp.data.decode("utf-8")
-    assert "Datenschutz" not in body
-    assert "Impressum" not in body
-    assert "privacy" not in body.lower()
+    assert 'href="/privacy"' in body
+    assert 'href="/impressum"' in body
 
 
 def test_value_blocks_state_fixed_weights_and_real_category_order(client):
@@ -182,6 +183,7 @@ def test_closing_cta_invalid_code_reaches_the_real_gate_once_fields_are_filled(c
             "email": "nobody-landing@example.com",
             "password": "Password123!",
             "confirm_password": "Password123!",
+            "age_confirmed": "y",
         },
         follow_redirects=True,
     )
