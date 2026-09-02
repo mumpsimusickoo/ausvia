@@ -255,16 +255,27 @@ def extract_manual_import_fields(page_title, text, user_id):
     shaped like _raw_fallback()'s. Mirrors job_requirements_extraction.py's
     mock-mode/AIProviderError handling: an AI outage, a declined mock
     provider, or an exhausted rate limit must never block the import
-    review flow - each just degrades to today's pre-extraction baseline."""
-    fallback = _raw_fallback(page_title, text)
+    review flow - each just degrades to today's pre-extraction baseline.
 
+    Thin wrapper around _run_extraction(): this function's own job is just
+    the rate-limit gate. _consume_extraction_rate_limit() is a real
+    Flask-Limiter check keyed off the current request's client IP, so it
+    requires an active HTTP request context - fine for this function's four
+    original route-based callers (see that helper's own docstring), but not
+    for app/jobs/ingest.py's fill_contact_from_external_posting(), which
+    runs from a background-task thread with no request context at all. That
+    caller uses _run_extraction() directly instead, matching
+    job_requirements_extraction.py's own precedent of no rate limiter at
+    all for its background-task AI calls - a background task is already
+    naturally throttled to one call per job per view, unlike this
+    function's four request-bound routes sharing one manual-import flow."""
     provider = get_provider()
     if provider.provider_name == "mock":
         # No real provider configured - nothing to attempt, nothing to
         # count against the rate limit (mock mode makes no network call
         # and costs nothing, so charging it here would exhaust the real
         # budget before a real provider is ever set up).
-        return fallback
+        return _raw_fallback(page_title, text)
 
     from flask_limiter.errors import RateLimitExceeded
 
@@ -275,6 +286,22 @@ def extract_manual_import_fields(page_title, text, user_id):
             "job_source", "Manual import extraction skipped: rate limit exceeded.",
             level="warning", user_id=user_id,
         )
+        return _raw_fallback(page_title, text)
+
+    return _run_extraction(page_title, text, user_id)
+
+
+def _run_extraction(page_title, text, user_id):
+    """The actual provider call, parsing, and grounding - no rate-limit
+    check of its own, so callers outside a request context (background
+    tasks) must call this directly rather than extract_manual_import_fields().
+    Still handles mock mode itself (rather than assuming every caller
+    already checked) since fill_contact_from_external_posting() calls this
+    directly and must degrade the same way in a mock-provider dev setup."""
+    fallback = _raw_fallback(page_title, text)
+
+    provider = get_provider()
+    if provider.provider_name == "mock":
         return fallback
 
     system, prompt = build_extraction_prompt(page_title, text)

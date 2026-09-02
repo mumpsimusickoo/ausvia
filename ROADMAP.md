@@ -1264,6 +1264,42 @@ the screenshot showed.
       nothing reaches the server until Save is clicked.
 - [x] Full suite: 746 passed, 3 skipped (up from 739).
 
+## Job contact display: visible CONTACT card + external-posting fallback (complete)
+
+Investigated first: real 250-job Arbeitsagentur sample found only 1/250
+with contact already populated (confounded by a real Gemini rate-limit
+exhaustion the investigation script itself triggered), and - the real,
+substantial finding - 202/250 null-contact jobs had genuinely no contact
+text anywhere in their own description, 133 of those with a real external
+posting URL. See `DECISIONS.md` for the full breakdown and the Vetter
+Pharma/Moritz Gehring live-verification case.
+
+- [x] **CONTACT card** added to the job detail rail, matching APPLY/
+      COMPANY/SOURCE's exact visual treatment - shows `contact_person`/
+      `contact_email` whenever already populated. Folded an existing but
+      differently-styled, permanently-mostly-empty "Contact" block into
+      the same rail rather than leaving it in its own dead column.
+- [x] **External-posting contact fallback** (`Job.contact_external_fetch_attempted`,
+      migration `c34ab4e91828`) - for an Arbeitsagentur job where
+      description-based extraction already ran and genuinely found no
+      contact, lazily fetches the job's real external posting URL (on a
+      real page view only, via `submit_task()`) and runs it through the
+      same grounded extraction pipeline manual import uses. One-shot,
+      never retried - a bot-protection block or a genuinely contact-less
+      page are both accepted as permanent outcomes.
+- [x] **Real bug fixed along the way**: `extract_manual_import_fields()`'s
+      Flask-Limiter rate-limit check required an HTTP request context,
+      which a background task doesn't have - factored the core
+      extraction logic into `_run_extraction()` (no rate limiter) so the
+      new background-task caller can use it directly, matching
+      `job_requirements_extraction.py`'s own no-rate-limiter precedent.
+- [x] Live-verified against the real Vetter Pharma-Fertigung job (id 253):
+      real fetch of its real external page confirmed live, full code
+      path exercised end to end, CONTACT card confirmed rendering Moritz
+      Gehring's real contact info across all 4 language/theme
+      combinations via Playwright.
+- [x] Full suite: 760 passed, 3 skipped (up from 746).
+
 ## Before any public launch (not yet scheduled)
 
 Nothing currently listed here - the Impressum/privacy policy blocker

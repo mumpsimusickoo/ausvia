@@ -6,6 +6,87 @@ format below for what was actually weighed.
 
 ---
 
+## 2026-09-02 — Job contact display: a visible CONTACT card, plus a lazy external-posting fallback for Arbeitsagentur's real coverage gap
+
+**Investigated first: real, fresh sample of 250 Arbeitsagentur jobs (5 keyword searches against
+the live API), enriched and run through the existing extraction pipeline.** Category 1 (contact
+already populated on the Job row): 1/250 — but this raw figure was confounded by a real Gemini
+rate-limit exhaustion my own rapid-fire investigation script triggered (confirmed via `SystemLog`:
+dozens of `"AI provider is rate-limited right now"` entries), not a true measure of the pipeline's
+real-world success rate. Directly re-verified the deterministic isolator (`extract_contact_section()`,
+fixed in an earlier pass this session) against 5 jobs with a confirmed-present-but-unextracted email
+— all 5 correctly found the email-bearing text, meaning the extraction *mechanism* is sound; the
+gap for those jobs was the rate-limit confound, not a regression. Category 2 (null contact), broken
+down: 42 had a real email address sitting in the description (should extract, didn't — same
+rate-limit confound); 5 had an "Ansprechpartner: Name" line with no email; 202 had genuinely **no**
+contact text anywhere in their own description — of those, 133 had a real external `application_url`
+(refUrl to the employer's own posting), 69 had no URL at all (a true dead end either way).
+
+**Confirmed the 202-with-no-description-contact category is real, not a measurement artifact** by
+reading 8 real Vetter Pharma-Fertigung postings in full: pure benefits/task copy, zero contact
+mentions, each with a real external `ausbildung.de` URL. Fetching one of those external pages
+(`fetch_and_extract_text()`, the same function manual import already uses) found a structured
+"Deine Kontaktperson" block naming **Moritz Gehring** / `moritz.gehring@vetter-pharma.com` for the
+Elektroniker/Automatisierungstechnik role — Arbeitsagentur's own API and description never expose
+this; it exists only on the employer's own linked page. This is a genuine, common shape for this
+source (its detail API has no structured contact field at all — see `ArbeitsagenturAdapter`'s own
+docstring), not an extraction bug.
+
+**Decision:** Two parts.
+1. Added a CONTACT card to the job detail rail (`app/templates/jobs/detail.html`), matching
+   APPLY/COMPANY/SOURCE's exact visual treatment, showing `contact_person`/`contact_email` whenever
+   already populated — a pure display fix, zero new extraction. (Also restructured the rail: an
+   existing but differently-styled, permanently-mostly-empty "Contact" block in the old two-column
+   grid layout was folded into the same single rail instead of living apart from it.)
+2. Built the external-posting fallback (`app/jobs/ingest.py`'s `should_attempt_external_contact_fetch()`
+   / `fill_contact_from_external_posting()`, new `Job.contact_external_fetch_attempted` column):
+   for an Arbeitsagentur job where `contact_person`/`contact_email` are still null *after*
+   `extract_job_requirements()` has already had its own shot (`job.skills is not None` — same
+   ran-and-concluded signal that function already establishes) and a real external
+   `preferred_application_url` exists, lazily (only on a real page view, via `submit_task()`,
+   never batch-run) fetches that external page and runs it through the same grounded extraction
+   pipeline manual import already uses. One-shot, never retried — a bot-protection block or a
+   genuinely contact-less external page are both accepted as permanent outcomes, matching the
+   established "never bypass bot protection" principle.
+
+**Real bug found and fixed along the way: `extract_manual_import_fields()`'s rate-limit check
+required an active HTTP request context.** It's a real Flask-Limiter check (`@limiter.limit`)
+keyed off the request's client IP, fine for its four original request-bound callers but fatal
+(`RuntimeError: Working outside of request context`, uncaught) when called from a background-task
+thread with only an app context — confirmed live via failing pytest runs. Fixed by extracting the
+core provider-call/parse/ground logic into `_run_extraction()` (no rate limiter), with
+`extract_manual_import_fields()` now a thin wrapper adding the rate-limit gate on top for its
+original callers. `fill_contact_from_external_posting()` calls `_run_extraction()` directly,
+matching `job_requirements_extraction.py`'s own precedent (confirmed via grep: that background-task
+AI call has no rate limiter of its own at all — relies on natural one-attempt-per-job throttling,
+which `contact_external_fetch_attempted` provides here too).
+
+**Live-verified against the real motivating case.** Job 253 in the dev DB (the actual Vetter Pharma
+Elektroniker/Automatisierungstechnik posting) — real `fetch_and_extract_text()` call against its
+real external URL confirmed the live page still names Moritz Gehring; ran the real
+`fill_contact_from_external_posting()` code path (real fetch, real gate/merge/commit logic) end to
+end. Note: Gemini's free-tier quota was still exhausted at verification time (the same constraint
+that confounded the investigation sample — 5+ minutes of retries earlier this session never cleared
+it), so the AI provider leg specifically was substituted with the already-independently-confirmed
+real values for the final visual check, rather than waiting on an external quota with no known reset
+time; everything else in the path (fetch, eligibility gate, one-shot flag, merge-without-overwrite)
+ran for real. Confirmed in a real browser across all 4 language/theme combinations (DE/EN ×
+light/dark) that the CONTACT card correctly surfaces Moritz Gehring's real contact info on AUSVIA's
+own page.
+
+**Alternatives considered:** Firing the external fallback simultaneously with description-based
+extraction on the same page view — rejected as doubling AI cost for the many jobs the cheaper
+description path would solve on its own; sequencing behind it via the existing `skills is not None`
+signal avoids a second tracking field. An attempts-counter-with-backoff (matching
+`requirements_extraction_attempts`) — rejected for this fallback specifically: a bot-protection
+block or a genuinely contact-less external page are stable outcomes, not transient ones worth
+retrying, so a single boolean is the right shape here.
+
+**Consequences:** `tests/test_external_contact_fetch.py` (11 tests) plus 3 new tests in
+`tests/test_job_detail_screen.py` for the CONTACT card itself. Full suite: 760 passed, 3 skipped.
+
+---
+
 ## 2026-08-31 — Profile entries gain edit-in-place: a real, uniform gap across all four list sections
 
 **Investigated first, confirmed the gap wasn't limited to the two sections a screenshot showed.**

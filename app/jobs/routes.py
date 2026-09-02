@@ -12,7 +12,12 @@ from app.extensions import db
 from app.models.job import Job, JobListing, SavedJob
 from app.models.manual_import import ManualImportBatch
 from app.jobs.forms import SearchForm, ManualImportUrlForm, ManualImportReviewForm
-from app.jobs.ingest import ingest_search, enrich_job_detail
+from app.jobs.ingest import (
+    enrich_job_detail,
+    fill_contact_from_external_posting,
+    ingest_search,
+    should_attempt_external_contact_fetch,
+)
 from app.jobs.radar import run_job_radar
 from app.jobs.adapters.manager import ADMIN_ONLY_SOURCES, KNOWN_SOURCES, get_enabled_adapter_names
 from app.ai.job_requirements_extraction import extract_job_requirements, should_retry_requirements_extraction
@@ -319,6 +324,14 @@ def detail(job_id):
     # this feature existed.
     if enriched or should_retry_requirements_extraction(job):
         submit_task(current_user, "job_requirements_extraction", extract_job_requirements, job.id, current_user.id)
+    # Contact-display pass (2026-09-02): deliberately checked AFTER the
+    # requirements-extraction trigger above, and gated on job.skills
+    # already being non-None (see should_attempt_external_contact_fetch()'s
+    # own docstring) - a genuine fallback for once the description-based
+    # extraction has already had its shot and genuinely found no contact,
+    # not a second simultaneous attempt on the same view.
+    if should_attempt_external_contact_fetch(job):
+        submit_task(current_user, "external_contact_fetch", fill_contact_from_external_posting, job.id, current_user.id)
     is_saved = SavedJob.query.filter_by(user_id=current_user.id, job_id=job.id).first() is not None
     match = get_or_compute_match(current_user, job)
 

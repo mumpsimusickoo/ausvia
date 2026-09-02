@@ -48,6 +48,45 @@ def test_fact_tiles_show_not_specified_for_missing_start_and_salary(client, db, 
     assert resp.data.count(b"Not specified") == 2
 
 
+def test_contact_card_renders_when_populated(client, db, make_user):
+    """Contact display pass (2026-09-02): job.contact_person/contact_email
+    (made significantly more reliable this session - see DECISIONS.md's
+    contact-extraction entries) had nowhere visible on the job detail page
+    matching the rest of the rail's design language before this - the
+    CONTACT card must actually render, same mono-label treatment as
+    APPLY/COMPANY/SOURCE, whenever the data already exists on the row."""
+    make_user(email="d-contact1@example.com", password="Password123!")
+    login(client, "d-contact1@example.com", "Password123!")
+    job = make_job(title="Elektroniker D", contact_person="Frau Julia Weber", contact_email="julia.weber@example.de")
+
+    resp = client.get(f"/jobs/{job.id}")
+    body = resp.data.decode("utf-8")
+    assert "CONTACT" in body
+    assert "Frau Julia Weber" in body
+    assert "julia.weber@example.de" in body
+    assert 'href="mailto:julia.weber@example.de"' in body
+
+
+def test_contact_card_absent_when_no_contact_on_file(client, db, make_user):
+    make_user(email="d-contact2@example.com", password="Password123!")
+    login(client, "d-contact2@example.com", "Password123!")
+    job = make_job(title="Elektroniker E", contact_person=None, contact_email=None)
+
+    resp = client.get(f"/jobs/{job.id}")
+    assert b"CONTACT" not in resp.data
+
+
+def test_contact_card_renders_with_only_email_no_person(client, db, make_user):
+    make_user(email="d-contact3@example.com", password="Password123!")
+    login(client, "d-contact3@example.com", "Password123!")
+    job = make_job(title="Elektroniker F", contact_person=None, contact_email="bewerbung@example.de")
+
+    resp = client.get(f"/jobs/{job.id}")
+    body = resp.data.decode("utf-8")
+    assert "CONTACT" in body
+    assert "bewerbung@example.de" in body
+
+
 def test_requirement_tags_render_and_flag_gaps(client, db, make_user):
     user = make_user(email="d3@example.com", password="Password123!")
     login(client, "d3@example.com", "Password123!")

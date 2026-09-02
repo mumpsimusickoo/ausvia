@@ -187,3 +187,122 @@ def enrich_job_detail(job):
         db.session.commit()
 
     return enriched
+
+
+def should_attempt_external_contact_fetch(job):
+    """Contact-display pass (2026-09-02): True if this Arbeitsagentur job
+    is eligible for the external-posting contact fallback -
+    fill_contact_from_external_posting() below. Gated on the job's own
+    data genuinely having no contact info yet, a real external posting
+    URL existing to try, and this never having been attempted before -
+    never retried once tried, regardless of outcome (see that function's
+    own docstring for why a bot-protection block or a genuinely
+    contact-less external page are both accepted as permanent, not
+    transient, states).
+
+    Arbeitsagentur-only, not every source: confirmed via investigation
+    (DECISIONS.md) that this specific gap - real contact info sitting on
+    an employer's own linked posting page, absent from the source API's
+    own data - is real and common for Arbeitsagentur specifically (its
+    detail API has no structured contact field at all, see
+    ArbeitsagenturAdapter's own docstring); Adzuna/Jooble weren't part of
+    this investigation and aren't assumed to have the same shape.
+
+    Deliberately sequenced BEHIND extract_job_requirements(): this is a
+    genuine fallback, only worth trying once the cheaper, more-trusted
+    description-based extraction has already had its own shot at finding
+    a contact and genuinely found none - not a second simultaneous
+    attempt that would just double the AI cost for jobs the description
+    extraction would have solved on its own. job.skills is not None is
+    the same "extraction already ran and concluded" signal
+    extract_job_requirements() itself already establishes (an empty list
+    means "ran, found nothing", distinct from None, "never attempted or
+    still pending") - reused here rather than a second tracking field."""
+    if job.contact_person or job.contact_email:
+        return False
+    if job.contact_external_fetch_attempted:
+        return False
+    if job.skills is None:
+        return False
+    if "arbeitsagentur" not in job.sources:
+        return False
+    return bool(job.preferred_application_url)
+
+
+def fill_contact_from_external_posting(job_id, user_id):
+    """Lazy, one-shot fallback for an Arbeitsagentur job whose own listing
+    genuinely never states a contact - confirmed via investigation this
+    session (see DECISIONS.md) that this is a real, common shape (202 of
+    250 sampled jobs with no contact_person/email had no contact text
+    anywhere in their own description either - a data-availability gap
+    on Arbeitsagentur's side for most of these, not a remaining bug in
+    extract_job_requirements()'s isolator/grounding). Live-verified
+    against the real motivating case: a Vetter Pharma-Fertigung
+    Elektroniker/in posting whose Arbeitsagentur description states no
+    contact at all, but whose real external ausbildung.de posting names
+    a real contact (Moritz Gehring) this fills in correctly.
+
+    Reuses the exact grounded extraction pipeline already built and
+    proven for manual import (app/ai/manual_import_extraction.py)
+    against the job's real preferred_application_url - same structural
+    fencing, same never-guess grounding, same bot-protection respect
+    (fetch_and_extract_text() never attempts to evade a block) as a user
+    pasting that same URL into manual import themselves would get. Only
+    the two contact fields are ever kept from the result - title/
+    company/location/salary/description are already correctly populated
+    by Arbeitsagentur's own API and must never be silently overwritten
+    by a second, less-trusted source.
+
+    Calls _run_extraction() (the core provider-call/parse/ground logic),
+    not extract_manual_import_fields() itself - that wrapper's rate-limit
+    check requires an active HTTP request context (it's a real
+    Flask-Limiter check keyed off the request's client IP), which doesn't
+    exist here: this runs via submit_task() on a worker thread with only
+    an app context. Matches job_requirements_extraction.py's own
+    precedent of no rate limiter at all for its background-task AI call -
+    this is naturally throttled to one attempt per job, ever, by
+    contact_external_fetch_attempted itself.
+
+    Takes job_id/user_id (not a Job object) to match
+    extract_job_requirements()'s own precedent - this runs via
+    submit_task() on a worker thread with its own app context, where a
+    model instance from the request's session would be detached.
+
+    Called from app/jobs/routes.py's detail() route, off the request via
+    submit_task() (same as extract_job_requirements()) - a real external
+    HTTP fetch plus a real AI call have meaningfully more latency than a
+    page load someone's already waiting on, and the page is fully usable
+    without this either way. Marks contact_external_fetch_attempted
+    unconditionally before returning, regardless of outcome - this is a
+    real accepted dead end for this one job when it fails, never retried."""
+    from app.ai.manual_import_extraction import _run_extraction
+    from app.jobs.manual_import import FetchFailed, fetch_and_extract_text
+    from app.models.job import Job
+
+    job = db.session.get(Job, job_id)
+    if job is None or not should_attempt_external_contact_fetch(job):
+        return False
+
+    try:
+        fetched = fetch_and_extract_text(job.preferred_application_url)
+    except FetchFailed as e:
+        log_event(
+            "job_source",
+            f"External contact fetch skipped for job {job.id}: {e}",
+            level="info",
+        )
+        job.contact_external_fetch_attempted = True
+        db.session.commit()
+        return False
+
+    result = _run_extraction(fetched["page_title"], fetched["text"], user_id)
+    job.contact_external_fetch_attempted = True
+    changed = False
+    if result["contact_person"] and not job.contact_person:
+        job.contact_person = result["contact_person"]
+        changed = True
+    if result["contact_email"] and not job.contact_email:
+        job.contact_email = result["contact_email"]
+        changed = True
+    db.session.commit()
+    return changed

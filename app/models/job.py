@@ -68,6 +68,20 @@ class Job(db.Model):
     contact_email = db.Column(db.String(255), nullable=True)
     application_url = db.Column(db.String(1000), nullable=True)
 
+    # Contact-display pass (2026-09-02): a real, one-shot fallback for
+    # Arbeitsagentur jobs whose own listing genuinely states no contact
+    # info anywhere (confirmed via investigation - see DECISIONS.md - this
+    # is a real data-availability gap on Arbeitsagentur's side for most
+    # of these, not a remaining extract_job_requirements() bug: 202 of
+    # 250 sampled jobs with no contact_person/email had no contact text
+    # anywhere in their own description either). A simple attempted-once
+    # boolean, not an attempts-counter-with-backoff like
+    # requirements_extraction_attempts above - a bot-protection block or
+    # a genuinely contact-less external page are both stable outcomes, not
+    # transient ones worth retrying. See
+    # app/jobs/ingest.py::fill_contact_from_external_posting().
+    contact_external_fetch_attempted = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+
     dedup_key = db.Column(db.String(500), nullable=False, index=True)
     status = db.Column(db.String(20), nullable=False, default="active")
 

@@ -201,27 +201,23 @@
   {% endif %}
 </div>
 
-{# Contact card only when there's a real contact on file - the "view
-   original posting" link already lives in the rail's SOURCE card below
-   (grounded in the bundle's own construction), so it isn't repeated here.
+{# Contact card pass (2026-09-02): the "view original posting" link
+   already lives in the rail's SOURCE card below (grounded in the
+   bundle's own construction), so it isn't repeated here.
 
-   grid-cols-1 explicit, not just the lg: override: without a base
-   grid-template-columns, an implicit grid's single column sizes to its
-   content's max-content width instead of filling the container - found
-   during Application Detail's 375px check (that screen's tab bar made it
-   visible; this construction was copied from here first) - see
-   DECISIONS.md. #}
-<div class="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_330px]">
-  <div class="lg:order-1">
-    {% if job.contact_person or job.contact_email %}
-    <div class="rounded-xl border border-line bg-card shadow-sm p-6">
-      <h2 class="font-semibold text-t1 mb-3">{{ _("Contact") }}</h2>
-      <p class="text-sm text-t2">{{ job.contact_person or "" }} {% if job.contact_email %}&lt;{{ job.contact_email }}&gt;{% endif %}</p>
-    </div>
-    {% endif %}
-  </div>
-
-  <div class="lg:order-2 flex flex-col gap-5">
+   Contact used to render as its own oddly-styled block in a dedicated
+   left grid column (an lg:grid-cols-[1fr_330px] split whose left column
+   existed for nothing else) - real gap found live: the data
+   (job.contact_person/contact_email, made significantly more reliable
+   this session - see DECISIONS.md's contact-extraction entries) had
+   nowhere visible matching the rest of the rail's design language, and
+   the permanently-empty left column was dead layout. Folded into the
+   rail itself, same mono-label card treatment as APPLY/COMPANY/SOURCE -
+   the rail keeps the same effective width (was the grid's fixed 330px
+   column, now lg:max-w-[330px] lg:ml-auto on the stack directly) since
+   nothing else ever occupied the left column to justify keeping the
+   grid split. #}
+<div class="mt-8 flex flex-col gap-5 lg:max-w-[330px] lg:ml-auto">
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
       <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("APPLY") }}</span>
       <p class="mt-2.5 text-sm text-t2 leading-relaxed">{{ _("AUSVIA drafts the cover letter, email, and PDF package. Review and sending stay with you.") }}</p>
@@ -253,6 +249,18 @@
       </div>
     </div>
 
+    {% if job.contact_person or job.contact_email %}
+    <div class="rounded-xl border border-line bg-card shadow-sm p-5">
+      <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("CONTACT") }}</span>
+      {% if job.contact_person %}
+      <p class="mt-2.5 font-display font-semibold text-[15px] leading-tight text-t1">{{ job.contact_person }}</p>
+      {% endif %}
+      {% if job.contact_email %}
+      <p class="{{ 'mt-1' if job.contact_person else 'mt-2.5' }} text-sm"><a href="mailto:{{ job.contact_email }}" class="text-brand hover:underline">{{ job.contact_email }}</a></p>
+      {% endif %}
+    </div>
+    {% endif %}
+
     {% if job.company_id %}
     <div class="rounded-xl border border-line bg-card shadow-sm p-5">
       <span class="font-mono text-[10.5px] tracking-[0.1em] text-t3">{{ _("COMPANY") }}</span>
@@ -281,7 +289,6 @@
       {{ arrow_link(_("Open original posting"), job.preferred_application_url, size='text-[13.5px] mt-2') }}
       {% endif %}
     </div>
-  </div>
 </div>
 
 </div>
